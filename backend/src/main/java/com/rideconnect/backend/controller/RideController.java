@@ -7,6 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -27,5 +28,16 @@ public class RideController {
     @GetMapping("/all")
     public List<Ride> getAllRides() {
         return rideService.getAllRides();
+    }
+
+    // GET /api/rides/search?source=Chennai&destination=Bangalore&date=2025-02-27
+    @GetMapping("/search")
+    public List<Ride> searchRides(
+            @RequestParam String source, 
+            @RequestParam String destination,
+            @RequestParam String date) { // Date comes as String "YYYY-MM-DD"
+        
+        LocalDate travelDate = LocalDate.parse(date);
+        return rideService.searchRides(source, destination, travelDate);
     }
 }

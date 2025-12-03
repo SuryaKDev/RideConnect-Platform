@@ -7,6 +7,7 @@ import com.rideconnect.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -38,5 +39,9 @@ public class RideService {
     
     public List<Ride> getAllRides() {
         return rideRepository.findAll();
+    }
+
+    public List<Ride> searchRides(String source, String destination, LocalDate date) {
+        return rideRepository.findBySourceAndDestinationAndTravelDate(source, destination, date);
     }
 }
