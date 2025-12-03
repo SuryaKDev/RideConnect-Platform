@@ -6,6 +6,7 @@ import com.rideconnect.backend.security.JwtUtil;
 import com.rideconnect.backend.service.UserService;
 
 import java.util.Collections;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,13 +28,21 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
             User registeredUser = userService.registerUser(user);
-            return ResponseEntity.ok("User registered successfully with ID: " + registeredUser.getId());
+            
+            // OLD WAY: return ResponseEntity.ok("User registered successfully...");
+            
+            // NEW WAY: Return the whole object 
+            return ResponseEntity.ok(registeredUser);
+            
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            // It is also better to send errors as JSON, not plain strings
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
