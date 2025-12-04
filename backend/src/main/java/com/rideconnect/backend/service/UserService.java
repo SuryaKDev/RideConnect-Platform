@@ -1,5 +1,6 @@
 package com.rideconnect.backend.service;
 
+import com.rideconnect.backend.model.Role;
 import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,17 +19,27 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User registerUser(User user) {
-        // 1. Check if email already exists
+public User registerUser(User user) {
+        // 1. Check if email exists
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("Email already in use: " + user.getEmail());
         }
 
-        // 2. Encrypt the password (Never store plain text!)
-        // This fulfills the requirement: "Password encryption with BCrypt/Argon2" 
+        // 2. SECURITY CHECK: Prevent public Admin registration
+        if (user.getRole() == Role.ADMIN) {
+            throw new RuntimeException("Cannot register as Admin publicly!");
+        }
+
+        // 3. Encrypt password
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        // 3. Save to database
+        // 4. Set default verification status (Drivers are not verified by default)
+        if (user.getRole() == Role.DRIVER) {
+            user.setVerified(false); 
+        } else {
+            user.setVerified(true); // Passengers don't need verification
+        }
+
         return userRepository.save(user);
     }
     

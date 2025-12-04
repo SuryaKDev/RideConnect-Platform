@@ -1,6 +1,5 @@
 package com.rideconnect.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.*;
@@ -43,6 +42,13 @@ public class User {
     private String licensePlate;
 
     private Integer vehicleCapacity; // e.g., 4 seats
+
+    @Column(nullable = false)
+    private boolean isVerified = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isActive = true;
 
     // Helper method to check if user is a driver
     public boolean isDriver() {
