@@ -1,0 +1,112 @@
+.pageWrapper {
+    min-height: 100vh;
+    background-color: #f8fafc;
+}
+
+.pageTitle {
+    margin: 2rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.bookingsList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 800px;
+}
+
+.bookingCard {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    position: relative;
+}
+
+.statusBadge {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background-color: #ecfdf5;
+    color: #059669;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.route {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 1.125rem;
+}
+
+.connector {
+    width: 2px;
+    height: 16px;
+    background-color: #e2e8f0;
+    margin-left: 7px;
+}
+
+.icon {
+    color: var(--primary);
+}
+
+.details {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.detailItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+
+.seats {
+    color: var(--text-muted);
+}
+
+.price {
+    color: var(--text-main);
+    font-size: 1.125rem;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 4rem;
+    background: white;
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    border: 1px dashed #e2e8f0;
+}
