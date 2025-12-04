@@ -129,8 +129,8 @@
     width: 100%;
     object-fit: cover;
     /* seamless blend */
-    object-position: center;
-    /* Centered to show the driver and the group balanced */
+    object-position: 25% center;
+    /* Shift focus to the left to show the driver */
 
     /* Advanced Masking: Keep left side transparent to protect text, then fade in */
     -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 30%, black 70%), linear-gradient(to bottom, transparent 0%, black 15%);
