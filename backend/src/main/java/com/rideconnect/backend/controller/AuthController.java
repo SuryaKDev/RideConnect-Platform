@@ -49,33 +49,25 @@ public class AuthController {
         }
     }
 
-@PostMapping("/login")
+    @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
         try {
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    loginRequest.getEmail(), 
-                    loginRequest.getPassword()
-                )
-            );
-
-            String token = jwtUtil.generateToken(loginRequest.getEmail());
-            return ResponseEntity.ok(Collections.singletonMap("token", token));
+            // Call the service and get the token map back
+            Map<String, String> tokenMap = userService.loginUser(loginRequest);
+            return ResponseEntity.ok(tokenMap);
 
         } catch (DisabledException e) {
-            // Direct catch
             return ResponseEntity.status(403).body("ACCESS DENIED: Your account has been blocked by Admin.");
-            
+
         } catch (InternalAuthenticationServiceException e) {
-            // 2. NEW CATCH BLOCK: Unwrap the box!
             if (e.getCause() instanceof DisabledException) {
-                 return ResponseEntity.status(403).body("ACCESS DENIED: Your account has been blocked by Admin.");
+                return ResponseEntity.status(403).body("ACCESS DENIED: Your account has been blocked by Admin.");
             }
             return ResponseEntity.status(500).body("Authentication Error: " + e.getMessage());
 
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(401).body("Invalid email or password.");
-            
+
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Login failed: " + e.getMessage());
         }

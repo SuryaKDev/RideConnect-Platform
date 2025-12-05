@@ -1,22 +1,38 @@
 package com.rideconnect.backend.service;
 
+import com.rideconnect.backend.dto.LoginRequest;
 import com.rideconnect.backend.model.Role;
 import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.Map;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       @Lazy AuthenticationManager authenticationManager,
+                       JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
     }
 
 public User registerUser(User user) {
@@ -41,6 +57,22 @@ public User registerUser(User user) {
         }
 
         return userRepository.save(user);
+    }
+
+    public Map<String, String> loginUser(LoginRequest loginRequest) {
+        // 1. Attempt Authentication
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getEmail(),
+                        loginRequest.getPassword()
+                )
+        );
+
+        // 2. Generate Token
+        String token = jwtUtil.generateToken(loginRequest.getEmail());
+
+        // 3. Return Token inside a Map
+        return Collections.singletonMap("token", token);
     }
     
     // Helper method to find a user (we will need this for Login later)
