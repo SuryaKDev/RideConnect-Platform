@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import { registerUser } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Navbar from '../components/Navbar';
 import styles from './Register.module.css';
 
 const Register = () => {
@@ -41,12 +40,12 @@ const Register = () => {
         }
 
         try {
-            await api.post('/auth/register', payload);
+            await registerUser(payload);
             alert('Registration Successful! Please Login.');
             navigate('/login');
         } catch (err) {
-            if (err.response && err.response.data) {
-                setError(err.response.data.message || 'Registration failed.');
+            if (err.message) {
+                setError(err.message);
             } else {
                 setError('Registration failed. Please try again.');
             }

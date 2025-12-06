@@ -9,6 +9,7 @@ import PostRide from './pages/driver/PostRide';
 import PassengerDashboard from './pages/passenger/PassengerDashboard';
 import MyBookings from './pages/passenger/MyBookings';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import Profile from './pages/Profile';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -33,6 +34,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<Profile />} />
 
           <Route
             path="/driver-dashboard"

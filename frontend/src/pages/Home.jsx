@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Button from '../components/ui/Button';
@@ -9,18 +10,36 @@ import styles from './Home.module.css';
 const Home = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
 
-    // Handle scroll to section if state is present
-    useEffect(() => {
-        if (location.state?.scrollTo) {
-            const element = document.getElementById(location.state.scrollTo);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-                // Clear state to prevent scrolling on subsequent renders/refreshes
-                window.history.replaceState({}, document.title);
-            }
-        }
-    }, [location]);
+    const [message, setMessage] = useState('');
+    const [messageType, setMessageType] = useState('');
+
+
+// Handle scroll to section if state is present
+    
+useEffect(() => {
+
+  if (location.state?.scrollTo) {
+    const element = document.getElementById(location.state.any);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  // Handle message from navigation
+  if (location.state?.message) {
+    setMessage(location.state.message);
+    setMessageType(location.state.type || 'success');
+    // Auto-hide
+    const timer = setTimeout(() => setMessage(''), 3000);
+    return () => clearTimeout(timer);
+  }
+
+  // Clear state once after both
+  window.history.replaceState({}, document.title);
+}, [location.state]); 
+
 
     return (
         <div className={styles.pageWrapper}>
@@ -28,6 +47,22 @@ const Home = () => {
 
             {/* Hero Section */}
             <div className={styles.mainContent}>
+                {message && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '80px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 1000,
+                        backgroundColor: messageType === 'error' ? '#f8d7da' : '#d4edda',
+                        color: messageType === 'error' ? '#721c24' : '#155724',
+                        padding: '1rem 2rem',
+                        borderRadius: '4px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                        {message}
+                    </div>
+                )}
                 {/* Left Content */}
                 <div className={styles.textContent}>
                     <p className={styles.badge}>PREMIUM MOBILITY PLATFORM</p>
@@ -43,21 +78,25 @@ const Home = () => {
                         Eco-friendly carpooling for everyone.
                     </p>
 
-                    <div className={styles.ctaGroup}>
-                        <Button
-                            className={styles.primaryBtn}
-                            onClick={() => navigate('/login')}
-                        >
-                            Find a ride
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className={styles.secondaryBtn}
-                            onClick={() => navigate('/register')}
-                        >
-                            Become a host
-                        </Button>
-                    </div>
+
+
+                    {!user && (
+                        <div className={styles.ctaGroup}>
+                            <Button
+                                className={styles.primaryBtn}
+                                onClick={() => navigate('/login')}
+                            >
+                                Find a ride
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className={styles.secondaryBtn}
+                                onClick={() => navigate('/register')}
+                            >
+                                Become a host
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Image */}

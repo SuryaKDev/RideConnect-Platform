@@ -37,7 +37,27 @@ const Navbar = () => {
 
                 <div className={styles.navLinks}>
                     {location.pathname !== '/login' && location.pathname !== '/register' && (
-                        <a href="#about" onClick={handleAboutClick} className={styles.navLink}>About Us</a>
+                        <>
+                            <a href="#about" onClick={handleAboutClick} className={styles.navLink}>About Us</a>
+
+                            {user?.role === 'PASSENGER' && (
+                                <Link to="/passenger-dashboard">
+                                    <Button size="sm" variant="outline">Find a Ride</Button>
+                                </Link>
+                            )}
+
+                            {user?.role === 'DRIVER' && (
+                                <Link to="/post-ride">
+                                    <Button size="sm" variant="outline">Publish a Ride</Button>
+                                </Link>
+                            )}
+
+                            {user?.role === 'ADMIN' && (
+                                <Link to="/admin-dashboard">
+                                    <Button size="sm" variant="outline">Admin Dashboard</Button>
+                                </Link>
+                            )}
+                        </>
                     )}
 
                     {user ? (
@@ -54,8 +74,13 @@ const Navbar = () => {
                             {showProfileMenu && (
                                 <div className={styles.dropdown}>
                                     <div className={styles.dropdownHeader}>
-                                        <p className={styles.userRole}>{user.role}</p>
+                                        <p className={styles.userRole}>{user.name || user.role}</p>
                                     </div>
+
+
+                                    <Link to="/profile" className={styles.dropdownItem} onClick={() => setShowProfileMenu(false)}>
+                                        <User size={16} /> Profile
+                                    </Link>
 
                                     {user.role === 'PASSENGER' && (
                                         <Link to="/my-bookings" className={styles.dropdownItem} onClick={() => setShowProfileMenu(false)}>
@@ -65,7 +90,7 @@ const Navbar = () => {
 
                                     {user.role === 'DRIVER' && (
                                         <Link to="/driver-dashboard" className={styles.dropdownItem} onClick={() => setShowProfileMenu(false)}>
-                                            <LayoutDashboard size={16} /> Dashboard
+                                            <LayoutDashboard size={16} /> My Rides
                                         </Link>
                                     )}
 

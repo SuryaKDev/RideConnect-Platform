@@ -1,0 +1,206 @@
+// src/services/api.js
+
+const API_URL = "http://localhost:8080/api";
+
+// Helper function to handle headers and tokens automatically
+const getHeaders = () => {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  const token = localStorage.getItem("token"); // <--- Get JWT from storage
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`; // <--- Attach it!
+  }
+  return headers;
+};
+// --- AUTH SERVICES ---
+
+export const loginUser = async (email, password) => {
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    // Response is not JSON
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || text || "Login failed");
+  }
+
+  // SAVE THE TOKEN AUTOMATICALLY
+  if (data && data.token) {
+    localStorage.setItem("token", data.token);
+  }
+  return data;
+};
+
+export const registerUser = async (userData) => {
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    // Response is not JSON
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || text || "Registration failed");
+  }
+
+  return data;
+};
+
+export const logoutUser = () => {
+  localStorage.removeItem("token");
+  window.location.href = "/login"; // Force redirect
+};
+
+
+// --- RIDE SERVICES ---
+
+export const postRide = async (rideData) => {
+  const response = await fetch(`${API_URL}/rides/post`, {
+    method: "POST",
+    headers: getHeaders(), // <--- Uses the helper to attach token
+    body: JSON.stringify(rideData),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to post ride");
+  return data;
+};
+
+export const searchRides = async (source, destination, date) => {
+  // Construct query string: ?source=X&destination=Y&date=Z
+  const query = new URLSearchParams({ source, destination, date }).toString();
+
+  const response = await fetch(`${API_URL}/rides/search?${query}`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Search failed");
+  return data;
+};
+
+// --- BOOKING SERVICES ---
+
+export const bookRide = async (rideId, seats) => {
+  // Fix: Send rideId and seats as query parameters
+  const response = await fetch(`${API_URL}/bookings/book?rideId=${rideId}&seats=${seats}`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Booking failed");
+  return data;
+};
+
+export const getMyBookings = async () => {
+  const response = await fetch(`${API_URL}/bookings/my-bookings`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch bookings");
+  return data;
+};
+
+// --- ADMIN SERVICES ---
+
+export const getAllUsers = async () => {
+  const response = await fetch(`${API_URL}/admin/users`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch users");
+  return data;
+};
+
+export const getAllBookings = async () => {
+  const response = await fetch(`${API_URL}/admin/bookings`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch bookings");
+  return data;
+};
+
+export const getAllRides = async () => {
+  const response = await fetch(`${API_URL}/rides/all`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch rides");
+  return data;
+};
+
+export const verifyDriver = async (driverId) => {
+  const response = await fetch(`${API_URL}/admin/verify-driver/${driverId}`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to verify driver");
+  return data;
+};
+
+export const blockUser = async (userId) => {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/block`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to block user");
+  return data;
+};
+
+export const cancelRide = async (rideId) => {
+  const response = await fetch(`${API_URL}/admin/rides/${rideId}/cancel`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
+  return data;
+};
+
+export const getProfile = async () => {
+    const response = await fetch(`${API_URL}/users/profile`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch profile");
+    return data;
+};
+
+export const updateProfile = async (profileData) => {
+    const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(profileData),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to update profile");
+    return data;
+};

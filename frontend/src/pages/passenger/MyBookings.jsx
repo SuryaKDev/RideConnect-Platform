@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
-import api from '../../api/axios';
+import { getMyBookings } from '../../services/api';
 import styles from './MyBookings.module.css';
 import { Calendar, Clock, MapPin, CheckCircle } from 'lucide-react';
 
@@ -11,17 +11,22 @@ const MyBookings = () => {
     useEffect(() => {
         const fetchBookings = async () => {
             try {
-                // const response = await api.get('/bookings/my-bookings');
-                // setBookings(response.data);
+                const data = await getMyBookings();
 
-                // Mock Data
-                setTimeout(() => {
-                    setBookings([
-                        { id: 101, source: 'Chennai', destination: 'Bangalore', date: '2023-10-25', time: '08:00 AM', seats: 1, price: 500, status: 'CONFIRMED', driverName: 'Karthik' },
-                        { id: 102, source: 'Bangalore', destination: 'Mysore', date: '2023-11-01', time: '09:00 AM', seats: 2, price: 600, status: 'COMPLETED', driverName: 'Rahul' },
-                    ]);
-                    setLoading(false);
-                }, 500);
+                const mappedBookings = data.map(booking => ({
+                    id: booking.id,
+                    source: booking.ride.source,
+                    destination: booking.ride.destination,
+                    date: booking.ride.travelDate,
+                    time: booking.ride.travelTime,
+                    seats: booking.seatsBooked,
+                    price: (booking.ride.pricePerSeat || 0) * booking.seatsBooked, // Fallback if price missing
+                    status: booking.status,
+                    driverName: booking.ride.driver ? booking.ride.driver.name : 'Unknown Driver'
+                }));
+
+                setBookings(mappedBookings);
+                setLoading(false);
             } catch (error) {
                 console.error('Failed to fetch bookings', error);
                 setLoading(false);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import api from '../../api/axios';
+import { searchRides, bookRide } from '../../services/api';
 import styles from './PassengerDashboard.module.css';
 import { Search, MapPin, Calendar, Clock, User, CheckCircle } from 'lucide-react';
 
@@ -24,17 +24,22 @@ const PassengerDashboard = () => {
         setLoading(true);
         setSearched(true);
         try {
-            // const response = await api.get('/rides/search', { params: searchParams });
-            // setRides(response.data);
+            const data = await searchRides(searchParams.source, searchParams.destination, searchParams.date);
 
-            // Mock Data
-            setTimeout(() => {
-                setRides([
-                    { id: 1, driverName: 'Karthik', carModel: 'Swift Dzire', source: searchParams.source || 'Chennai', destination: searchParams.destination || 'Bangalore', date: searchParams.date || '2023-10-25', time: '08:00 AM', seats: 3, price: 500 },
-                    { id: 2, driverName: 'Sara', carModel: 'Honda City', source: searchParams.source || 'Chennai', destination: searchParams.destination || 'Bangalore', date: searchParams.date || '2023-10-25', time: '10:00 AM', seats: 1, price: 600 },
-                ]);
-                setLoading(false);
-            }, 500);
+            const mappedRides = data.map(ride => ({
+                id: ride.id,
+                driverName: ride.driver.name,
+                carModel: ride.driver.vehicleModel,
+                source: ride.source,
+                destination: ride.destination,
+                date: ride.travelDate,
+                time: ride.travelTime,
+                seats: ride.availableSeats,
+                price: ride.pricePerSeat
+            }));
+
+            setRides(mappedRides);
+            setLoading(false);
         } catch (error) {
             console.error('Search failed', error);
             setLoading(false);
@@ -49,7 +54,7 @@ const PassengerDashboard = () => {
 
     const confirmBooking = async () => {
         try {
-            // await api.post(`/bookings/book?rideId=${selectedRide.id}&seats=${seatsToBook}`);
+            await bookRide(selectedRide.id, seatsToBook);
             setBookingStatus('success');
             setTimeout(() => {
                 setSelectedRide(null); // Close modal
@@ -122,8 +127,13 @@ const PassengerDashboard = () => {
                                         </div>
                                     </div>
 
-                                    <Button className={styles.bookBtn} onClick={() => handleBookClick(ride)}>
-                                        Book Now
+                                    <Button
+                                        className={styles.bookBtn}
+                                        onClick={() => handleBookClick(ride)}
+                                        disabled={ride.seats === 0}
+                                        style={ride.seats === 0 ? { backgroundColor: '#ccc', cursor: 'not-allowed', borderColor: '#ccc' } : {}}
+                                    >
+                                        {ride.seats === 0 ? 'Bookings Closed' : 'Book Now'}
                                     </Button>
                                 </div>
                             ))}

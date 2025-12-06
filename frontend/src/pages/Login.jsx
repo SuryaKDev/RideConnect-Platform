@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/axios';
+import { loginUser } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import styles from './Login.module.css';
@@ -23,21 +23,47 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const response = await api.post('/auth/login', formData);
-            const { token, role } = response.data;
-            login(token, role);
-            if (role === 'DRIVER') navigate('/driver-dashboard');
-            else if (role === 'PASSENGER') navigate('/passenger-dashboard');
-            else if (role === 'ADMIN') navigate('/admin-dashboard');
-            else setError('Unknown role');
-        } catch (err) {
-            if (err.response) {
-                if (err.response.status === 403) setError('Access Denied: Your account has been blocked.');
-                else if (err.response.status === 401) setError('Invalid credentials.');
-                else setError('Login failed. Please try again.');
-            } else {
-                setError('Network error. Please try again later.');
+            const data = await loginUser(formData.email, formData.password);
+            const { token } = data;
+
+            // Prioritize data from response body, fallback to decoding token
+            let role = data.role;
+            let name = data.name || data.user?.name;
+
+            if (token) {
+                try {
+                    // Decode the JWT payload (Base64 decode the middle part)
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+
+                    // If backend didn't send role in body, grab from token
+                    if (!role) {
+                        role = payload.role || payload.authorities?.[0] || 'PASSENGER';
+                        if (role.startsWith('ROLE_')) role = role.replace('ROLE_', '');
+                    }
+
+                    // If backend didn't send name in body, grab from token claims
+                    if (!name) {
+                        // We added "name" key in JwtUtil.java
+                        name = payload.name || payload.sub;
+                    }
+
+                    console.log("Decoded User:", { name, role });
+                } catch (e) {
+                    console.error("Failed to decode token", e);
+                }
             }
+
+            // Extract verification status
+            let isVerified = data.isVerified || data.user?.isVerified || false;
+
+            // Update Global Auth Context
+            login(token, role, name, isVerified);
+
+            // Redirect to Home Page
+            navigate('/');
+
+        } catch (err) {
+            setError(err.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }

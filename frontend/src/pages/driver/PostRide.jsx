@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import api from '../../api/axios';
+import { postRide } from '../../services/api';
 import styles from './PostRide.module.css';
 
 const PostRide = () => {
@@ -29,8 +29,17 @@ const PostRide = () => {
         setError('');
         setLoading(true);
 
+        const payload = {
+            source: formData.source,
+            destination: formData.destination,
+            travelDate: formData.date,
+            travelTime: formData.time + ":00", // Append seconds if needed
+            availableSeats: parseInt(formData.seats),
+            pricePerSeat: parseFloat(formData.price)
+        };
+
         try {
-            await api.post('/rides/post', formData);
+            await postRide(payload);
             navigate('/driver-dashboard');
         } catch (err) {
             setError('Failed to post ride. Please try again.');

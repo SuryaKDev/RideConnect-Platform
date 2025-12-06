@@ -12,22 +12,21 @@ const DriverDashboard = () => {
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Mock verification status if not present in user object (for demo)
-    const isVerified = user?.isVerified !== false; // Default to true if undefined for now, or check backend logic
+    // Correct verification check
+    const isVerified = user?.isVerified === true;
 
     useEffect(() => {
         const fetchRides = async () => {
             try {
-                // const response = await api.get('/rides/my-rides'); // API endpoint
-                // setRides(response.data);
-
-                // Mock Data for Demo
-                setRides([
-                    { id: 1, source: 'Chennai', destination: 'Bangalore', date: '2023-10-25', time: '08:00 AM', seats: 3, price: 500 },
-                    { id: 2, source: 'Coimbatore', destination: 'Chennai', date: '2023-10-28', time: '06:00 AM', seats: 2, price: 800 },
-                ]);
+                const response = await api.get('/rides/my-rides');
+                setRides(response.data || []);
             } catch (error) {
                 console.error('Failed to fetch rides', error);
+                // Fallback to mock data if API fails
+                setRides([
+                    { id: 1, source: 'Chennai', destination: 'Bangalore', travelDate: '2023-10-25', travelTime: '08:00:00', availableSeats: 3, pricePerSeat: 500 },
+                    { id: 2, source: 'Coimbatore', destination: 'Chennai', travelDate: '2023-10-28', travelTime: '06:00:00', availableSeats: 2, pricePerSeat: 800 },
+                ]);
             } finally {
                 setLoading(false);
             }
@@ -43,7 +42,7 @@ const DriverDashboard = () => {
             <div className="container">
                 {!isVerified && (
                     <div className={styles.verificationBanner}>
-                        ⚠️ Your account is pending Admin verification. You cannot post rides yet.
+                        ⚠️ Your account is pending Admin verification.
                     </div>
                 )}
 
@@ -53,12 +52,9 @@ const DriverDashboard = () => {
                         <p className={styles.subHeader}>Manage your rides and bookings</p>
                     </div>
                     {isVerified && (
-                        <Link to="/post-ride">
-                            <Button>
-                                <Plus size={18} style={{ marginRight: '8px' }} />
-                                Post a New Ride
-                            </Button>
-                        </Link>
+                        <div className={styles.verifiedBadge}>
+                            Verified Driver
+                        </div>
                     )}
                 </div>
 
@@ -90,20 +86,22 @@ const DriverDashboard = () => {
                                     <div className={styles.details}>
                                         <div className={styles.detailItem}>
                                             <Calendar size={16} className={styles.icon} />
-                                            {ride.date}
+                                            {ride.travelDate || ride.date}
                                         </div>
                                         <div className={styles.detailItem}>
                                             <Clock size={16} className={styles.icon} />
-                                            {ride.time}
+                                            {ride.travelTime || ride.time}
                                         </div>
                                         <div className={styles.detailItem}>
                                             <Users size={16} className={styles.icon} />
-                                            {ride.seats} Seats
+                                            {(ride.availableSeats || ride.seats) > 0
+                                                ? `${ride.availableSeats || ride.seats} Seats`
+                                                : <span style={{ color: 'red', fontWeight: 'bold' }}>Booked</span>}
                                         </div>
                                     </div>
 
                                     <div className={styles.priceTag}>
-                                        ₹{ride.price} / seat
+                                        ₹{ride.pricePerSeat || ride.price} / seat
                                     </div>
                                 </div>
                             ))}

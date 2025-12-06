@@ -7,29 +7,41 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const token = localStorage.getItem('jwtToken');
-        const role = localStorage.getItem('userRole'); // We might store role separately or decode it
+        const token = localStorage.getItem('token');
+        const role = localStorage.getItem('userRole');
+        const name = localStorage.getItem('userName');
+        const isVerified = localStorage.getItem('userVerified') === 'true'; // Retrieve verification status
         if (token) {
-            // In a real app, we might validate the token with an API call here
-            setUser({ token, role });
+            setUser({ token, role, name, isVerified });
         }
         setLoading(false);
     }, []);
 
-    const login = (token, role) => {
-        localStorage.setItem('jwtToken', token);
+    const login = (token, role, name, isVerified) => {
+        localStorage.setItem('token', token);
         localStorage.setItem('userRole', role);
-        setUser({ token, role });
+        if (name) localStorage.setItem('userName', name);
+        localStorage.setItem('userVerified', isVerified); // Store verification status
+        setUser({ token, role, name, isVerified });
     };
 
     const logout = () => {
-        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('token');
         localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
         setUser(null);
     };
 
+    const updateUser = (updates) => {
+        setUser((prevUser) => {
+            const newUser = { ...prevUser, ...updates };
+            if (updates.name) localStorage.setItem('userName', updates.name);
+            return newUser;
+        });
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );
