@@ -12,4 +12,4 @@ admin.email=admin@rideconnect.com
 admin.password=admin123
 
 # Google Maps Configuration
-google.maps.api.key=AIzaSyBBDVpenbKKP8Oqpvzm_199YCmLoxS7pJc
+google.maps.api.key=${Google-API-Key}
