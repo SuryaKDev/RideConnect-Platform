@@ -6,6 +6,7 @@ backend/.mvn
 backend/help.md
 backend/.idea
 backend/*.iml
+src/main/resources/application.properties
 
 # Frontend (Node/React/Angular)
 frontend/node_modules/
