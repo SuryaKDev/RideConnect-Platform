@@ -41,6 +41,10 @@ public class RideService {
         return rideRepository.findAll();
     }
 
+    public List<Ride> getMyRides(String email) {
+        return rideRepository.findByDriverEmail(email);
+    }
+
     public List<Ride> searchRides(String source, String destination, LocalDate date) {
         return rideRepository.findBySourceAndDestinationAndTravelDate(source, destination, date);
     }

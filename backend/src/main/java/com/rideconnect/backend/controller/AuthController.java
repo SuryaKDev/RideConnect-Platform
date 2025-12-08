@@ -61,7 +61,7 @@ public class AuthController {
 
         } catch (InternalAuthenticationServiceException e) {
             if (e.getCause() instanceof DisabledException) {
-                return ResponseEntity.status(403).body("ACCESS DENIED: Your account has been blocked by Admin.");
+                return ResponseEntity.status(403).body("Your account has been blocked by Admin.");
             }
             return ResponseEntity.status(500).body("Authentication Error: " + e.getMessage());
 

@@ -30,6 +30,11 @@ public class RideController {
         return rideService.getAllRides();
     }
 
+    @GetMapping("/my-rides")
+    public List<Ride> getMyRides(@AuthenticationPrincipal UserDetails userDetails) {
+        return rideService.getMyRides(userDetails.getUsername());
+    }
+
     // GET /api/rides/search?source=Chennai&destination=Bangalore&date=2025-02-27
     @GetMapping("/search")
     public List<Ride> searchRides(
