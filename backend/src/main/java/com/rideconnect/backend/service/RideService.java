@@ -19,24 +19,42 @@ public class RideService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private DistanceService distanceService;
+
+    // (In a real app, these would be in application.properties)
+    private static final double BASE_FARE = 50.0;
+    private static final double RATE_PER_KM = 5.0;
+
     public Ride postRide(Ride ride, String email) {
-        // 1. Get the driver from the database using the email (from JWT)
+        // 1. Verify Driver
         User driver = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2. Check if the user is actually a driver
         if (!driver.isDriver()) {
             throw new RuntimeException("Only drivers can post rides!");
         }
 
-        // 3. Assign the driver to the ride & set status
+        // 2. Calculate Distance automatically (using Mock logic)
+        double distance = distanceService.calculateDistance(ride.getSource(), ride.getDestination());
+        ride.setDistanceKm(distance);
+
+        // 3. Calculate Dynamic Price (ONLY if the driver didn't set one manually)
+        // If price is null or 0, we auto-calculate it.
+        if (ride.getPricePerSeat() == null || ride.getPricePerSeat() == 0) {
+            double calculatedFare = BASE_FARE + (distance * RATE_PER_KM);
+
+            // Round to nearest 10 rupees (e.g., 453 -> 450) for cleaner pricing
+            double roundedFare = Math.round(calculatedFare / 10.0) * 10.0;
+            ride.setPricePerSeat(roundedFare);
+        }
+
         ride.setDriver(driver);
         ride.setStatus("AVAILABLE");
 
-        // 4. Save the ride
         return rideRepository.save(ride);
     }
-    
+
     public List<Ride> getAllRides() {
         return rideRepository.findAll();
     }
