@@ -1,11 +1,13 @@
 package com.rideconnect.backend.service.impl;
 
 import com.rideconnect.backend.service.DistanceService;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;
 
 @Service
+@Component("mockDistanceService")
 public class MockDistanceService implements DistanceService {
 
     @Override

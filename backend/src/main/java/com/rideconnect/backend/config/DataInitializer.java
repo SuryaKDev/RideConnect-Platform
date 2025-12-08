@@ -4,6 +4,7 @@ import com.rideconnect.backend.model.Role;
 import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -17,14 +18,20 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Value("${admin.email}")
+    private String adminEmail;
+
+    @Value("${admin.password}")
+    private String adminPassword;
+
     @Override
     public void run(String... args) throws Exception {
         // Check if Admin exists. If not, create one.
-        if (!userRepository.existsByEmail("admin@rideconnect.com")) {
+        if (!userRepository.existsByEmail(adminEmail)) {
             User admin = User.builder()
                     .name("Super Admin")
                     .email("admin@rideconnect.com")
-                    .password(passwordEncoder.encode("admin123")) // Default Password
+                    .password(passwordEncoder.encode(adminPassword)) // Default Password
                     .phone("0000000000")
                     .role(Role.ADMIN)
                     .isVerified(true)
