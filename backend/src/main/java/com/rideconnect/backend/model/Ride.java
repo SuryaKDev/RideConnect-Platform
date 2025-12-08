@@ -41,6 +41,10 @@ public class Ride {
     // Status (e.g., AVAILABLE, FULL, COMPLETED)
     private String status;
 
+    private Double distanceKm;
+
+
+
     // The Driver (Many Rides can belong to One Driver)
     @ManyToOne(fetch = FetchType.EAGER) // EAGER so we get driver details when searching rides
     @JoinColumn(name = "driver_id", nullable = false)
