@@ -24,7 +24,8 @@ const Profile = () => {
         licensePlate: '',
         vehicleCapacity: '',
         currentPassword: '',
-        newPassword: ''
+        newPassword: '',
+        retypeNewPassword: ''
     });
 
     // Fetch User Data on Mount
@@ -41,7 +42,8 @@ const Profile = () => {
                     licensePlate: data.licensePlate || '',
                     vehicleCapacity: data.vehicleCapacity || '',
                     currentPassword: '',
-                    newPassword: ''
+                    newPassword: '',
+                    retypeNewPassword: ''
                 });
             } catch (err) {
                 setMessage({ type: 'error', text: 'Failed to load profile data.' });
@@ -60,6 +62,13 @@ const Profile = () => {
         e.preventDefault();
         setUpdating(true);
         setMessage({ type: '', text: '' });
+
+        // Validate password match if changing password
+        if (formData.newPassword && formData.newPassword !== formData.retypeNewPassword) {
+            setMessage({ type: 'error', text: 'Passwords do not match!' });
+            setUpdating(false);
+            return;
+        }
 
         // Construct payload (only send necessary fields)
         const payload = {
@@ -171,6 +180,22 @@ const Profile = () => {
                                 value={formData.newPassword}
                                 onChange={handleChange}
                             />
+                            {formData.newPassword && (
+                                <Input
+                                    label="Retype New Password"
+                                    name="retypeNewPassword"
+                                    type="password"
+                                    placeholder="Retype your new password"
+                                    value={formData.retypeNewPassword}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            )}
+                            {formData.newPassword && formData.retypeNewPassword && formData.newPassword !== formData.retypeNewPassword && (
+                                <div className={styles.passwordError}>
+                                    Passwords do not match!
+                                </div>
+                            )}
                             {formData.newPassword && (
                                 <Input
                                     label="Current Password (Required to save changes)"

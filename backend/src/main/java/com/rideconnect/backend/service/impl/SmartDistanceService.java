@@ -11,16 +11,19 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 @Service
-@Primary
+@Primary // Use THIS service by default in RideService
 public class SmartDistanceService implements DistanceService {
 
     @Autowired
     private RouteDistanceRepository routeRepository;
 
     @Autowired
+    // Inject the Real Google Maps Service (we wrote this earlier)
+    // Make sure you REMOVED @Primary from GoogleMapsDistanceService
     private GoogleMapsDistanceService googleMapsService;
 
     @Autowired
+    // Inject the Mock Service (we wrote this earlier)
     private MockDistanceService mockService;
 
     @Override

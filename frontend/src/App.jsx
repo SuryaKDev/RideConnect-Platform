@@ -10,6 +10,7 @@ import PassengerDashboard from './pages/passenger/PassengerDashboard';
 import MyBookings from './pages/passenger/MyBookings';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Profile from './pages/Profile';
+import TransactionHistory from './pages/TransactionHistory';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/history" element={<TransactionHistory />} />
 
           <Route
             path="/driver-dashboard"

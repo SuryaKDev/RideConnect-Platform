@@ -61,7 +61,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public Map<String, String> loginUser(LoginRequest loginRequest) {
+    public Map<String, Object> loginUser(LoginRequest loginRequest) {
         // 1. Attempt Authentication (Checks password)
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -81,10 +81,12 @@ public class UserService {
         String role = user.getRole().name();
 
         // 5. Construct Response
-        Map<String, String> response = new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
         response.put("token", token);
-        response.put("role", role);
-        response.put("name", user.getName()); // Also send name directly for convenience
+        response.put("role", user.getRole().name());
+        response.put("name", user.getName());
+        response.put("isVerified", user.isVerified());
+
 
         return response;
     }

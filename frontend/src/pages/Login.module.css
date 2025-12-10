@@ -44,10 +44,9 @@
 
 .errorAlert {
     color: #ef4444;
-    /* padding: 0.75rem; */
-    margin-bottom: 1.5rem;
     font-size: 0.875rem;
-    text-align: center;
+    text-align: left;
+    
 }
 
 .submitBtn {

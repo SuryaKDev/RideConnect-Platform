@@ -53,8 +53,8 @@ public class AuthController {
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
         try {
             // Call the service and get the token map back
-            Map<String, String> tokenMap = userService.loginUser(loginRequest);
-            return ResponseEntity.ok(tokenMap);
+            Map<String, Object> response = userService.loginUser(loginRequest);
+            return ResponseEntity.ok(response);
 
         } catch (DisabledException e) {
             return ResponseEntity.status(403).body("ACCESS DENIED: Your account has been blocked by Admin.");

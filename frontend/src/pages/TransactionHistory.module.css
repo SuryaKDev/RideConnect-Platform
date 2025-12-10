@@ -1,0 +1,96 @@
+.pageWrapper {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    padding-bottom: 2rem;
+}
+
+.pageTitle {
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    font-size: 1.8rem;
+}
+
+.tableContainer {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.table th {
+    background-color: #f1f3f5;
+    color: #495057;
+    font-weight: 600;
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    color: #333;
+    vertical-align: middle;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.time {
+    display: block;
+    font-size: 0.85rem;
+    color: #868e96;
+}
+
+.route {
+    font-weight: 500;
+}
+
+.arrow {
+    color: #adb5bd;
+    margin: 0 5px;
+}
+
+.subText {
+    font-size: 0.85rem;
+    color: #868e96;
+    margin-top: 4px;
+}
+
+.amount {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.success {
+    background-color: #d3f9d8;
+    color: #2b8a3e;
+}
+
+.failed {
+    background-color: #ffe3e3;
+    color: #c92a2a;
+}
+
+.error {
+    color: #e03131;
+    background: #fff5f5;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #ffc9c9;
+}

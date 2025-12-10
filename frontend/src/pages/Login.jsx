@@ -29,6 +29,7 @@ const Login = () => {
             // Prioritize data from response body, fallback to decoding token
             let role = data.role;
             let name = data.name || data.user?.name;
+            let email = data.email || data.user?.email || formData.email;
 
             if (token) {
                 try {
@@ -47,17 +48,23 @@ const Login = () => {
                         name = payload.name || payload.sub;
                     }
 
-                    console.log("Decoded User:", { name, role });
+                    // If backend didn't send email, grab from token or use login email
+                    if (!email) {
+                        email = payload.email || payload.sub || formData.email;
+                    }
+
+                    console.log("Decoded User:", { name, email, role });
                 } catch (e) {
                     console.error("Failed to decode token", e);
                 }
             }
 
-            // Extract verification status
-            let isVerified = data.isVerified || data.user?.isVerified || false;
+            // Extract verification status with explicit handling
+            // If data.isVerified is undefined (e.g. for Passenger), default to false
+            const isVerified = data.isVerified !== undefined ? data.isVerified : (data.user?.isVerified !== undefined ? data.user.isVerified : false);
 
             // Update Global Auth Context
-            login(token, role, name, isVerified);
+            login(token, role, name, email, isVerified);
 
             // Redirect to Home Page
             navigate('/');
@@ -77,8 +84,6 @@ const Login = () => {
                         <h2>Welcome Back</h2>
                         <p>Login to continue to RideConnect</p>
                     </div>
-
-                    {error && <div className={styles.errorAlert}>{error}</div>}
 
                     <form onSubmit={handleSubmit}>
                         <Input
@@ -101,6 +106,8 @@ const Login = () => {
                             onChange={handleChange}
                             required
                         />
+
+                        {error && <div className={styles.errorAlert}>{error}</div>}
 
                         <Button type="submit" className={styles.submitBtn} disabled={loading}>
                             {loading ? 'Logging in...' : 'Login'}

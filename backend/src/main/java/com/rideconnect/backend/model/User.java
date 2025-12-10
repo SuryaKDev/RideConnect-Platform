@@ -44,6 +44,14 @@ public class User {
     private Integer vehicleCapacity; // e.g., 4 seats
 
     @Column(nullable = false)
+    @Builder.Default
+    private Double averageRating = 0.0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer totalReviews = 0;
+
+    @Column(nullable = false)
     private boolean isVerified = false;
 
     @Column(nullable = false)

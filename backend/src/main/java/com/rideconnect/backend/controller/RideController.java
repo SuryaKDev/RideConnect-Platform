@@ -34,15 +34,27 @@ public class RideController {
     public List<Ride> getMyRides(@AuthenticationPrincipal UserDetails userDetails) {
         return rideService.getMyRides(userDetails.getUsername());
     }
-
-    // GET /api/rides/search?source=Chennai&destination=Bangalore&date=2025-02-27
+    // UPDATED SEARCH ENDPOINT
+    // Date is now optional. Example: /api/rides/search?source=Chennai&destination=Bangalore
     @GetMapping("/search")
     public List<Ride> searchRides(
-            @RequestParam String source, 
+            @RequestParam String source,
             @RequestParam String destination,
-            @RequestParam String date) { // Date comes as String "YYYY-MM-DD"
-        
-        LocalDate travelDate = LocalDate.parse(date);
-        return rideService.searchRides(source, destination, travelDate);
+            @RequestParam(required = false) String date, // Made Optional
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Integer minSeats,
+            @RequestParam(required = false) Double minRating) {
+
+        LocalDate travelDate = null;
+        // Only parse if date is provided and not empty string
+        if (date != null && !date.trim().isEmpty()) {
+            travelDate = LocalDate.parse(date);
+        }
+
+        return rideService.searchRides(
+                source, destination, travelDate,
+                minPrice, maxPrice, minSeats, minRating
+        );
     }
 }

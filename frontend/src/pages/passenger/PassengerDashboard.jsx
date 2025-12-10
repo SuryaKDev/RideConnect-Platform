@@ -1,19 +1,28 @@
 import React, { useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
 import { searchRides, bookRide } from '../../services/api';
 import styles from './PassengerDashboard.module.css';
-import { Search, MapPin, Calendar, Clock, User, CheckCircle } from 'lucide-react';
+import { Search, MapPin, Calendar, Clock, User, CheckCircle, Filter } from 'lucide-react';
 
 const PassengerDashboard = () => {
-    const [searchParams, setSearchParams] = useState({ source: '', destination: '', date: '' });
+    // Consolidated state for all search params
+    const [searchParams, setSearchParams] = useState({ 
+        source: '', 
+        destination: '', 
+        date: '',
+        minPrice: '',
+        maxPrice: '',
+        minSeats: 1
+    });
+    
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
-    const [selectedRide, setSelectedRide] = useState(null); // For booking modal
+    const [selectedRide, setSelectedRide] = useState(null); 
     const [seatsToBook, setSeatsToBook] = useState(1);
-    const [bookingStatus, setBookingStatus] = useState(null); // 'success', 'error'
+    const [bookingStatus, setBookingStatus] = useState(null); 
+    const [showFilters, setShowFilters] = useState(false); // Toggle for advanced filters
 
     const handleSearchChange = (e) => {
         setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
@@ -24,7 +33,8 @@ const PassengerDashboard = () => {
         setLoading(true);
         setSearched(true);
         try {
-            const data = await searchRides(searchParams.source, searchParams.destination, searchParams.date);
+            // Pass the whole object to our updated API function
+            const data = await searchRides(searchParams);
 
             const mappedRides = data.map(ride => ({
                 id: ride.id,
@@ -57,8 +67,7 @@ const PassengerDashboard = () => {
             await bookRide(selectedRide.id, seatsToBook);
             setBookingStatus('success');
             setTimeout(() => {
-                setSelectedRide(null); // Close modal
-                // Refresh rides or redirect to My Bookings
+                setSelectedRide(null); 
             }, 2000);
         } catch (error) {
             setBookingStatus('error');
@@ -73,26 +82,54 @@ const PassengerDashboard = () => {
             <div className={styles.searchHero}>
                 <div className="container">
                     <h1 className={styles.heroTitle}>Find your ride</h1>
-                    <form onSubmit={handleSearch} className={styles.searchBar}>
-                        <div className={styles.searchInput}>
-                            <MapPin size={18} className={styles.icon} />
-                            <input type="text" name="source" placeholder="Leaving from" value={searchParams.source} onChange={handleSearchChange} />
-                        </div>
-                        <div className={styles.divider}></div>
-                        <div className={styles.searchInput}>
-                            <MapPin size={18} className={styles.icon} />
-                            <input type="text" name="destination" placeholder="Going to" value={searchParams.destination} onChange={handleSearchChange} />
-                        </div>
-                        <div className={styles.divider}></div>
-                        <div className={styles.searchInput}>
-                            <Calendar size={18} className={styles.icon} />
-                            <input type="date" name="date" value={searchParams.date} onChange={handleSearchChange} />
-                        </div>
-                        <Button type="submit" className={styles.searchBtn}>
-                            <Search size={20} />
-                            Search
-                        </Button>
-                    </form>
+                    
+                    <div className={styles.searchContainer}>
+                        <form onSubmit={handleSearch}>
+                            {/* Main Search Row */}
+                            <div className={styles.searchBar}>
+                                <div className={styles.searchInput}>
+                                    <MapPin size={18} className={styles.icon} />
+                                    <input type="text" name="source" placeholder="Leaving from" value={searchParams.source} onChange={handleSearchChange} />
+                                </div>
+                                <div className={styles.divider}></div>
+                                <div className={styles.searchInput}>
+                                    <MapPin size={18} className={styles.icon} />
+                                    <input type="text" name="destination" placeholder="Going to" value={searchParams.destination} onChange={handleSearchChange} />
+                                </div>
+                                <div className={styles.divider}></div>
+                                <div className={styles.searchInput}>
+                                    <Calendar size={18} className={styles.icon} />
+                                    <input type="date" name="date" value={searchParams.date} onChange={handleSearchChange} />
+                                </div>
+                                <Button type="submit" className={styles.searchBtn}>
+                                    <Search size={20} /> Search
+                                </Button>
+                            </div>
+
+                            {/* Filter Toggle */}
+                            <div className={styles.filterToggle} onClick={() => setShowFilters(!showFilters)}>
+                                <Filter size={16} /> {showFilters ? "Hide Filters" : "Advanced Filters"}
+                            </div>
+
+                            {/* Advanced Filters Row */}
+                            {showFilters && (
+                                <div className={styles.filterBar}>
+                                    <div className={styles.filterItem}>
+                                        <label>Min Price</label>
+                                        <input type="number" name="minPrice" placeholder="0" value={searchParams.minPrice} onChange={handleSearchChange} />
+                                    </div>
+                                    <div className={styles.filterItem}>
+                                        <label>Max Price</label>
+                                        <input type="number" name="maxPrice" placeholder="5000" value={searchParams.maxPrice} onChange={handleSearchChange} />
+                                    </div>
+                                    <div className={styles.filterItem}>
+                                        <label>Min Seats</label>
+                                        <input type="number" name="minSeats" min="1" value={searchParams.minSeats} onChange={handleSearchChange} />
+                                    </div>
+                                </div>
+                            )}
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -149,18 +186,13 @@ const PassengerDashboard = () => {
                         <h2>Confirm Booking</h2>
                         <div className={styles.modalContent}>
                             <div className={styles.summaryRow}>
-                                <span>Driver</span>
+                                <span>Driver:</span>
                                 <strong>{selectedRide.driverName}</strong>
                             </div>
                             <div className={styles.summaryRow}>
-                                <span>Route</span>
+                                <span>Route:</span>
                                 <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong>
                             </div>
-                            <div className={styles.summaryRow}>
-                                <span>Time</span>
-                                <strong>{selectedRide.time}</strong>
-                            </div>
-
                             <div className={styles.inputRow}>
                                 <label>Number of Seats</label>
                                 <input
@@ -172,7 +204,6 @@ const PassengerDashboard = () => {
                                     className={styles.seatInput}
                                 />
                             </div>
-
                             <div className={styles.totalRow}>
                                 <span>Total Price</span>
                                 <span className={styles.totalPrice}>₹{selectedRide.price * seatsToBook}</span>
@@ -183,12 +214,10 @@ const PassengerDashboard = () => {
                                     <CheckCircle size={18} /> Booking Confirmed!
                                 </div>
                             )}
-
                             {bookingStatus === 'error' && (
                                 <div className={styles.errorMessage}>Booking failed. Try again.</div>
                             )}
                         </div>
-
                         <div className={styles.modalActions}>
                             <Button variant="outline" onClick={() => setSelectedRide(null)}>Cancel</Button>
                             <Button onClick={confirmBooking} disabled={bookingStatus === 'success'}>

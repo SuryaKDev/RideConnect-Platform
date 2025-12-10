@@ -1,5 +1,6 @@
 package com.rideconnect.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -17,36 +18,33 @@ public class Ride {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Route Details
     @Column(nullable = false)
     private String source;
 
     @Column(nullable = false)
     private String destination;
 
-    // Timing
+    // NEW: Comma-separated list of cities (e.g., "Ambur, Vellore")
+    private String stopovers;
+
     @Column(nullable = false)
     private LocalDate travelDate;
 
     @Column(nullable = false)
     private LocalTime travelTime;
 
-    // Ride Details
     @Column(nullable = false)
     private Double pricePerSeat;
 
     @Column(nullable = false)
     private Integer availableSeats;
-    
-    // Status (e.g., AVAILABLE, FULL, COMPLETED)
+
     private String status;
 
     private Double distanceKm;
 
-
-
-    // The Driver (Many Rides can belong to One Driver)
-    @ManyToOne(fetch = FetchType.EAGER) // EAGER so we get driver details when searching rides
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "driver_id", nullable = false)
+    @JsonIgnoreProperties({"password", "roles", "authorities"})
     private User driver;
 }

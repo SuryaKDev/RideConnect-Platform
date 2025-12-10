@@ -56,7 +56,7 @@ public class BookingService {
                 .passenger(passenger)
                 .seatsBooked(seats)
                 .bookingTime(LocalDateTime.now())
-                .status("CONFIRMED")
+                .status("PENDING_PAYMENT")
                 .build();
 
         return bookingRepository.save(booking);

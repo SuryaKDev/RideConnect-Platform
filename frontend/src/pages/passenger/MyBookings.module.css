@@ -1,112 +1,147 @@
 .pageWrapper {
+    background-color: #f8f9fa;
     min-height: 100vh;
-    background-color: #f8fafc;
+    padding-bottom: 2rem;
 }
 
 .pageTitle {
     margin: 2rem 0;
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-main);
+    color: #333;
 }
 
 .bookingsList {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1.5rem;
-    max-width: 800px;
 }
 
 .bookingCard {
     background: white;
-    border-radius: var(--radius-lg);
+    border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e2e8f0;
-    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+    transition: transform 0.2s;
+}
+
+.bookingCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px rgba(0,0,0,0.1);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
 }
 
 .statusBadge {
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
-    background-color: #ecfdf5;
-    color: #059669;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+}
+
+/* Dynamic Status Colors */
+.CONFIRMED {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.PENDING_PAYMENT {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.CANCELLED {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.bookingId {
+    font-size: 0.8rem;
+    color: #888;
 }
 
 .route {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.2rem;
 }
 
 .location {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 6px;
     font-weight: 600;
-    color: var(--text-main);
-    font-size: 1.125rem;
+    color: #2c3e50;
 }
 
 .connector {
-    width: 2px;
-    height: 16px;
-    background-color: #e2e8f0;
-    margin-left: 7px;
-}
-
-.icon {
-    color: var(--primary);
+    flex-grow: 1;
+    height: 2px;
+    background-color: #eee;
 }
 
 .details {
-    display: flex;
-    gap: 2rem;
-    margin-bottom: 1.5rem;
-    color: var(--text-muted);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
     font-size: 0.9rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #f1f5f9;
+    color: #666;
+    margin-bottom: 1.5rem;
 }
 
 .detailItem {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 6px;
 }
 
 .footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-weight: 600;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 1rem;
+}
+
+.costInfo {
+    display: flex;
+    flex-direction: column;
 }
 
 .seats {
-    color: var(--text-muted);
+    font-size: 0.85rem;
+    color: #888;
 }
 
 .price {
-    color: var(--text-main);
-    font-size: 1.125rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.payBtn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    background-color: #28a745; /* Green for pay */
+}
+
+.payBtn:hover {
+    background-color: #218838;
 }
 
 .emptyState {
     text-align: center;
-    padding: 4rem;
+    padding: 3rem;
+    color: #888;
     background: white;
-    border-radius: var(--radius-lg);
-    color: var(--text-muted);
-    border: 1px dashed #e2e8f0;
+    border-radius: 8px;
 }

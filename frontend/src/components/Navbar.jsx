@@ -75,11 +75,12 @@ const Navbar = () => {
                                 <div className={styles.dropdown}>
                                     <div className={styles.dropdownHeader}>
                                         <p className={styles.userRole}>{user.name || user.role}</p>
+                                        <p className={styles.userEmail}>{user.email}</p>
                                     </div>
 
 
                                     <Link to="/profile" className={styles.dropdownItem} onClick={() => setShowProfileMenu(false)}>
-                                        <User size={16} /> Profile
+                                        <User size={16} />Edit Profile
                                     </Link>
 
                                     {user.role === 'PASSENGER' && (

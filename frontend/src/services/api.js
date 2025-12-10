@@ -83,18 +83,26 @@ export const postRide = async (rideData) => {
   return data;
 };
 
-export const searchRides = async (source, destination, date) => {
-  // Construct query string: ?source=X&destination=Y&date=Z
-  const query = new URLSearchParams({ source, destination, date }).toString();
+// --- UPDATED SEARCH FUNCTION ---
+export const searchRides = async (filters) => {
+    // filters is an object like: { source: '...', minPrice: 500, ... }
+    
+    // Remove empty keys to keep URL clean
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+        if (filters[key] !== null && filters[key] !== "") {
+            params.append(key, filters[key]);
+        }
+    });
 
-  const response = await fetch(`${API_URL}/rides/search?${query}`, {
-    method: "GET",
-    headers: getHeaders(),
-  });
+    const response = await fetch(`${API_URL}/rides/search?${params.toString()}`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || "Search failed");
-  return data;
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Search failed");
+    return data;
 };
 
 // --- BOOKING SERVICES ---
@@ -202,5 +210,39 @@ export const updateProfile = async (profileData) => {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "Failed to update profile");
+    return data;
+};
+
+// --- PAYMENT SERVICES ---
+
+export const createOrder = async (bookingId) => {
+    const response = await fetch(`${API_URL}/payments/create-order`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ bookingId }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to create order");
+    return data;
+};
+
+export const verifyPayment = async (paymentData) => {
+    const response = await fetch(`${API_URL}/payments/verify`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(paymentData),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Payment verification failed");
+    return data;
+};
+
+export const getTransactionHistory = async () => {
+    const response = await fetch(`${API_URL}/payments/history`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch history");
     return data;
 };
