@@ -9,4 +9,7 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Find all bookings by a specific passenger (My Bookings)
     List<Booking> findByPassengerEmail(String email);
+
+    //Needed for RideService to cancel all bookings
+    List<Booking> findByRideId(Long rideId);
 }

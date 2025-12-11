@@ -3,12 +3,14 @@ package com.rideconnect.backend.controller;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.service.RideService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/rides")
@@ -56,5 +58,16 @@ public class RideController {
                 source, destination, travelDate,
                 minPrice, maxPrice, minSeats, minRating
         );
+    }
+
+    // Cancel Ride Endpoint
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelRide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            rideService.cancelRide(id, userDetails.getUsername());
+            return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

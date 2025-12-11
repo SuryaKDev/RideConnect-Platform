@@ -66,4 +66,33 @@ public class BookingService {
     public List<Booking> getMyBookings(String email) {
         return bookingRepository.findByPassengerEmail(email);
     }
+
+    // CANCEL BOOKING
+    @Transactional
+    public void cancelBooking(Long bookingId, String userEmail) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        // 1. Security Check
+        if (!booking.getPassenger().getEmail().equals(userEmail)) {
+            throw new RuntimeException("Not authorized to cancel this booking");
+        }
+
+        // 2. Prevent duplicate cancellation
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new RuntimeException("Booking is already cancelled");
+        }
+
+        // 3. Restore Seats to the Ride
+        Ride ride = booking.getRide();
+        ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
+        rideRepository.save(ride);
+
+        // 4. Update Status
+        booking.setStatus("CANCELLED");
+
+        // TODO: Trigger Refund Logic here if status was "CONFIRMED"
+
+        bookingRepository.save(booking);
+    }
 }

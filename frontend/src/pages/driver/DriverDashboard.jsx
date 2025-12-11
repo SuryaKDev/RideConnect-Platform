@@ -3,42 +3,48 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import api from '../../api/axios';
+import { cancelPublishedRide } from '../../services/api'; // Import cancel
 import { useAuth } from '../../context/AuthContext';
 import styles from './DriverDashboard.module.css';
-import { Plus, Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Users, XCircle } from 'lucide-react';
 
 const DriverDashboard = () => {
     const { user } = useAuth();
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Correct verification check
     const isVerified = user?.isVerified === true;
 
-    useEffect(() => {
-        const fetchRides = async () => {
-            try {
-                const response = await api.get('/rides/my-rides');
-                setRides(response.data || []);
-            } catch (error) {
-                console.error('Failed to fetch rides', error);
-                // Fallback to mock data if API fails
-                setRides([
-                    { id: 1, source: 'Chennai', destination: 'Bangalore', travelDate: '2023-10-25', travelTime: '08:00:00', availableSeats: 3, pricePerSeat: 500 },
-                    { id: 2, source: 'Coimbatore', destination: 'Chennai', travelDate: '2023-10-28', travelTime: '06:00:00', availableSeats: 2, pricePerSeat: 800 },
-                ]);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchRides = async () => {
+        try {
+            const response = await api.get('/rides/my-rides');
+            setRides(response.data || []);
+        } catch (error) {
+            console.error('Failed to fetch rides', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchRides();
     }, []);
+
+    // NEW: Handle Cancel Ride
+    const handleCancelRide = async (rideId) => {
+        if (!window.confirm("Are you sure? This will cancel bookings for all passengers.")) return;
+        try {
+            await cancelPublishedRide(rideId);
+            alert("Ride Cancelled");
+            fetchRides(); // Refresh list
+        } catch (err) {
+            alert(err.message);
+        }
+    };
 
     return (
         <div className={styles.pageWrapper}>
             <Navbar />
-
             <div className="container">
                 {!isVerified && (
                     <div className={styles.verificationBanner}>
@@ -52,15 +58,12 @@ const DriverDashboard = () => {
                         <p className={styles.subHeader}>Manage your rides and bookings</p>
                     </div>
                     {isVerified && (
-                        <div className={styles.verifiedBadge}>
-                            Verified Driver
-                        </div>
+                        <div className={styles.verifiedBadge}>Verified Driver</div>
                     )}
                 </div>
 
                 <div className={styles.ridesSection}>
                     <h2>Your Upcoming Rides</h2>
-
                     {loading ? (
                         <p>Loading rides...</p>
                     ) : rides.length === 0 ? (
@@ -71,6 +74,18 @@ const DriverDashboard = () => {
                         <div className={styles.ridesGrid}>
                             {rides.map((ride) => (
                                 <div key={ride.id} className={styles.rideCard}>
+                                    <div className={styles.statusBadge} 
+                                         style={{
+                                             backgroundColor: ride.status === 'CANCELLED_BY_ADMIN' ? '#dc3545' : 
+                                                             ride.status === 'CANCELLED' ? '#f8d7da' : '#d4edda', 
+                                             color: ride.status === 'CANCELLED_BY_ADMIN' ? '#ffffff' : 
+                                                    ride.status === 'CANCELLED' ? '#721c24' : '#155724',
+                                             width: 'fit-content', padding: '4px 10px', borderRadius: '4px', 
+                                             fontSize: '0.8rem', marginBottom: '8px', fontWeight: '600'
+                                         }}>
+                                        {ride.status === 'CANCELLED_BY_ADMIN' ? 'CANCELLED BY ADMIN' : (ride.status || 'AVAILABLE')}
+                                    </div>
+
                                     <div className={styles.route}>
                                         <div className={styles.location}>
                                             <MapPin size={16} className={styles.icon} />
@@ -85,24 +100,31 @@ const DriverDashboard = () => {
 
                                     <div className={styles.details}>
                                         <div className={styles.detailItem}>
-                                            <Calendar size={16} className={styles.icon} />
-                                            {ride.travelDate || ride.date}
+                                            <Calendar size={16} className={styles.icon} /> {ride.travelDate || ride.date}
                                         </div>
                                         <div className={styles.detailItem}>
-                                            <Clock size={16} className={styles.icon} />
-                                            {ride.travelTime || ride.time}
+                                            <Clock size={16} className={styles.icon} /> {ride.travelTime || ride.time}
                                         </div>
                                         <div className={styles.detailItem}>
                                             <Users size={16} className={styles.icon} />
-                                            {(ride.availableSeats || ride.seats) > 0
-                                                ? `${ride.availableSeats || ride.seats} Seats`
-                                                : <span style={{ color: 'red', fontWeight: 'bold' }}>Booked</span>}
+                                            {(ride.availableSeats || ride.seats)} Seats
                                         </div>
                                     </div>
 
                                     <div className={styles.priceTag}>
                                         ₹{ride.pricePerSeat || ride.price} / seat
                                     </div>
+
+                                    {/* Action Buttons - Hide cancel button if ride is cancelled or cancelled by admin */}
+                                    {ride.status !== 'CANCELLED' && ride.status !== 'CANCELLED_BY_ADMIN' && (
+                                        <Button 
+                                            variant="outline" 
+                                            onClick={() => handleCancelRide(ride.id)}
+                                            style={{marginTop: '10px', width: '100%', borderColor: '#dc3545', color: '#dc3545'}}
+                                        >
+                                            <XCircle size={16} style={{marginRight: '5px'}}/> Cancel Ride
+                                        </Button>
+                                    )}
                                 </div>
                             ))}
                         </div>
