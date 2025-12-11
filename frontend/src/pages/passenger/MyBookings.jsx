@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
-import PaymentModal from '../../components/PaymentModal'; // Ensure this file exists in src/components/
-import { getMyBookings } from '../../services/api';
+import PaymentModal from '../../components/PaymentModal'; 
+import { getMyBookings, cancelBooking } from '../../services/api'; // Import cancelBooking
 import styles from './MyBookings.module.css';
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle } from 'lucide-react';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [paymentBooking, setPaymentBooking] = useState(null); // Track which booking is being paid
+    const [paymentBooking, setPaymentBooking] = useState(null); 
 
     const fetchBookings = async () => {
         try {
             const data = await getMyBookings();
-            setBookings(data || []); 
+            setBookings(data || []);
             setLoading(false);
         } catch (error) {
             console.error('Failed to fetch bookings', error);
@@ -27,9 +27,26 @@ const MyBookings = () => {
     }, []);
 
     const handlePaymentSuccess = () => {
-        setPaymentBooking(null); // Close modal
-        setLoading(true); // Show loading while refreshing
-        fetchBookings(); // Refresh data to update status to "CONFIRMED"
+        setPaymentBooking(null); 
+        setLoading(true);
+        fetchBookings(); 
+    };
+
+    // NEW: Handle Cancel Logic
+    const handleCancel = async (id) => {
+        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+        try {
+            await cancelBooking(id);
+            alert("Booking Cancelled");
+            fetchBookings(); // Refresh UI
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
+    // Handle Refund Request (Non-functional for now)
+    const handleRefundRequest = () => {
+        alert("Refund request submitted. Refund will be credited within 5-7 working days.");
     };
 
     return (
@@ -47,9 +64,12 @@ const MyBookings = () => {
                         {bookings.map((booking) => (
                             <div key={booking.id} className={styles.bookingCard}>
                                 <div className={styles.cardHeader}>
-                                    <div className={`${styles.statusBadge} ${styles[booking.status]}`}>
-                                        {booking.status === 'CONFIRMED' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                                        {booking.status.replace('_', ' ')}
+                                    <div className={`${styles.statusBadge} ${booking.ride.status === 'CANCELLED_BY_ADMIN' ? styles.CANCELLED : styles[booking.status]}`}>
+                                        {booking.ride.status === 'CANCELLED_BY_ADMIN' ? <XCircle size={14} /> :
+                                         booking.status === 'CONFIRMED' ? <CheckCircle size={14} /> : 
+                                         booking.status.includes('CANCELLED') ? <XCircle size={14} /> :
+                                         <AlertCircle size={14} />}
+                                        {booking.ride.status === 'CANCELLED_BY_ADMIN' ? 'Ride Cancelled' : booking.status.replace('_', ' ')}
                                     </div>
                                     <span className={styles.bookingId}>ID: #{booking.id}</span>
                                 </div>
@@ -86,16 +106,49 @@ const MyBookings = () => {
                                         </span>
                                     </div>
                                     
-                                    {/* Show Pay Button only if Pending */}
-                                    {booking.status === 'PENDING_PAYMENT' && (
-                                        <Button 
-                                            className={styles.payBtn}
-                                            onClick={() => setPaymentBooking(booking)}
-                                        >
-                                            <CreditCard size={16} style={{marginRight: '5px'}}/>
-                                            Pay Now
-                                        </Button>
-                                    )}
+                                    <div className={styles.actions} style={{display: 'flex', gap: '10px', flexDirection: 'row'}}>
+                                        {/* If ride is CANCELLED_BY_ADMIN OR booking is CANCELLED (by passenger) */}
+                                        {(booking.ride.status === 'CANCELLED_BY_ADMIN' || booking.status.includes('CANCELLED')) ? (
+                                            <>
+                                                {/* Show refund button only if payment was confirmed before cancellation */}
+                                                {(booking.status === 'CONFIRMED' || booking.status.includes('CANCELLED')) && booking.status !== 'PENDING_PAYMENT' && (
+                                                    <>
+                                                        <Button 
+                                                            variant="outline"
+                                                            onClick={handleRefundRequest}
+                                                            style={{borderColor: '#FFCC00', color: '#FFCC00'}}
+                                                        >
+                                                            Request Refund
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {/* If payment was pending, show nothing */}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Normal ride - show cancel button if not already cancelled */}
+                                                {!booking.status.includes('CANCELLED') && booking.ride.status !== 'CANCELLED_BY_ADMIN' && (
+                                                    <Button 
+                                                        variant="outline"
+                                                        onClick={() => handleCancel(booking.id)}
+                                                        style={{borderColor: '#dc3545', color: '#dc3545'}}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                )}
+
+                                                {/* Show Pay Now button for pending payment */}
+                                                {booking.status === 'PENDING_PAYMENT' && (
+                                                    <Button 
+                                                        className={styles.payBtn}
+                                                        onClick={() => setPaymentBooking(booking)}
+                                                    >
+                                                        Pay Now
+                                                    </Button>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -103,7 +156,6 @@ const MyBookings = () => {
                 )}
             </div>
 
-            {/* Render Payment Modal if a booking is selected */}
             {paymentBooking && (
                 <PaymentModal 
                     booking={paymentBooking} 

@@ -1,13 +1,16 @@
 package com.rideconnect.backend.service;
 
+import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.model.User;
+import com.rideconnect.backend.repository.BookingRepository;
 import com.rideconnect.backend.repository.RideRepository;
 import com.rideconnect.backend.repository.UserRepository;
 import com.rideconnect.backend.repository.spec.RideSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,6 +26,9 @@ public class RideService {
 
     @Autowired
     private DistanceService distanceService;
+
+    @Autowired
+    private BookingRepository bookingRepository;
 
     // (In a real app, these would be in application.properties)
     private static final double BASE_FARE = 50.0;
@@ -92,5 +98,33 @@ public class RideService {
         // but this fixes the main crash.
 
         return rideRepository.findAll(spec);
+    }
+
+    // CANCEL RIDE (Driver)
+    @Transactional
+    public void cancelRide(Long rideId, String driverEmail) {
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+
+        if (!ride.getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized to cancel this ride");
+        }
+
+        // 1. Update Ride Status
+        ride.setStatus("CANCELLED");
+        rideRepository.save(ride);
+
+        // 2. Cancel All Associated Bookings (Cascade)
+        // Ideally, we need a repository method to find bookings by rideId
+        // For now, let's assume we fetch them somehow or just leave them.
+        // NOTE: In a real app, you MUST implement this to notify passengers.
+        // We will add the Repository method below to make this complete.
+        List<Booking> bookings = bookingRepository.findByRideId(rideId);
+        for (Booking b : bookings) {
+            if (!"CANCELLED".equals(b.getStatus())) {
+                b.setStatus("CANCELLED_BY_DRIVER");
+                bookingRepository.save(b);
+            }
+        }
     }
 }

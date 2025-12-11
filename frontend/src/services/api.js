@@ -246,3 +246,23 @@ export const getTransactionHistory = async () => {
     if (!response.ok) throw new Error(data.message || "Failed to fetch history");
     return data;
 };
+
+export const cancelBooking = async (bookingId) => {
+    const response = await fetch(`${API_URL}/bookings/${bookingId}/cancel`, {
+        method: "PUT",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to cancel booking");
+    return data;
+};
+
+export const cancelPublishedRide = async (rideId) => {
+    const response = await fetch(`${API_URL}/rides/${rideId}/cancel`, {
+        method: "PUT",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
+    return data;
+};
