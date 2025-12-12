@@ -131,3 +131,68 @@
     font-weight: 600;
     border: 1px solid #bbf7d0;
 }
+
+.pageWrapper { min-height: 100vh; background-color: #f8f9fa; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; margin-top: 1rem; }
+.ridesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+.rideCard { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.statusBadge { background: #e3f2fd; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; width: fit-content; margin-bottom: 10px; font-weight: bold; }
+.route { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; font-weight: 600; color: #333; }
+.connector { flex: 1; height: 1px; background: #ddd; }
+.details { display: flex; gap: 15px; color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
+.detailItem { display: flex; align-items: center; gap: 5px; }
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.actions button { flex: 1; }
+
+/* Modal Styles */
+.modalOverlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
+}
+.modal { background: white; padding: 1.5rem; border-radius: 8px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+.modalHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+.closeBtn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.passengerList { list-style: none; padding: 0; margin: 0; }
+.passengerItem { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+.pInfo { display: flex; flex-direction: column; }
+.pName { font-weight: 600; color: #333; }
+.pContact { font-size: 0.85rem; color: #666; }
+.pMeta { text-align: right; }
+.pSeats { display: block; font-weight: bold; color: #0f4c81; }
+.pStatus { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
+.CONFIRMED { background: #d4edda; color: #155724; }
+.PENDING_PAYMENT { background: #fff3cd; color: #856404; }
+.CANCELLED { background: #f8d7da; color: #721c24; }
+.emptyText { text-align: center; color: #888; margin: 2rem 0; }
+
+/* Cancellation Notice */
+.cancellationNotice {
+    background-color: #fff5f5;
+    border: 1px solid #feb2b2;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    color: #742a2a;
+}
+
+.cancellationNotice strong {
+    color: #c53030;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.cancellationNotice p {
+    color: #742a2a;
+    line-height: 1.4;
+}

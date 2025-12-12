@@ -1,5 +1,6 @@
 package com.rideconnect.backend.controller;
 
+import com.rideconnect.backend.dto.PassengerDto;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.service.RideService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,17 @@ public class RideController {
         try {
             rideService.cancelRide(id, userDetails.getUsername());
             return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    // Endpoint to get Passengers for a specific Ride
+    @GetMapping("/{id}/bookings")
+    public ResponseEntity<?> getRideBookings(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<PassengerDto> passengers = rideService.getPassengersForRide(id, userDetails.getUsername());
+            return ResponseEntity.ok(passengers);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
