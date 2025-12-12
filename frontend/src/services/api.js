@@ -277,3 +277,14 @@ export const cancelRideAdmin = async (rideId, reason) => {
     if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
     return data;
 };
+
+// Fetch passengers for a specific ride
+export const getRidePassengers = async (rideId) => {
+    const response = await fetch(`${API_URL}/rides/${rideId}/bookings`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch passengers");
+    return data;
+};

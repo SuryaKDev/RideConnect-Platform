@@ -1,5 +1,6 @@
 package com.rideconnect.backend.service;
 
+import com.rideconnect.backend.dto.PassengerDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.model.User;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -126,5 +128,35 @@ public class RideService {
                 bookingRepository.save(b);
             }
         }
+    }
+    // VIEW PASSENGERS
+    public List<PassengerDto> getPassengersForRide(Long rideId, String driverEmail) {
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+
+        // Security Check: Only the driver of THIS ride can see the passengers
+        if (!ride.getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized to view bookings for this ride");
+        }
+
+        List<Booking> bookings = bookingRepository.findByRideId(rideId);
+        List<PassengerDto> passengerList = new ArrayList<>();
+
+        for (Booking b : bookings) {
+            // Include only active bookings (Confirmed or Pending Payment)
+            // You can decide if you want to see Cancelled ones too
+            if (!b.getStatus().equals("CANCELLED")) {
+                User p = b.getPassenger();
+                PassengerDto dto = PassengerDto.builder()
+                        .name(p.getName())
+                        .phone(p.getPhone())
+                        .email(p.getEmail())
+                        .seatsBooked(b.getSeatsBooked())
+                        .bookingStatus(b.getStatus())
+                        .build();
+                passengerList.add(dto);
+            }
+        }
+        return passengerList;
     }
 }
