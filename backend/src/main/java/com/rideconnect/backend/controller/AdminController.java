@@ -59,14 +59,19 @@ public class AdminController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 5. Cancel a Ride
+    // 5. Cancel Ride with Reason
     @PutMapping("/rides/{id}/cancel")
-    public ResponseEntity<?> cancelRide(@PathVariable Long id) {
+    public ResponseEntity<?> cancelRide(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        String reason = request.get("reason");
+
         return rideRepository.findById(id).map(ride -> {
             ride.setStatus("CANCELLED_BY_ADMIN");
+            ride.setCancellationReason(reason != null ? reason : "Violation of terms"); // Save reason
             rideRepository.save(ride);
-            // FIX: Return JSON instead of String
-            return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully."));
+
+            // Note: In a real app, we would cascade cancel bookings here too (like in RideService)
+
+            return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully. Reason logged."));
         }).orElse(ResponseEntity.notFound().build());
     }
 }

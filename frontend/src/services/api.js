@@ -266,3 +266,14 @@ export const cancelPublishedRide = async (rideId) => {
     if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
     return data;
 };
+
+export const cancelRideAdmin = async (rideId, reason) => {
+    const response = await fetch(`${API_URL}/admin/rides/${rideId}/cancel`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify({ reason }), // Send reason in body
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
+    return data;
+};

@@ -43,6 +43,9 @@ public class Ride {
 
     private Double distanceKm;
 
+    // Store why it was cancelled
+    private String cancellationReason;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "driver_id", nullable = false)
     @JsonIgnoreProperties({"password", "roles", "authorities"})
