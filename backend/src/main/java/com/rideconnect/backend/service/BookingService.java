@@ -6,11 +6,13 @@ import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.BookingRepository;
 import com.rideconnect.backend.repository.RideRepository;
 import com.rideconnect.backend.repository.UserRepository;
-import jakarta.transaction.Transactional; // Important for data integrity
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -25,32 +27,47 @@ public class BookingService {
     @Autowired
     private UserRepository userRepository;
 
-    @Transactional // Ensures seat reduction and booking happen together, or fail together
+    @Transactional
     public Booking bookRide(Long rideId, Integer seats, String passengerEmail) {
-        
-        // 1. Find the Passenger
         User passenger = userRepository.findByEmail(passengerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2. Find the Ride
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new RuntimeException("Ride not found"));
 
-        // 3. Check if enough seats are available
+        // 1. VALIDATION: Check for Past Dates
+        // If date is before today, OR (date is today AND time is past), block it.
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+
+        if (ride.getTravelDate().isBefore(today) ||
+                (ride.getTravelDate().equals(today) && ride.getTravelTime().isBefore(now))) {
+            throw new RuntimeException("Cannot book a ride in the past!");
+        }
+
+        // 2. VALIDATION: Self Booking
+        if (ride.getDriver().getId().equals(passenger.getId())) {
+            throw new RuntimeException("You cannot book your own ride!");
+        }
+
+        // 3. VALIDATION: Double Booking
+        // Check if user already booked this ride (and didn't cancel it)
+        boolean alreadyBooked = bookingRepository.existsByRideIdAndPassengerEmailAndStatusNot(
+                rideId, passengerEmail, "CANCELLED");
+
+        if (alreadyBooked) {
+            throw new RuntimeException("You have already booked this ride!");
+        }
+
+        // 4. Check Seats
         if (ride.getAvailableSeats() < seats) {
             throw new RuntimeException("Not enough seats available!");
         }
-        
-        // 4. Prevent Driver from booking their own ride
-        if (ride.getDriver().getId().equals(passenger.getId())) {
-             throw new RuntimeException("You cannot book your own ride!");
-        }
 
-        // 5. REDUCE SEAT COUNT (Critical Step)
+        // Proceed with booking
         ride.setAvailableSeats(ride.getAvailableSeats() - seats);
         rideRepository.save(ride);
 
-        // 6. Create the Booking
         Booking booking = Booking.builder()
                 .ride(ride)
                 .passenger(passenger)
@@ -61,38 +78,29 @@ public class BookingService {
 
         return bookingRepository.save(booking);
     }
-    
-    // Get all bookings for the logged-in user
+
     public List<Booking> getMyBookings(String email) {
         return bookingRepository.findByPassengerEmail(email);
     }
 
-    // CANCEL BOOKING
     @Transactional
     public void cancelBooking(Long bookingId, String userEmail) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
-        // 1. Security Check
         if (!booking.getPassenger().getEmail().equals(userEmail)) {
             throw new RuntimeException("Not authorized to cancel this booking");
         }
 
-        // 2. Prevent duplicate cancellation
         if ("CANCELLED".equals(booking.getStatus())) {
             throw new RuntimeException("Booking is already cancelled");
         }
 
-        // 3. Restore Seats to the Ride
         Ride ride = booking.getRide();
         ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
         rideRepository.save(ride);
 
-        // 4. Update Status
         booking.setStatus("CANCELLED");
-
-        // TODO: Trigger Refund Logic here if status was "CONFIRMED"
-
         bookingRepository.save(booking);
     }
 }
