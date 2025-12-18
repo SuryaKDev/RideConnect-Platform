@@ -1,8 +1,10 @@
-# New UI_RideConnect
+# RideConnect Frontend
 
-This project is the new User Interface for the RideConnect platform, built with modern technologies.
+This is the new UI for the RideConnect Platform.
 
-## Technologies Used
+## Project info
+
+This project is built with:
 
 - Vite
 - TypeScript
@@ -14,7 +16,13 @@ This project is the new User Interface for the RideConnect platform, built with 
 
 To run this project locally:
 
-```sh
-npm install
-npm run dev
-```
+1.  Clone the repository
+2.  Navigate to the `New_UI` directory
+3.  Install dependencies:
+    ```sh
+    npm install
+    ```
+4.  Start the development server:
+    ```sh
+    npm run dev
+    ```

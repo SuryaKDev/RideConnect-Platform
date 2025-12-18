@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Car } from "lucide-react";
@@ -24,9 +25,8 @@ const Navbar = () => {
           {/* Logo */}
           <a href="#" className="flex items-center gap-3 group">
             {/* Logo placeholder - replace src with your logo image */}
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 overflow-hidden">
-              {/* Replace this div with: <img src="/your-logo.png" alt="RideConnect Logo" className="w-full h-full object-cover" /> */}
-              <Car className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden group-hover:scale-110 transition-transform duration-300">
+              <img src="/logo.png" alt="RideConnect Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-display font-bold text-xl text-foreground">
               Ride<span className="gradient-text">Connect</span>
@@ -48,8 +48,8 @@ const Navbar = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost">Sign In</Button>
-            <Button variant="hero">Get Started</Button>
+            <Link to="/signin"><Button variant="ghost">Sign In</Button></Link>
+            <Link to="/register"><Button variant="hero">Get Started</Button></Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -81,8 +81,8 @@ const Navbar = () => {
                 </a>
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                <Button variant="ghost" className="w-full">Sign In</Button>
-                <Button variant="hero" className="w-full">Get Started</Button>
+                <Link to="/signin"><Button variant="ghost" className="w-full">Sign In</Button></Link>
+                <Link to="/register"><Button variant="hero" className="w-full">Get Started</Button></Link>
               </div>
             </div>
           </motion.div>
