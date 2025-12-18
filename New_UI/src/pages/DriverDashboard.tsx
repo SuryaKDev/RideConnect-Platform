@@ -50,16 +50,17 @@ const DriverDashboard = () => {
     loadRides();
   }, [user, navigate]);
 
-  const loadRides = () => {
-    const myRides = getRides().filter(r => r.driverId === user?.id);
+  const loadRides = async () => {
+    const allRides = await getRides();
+    const myRides = allRides.filter(r => r.driverId === user?.id);
     setRides(myRides);
   };
 
-  const handleCreateRide = (e: React.FormEvent) => {
+  const handleCreateRide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    createRide({
+    await createRide({
       ...newRide,
       driverId: user.id,
       driverName: user.name,
@@ -85,8 +86,8 @@ const DriverDashboard = () => {
     loadRides();
   };
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     navigate('/');
   };
 

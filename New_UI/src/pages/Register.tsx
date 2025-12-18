@@ -76,7 +76,7 @@ const Register = () => {
       }),
     };
 
-    const result = signUp(userData);
+    const result = await signUp(userData);
 
     if (result.success) {
       toast({

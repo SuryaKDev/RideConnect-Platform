@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Car, Users, MapPin, LogOut, User, Shield, Ban, CheckCircle, 
+import {
+  Car, Users, MapPin, LogOut, User, Shield, Ban, CheckCircle,
   Trash2, BarChart3, TrendingUp, Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,26 +44,28 @@ const AdminDashboard = () => {
     loadData();
   }, [user, navigate]);
 
-  const loadData = () => {
-    setUsers(getUsers().filter(u => u.role !== 'admin'));
-    setRides(getRides());
+  const loadData = async () => {
+    const usersData = await getUsers();
+    const ridesData = await getRides();
+    setUsers(usersData.filter(u => u.role !== 'admin'));
+    setRides(ridesData);
   };
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     navigate('/');
   };
 
-  const handleVerifyUser = (userId: string) => {
-    updateUser(userId, { isVerified: true });
+  const handleVerifyUser = async (userId: string) => {
+    await updateUser(userId, { isVerified: true });
     toast({ title: "User verified successfully" });
     loadData();
   };
 
-  const handleBlockUser = () => {
+  const handleBlockUser = async () => {
     if (!selectedUser || !blockReason.trim()) return;
-    
-    updateUser(selectedUser.id, { isBlocked: true, blockReason });
+
+    await updateUser(selectedUser.id, { isBlocked: true, blockReason });
     toast({ title: "User blocked", description: blockReason });
     setBlockDialogOpen(false);
     setBlockReason("");
@@ -71,14 +73,14 @@ const AdminDashboard = () => {
     loadData();
   };
 
-  const handleUnblockUser = (userId: string) => {
-    updateUser(userId, { isBlocked: false, blockReason: undefined });
+  const handleUnblockUser = async (userId: string) => {
+    await updateUser(userId, { isBlocked: false, blockReason: undefined });
     toast({ title: "User unblocked" });
     loadData();
   };
 
-  const handleDeleteUser = (userId: string) => {
-    deleteUser(userId);
+  const handleDeleteUser = async (userId: string) => {
+    await deleteUser(userId);
     toast({ title: "User deleted" });
     loadData();
   };
@@ -106,7 +108,7 @@ const AdminDashboard = () => {
             <span className="font-display font-bold text-xl">RideConnect</span>
             <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full font-medium">Admin</span>
           </Link>
-          
+
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Shield className="w-5 h-5" />
@@ -275,11 +277,10 @@ const AdminDashboard = () => {
                         <TableCell>{u.email}</TableCell>
                         <TableCell>{u.phone}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            u.role === 'driver' 
-                              ? 'bg-green-500/20 text-green-500' 
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.role === 'driver'
+                              ? 'bg-green-500/20 text-green-500'
                               : 'bg-blue-500/20 text-blue-500'
-                          }`}>
+                            }`}>
                             {u.role}
                           </span>
                         </TableCell>
@@ -386,13 +387,12 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell>₹{ride.price}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            ride.status === 'active' 
-                              ? 'bg-green-500/20 text-green-500' 
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${ride.status === 'active'
+                              ? 'bg-green-500/20 text-green-500'
                               : ride.status === 'completed'
-                              ? 'bg-blue-500/20 text-blue-500'
-                              : 'bg-red-500/20 text-red-500'
-                          }`}>
+                                ? 'bg-blue-500/20 text-blue-500'
+                                : 'bg-red-500/20 text-red-500'
+                            }`}>
                             {ride.status}
                           </span>
                         </TableCell>
@@ -414,7 +414,7 @@ const AdminDashboard = () => {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <p className="text-muted-foreground">
-              You are about to block <strong>{selectedUser?.name}</strong>. 
+              You are about to block <strong>{selectedUser?.name}</strong>.
               Please provide a reason:
             </p>
             <div className="space-y-2">
@@ -430,8 +430,8 @@ const AdminDashboard = () => {
               <Button variant="outline" onClick={() => setBlockDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={handleBlockUser}
                 disabled={!blockReason.trim()}
               >

@@ -35,8 +35,9 @@ const PassengerDashboard = () => {
     loadRides();
   }, [user, navigate]);
 
-  const loadRides = () => {
-    const allRides = getRides().filter(r => r.status === 'active' && r.availableSeats > 0);
+  const loadRides = async () => {
+    const ridesData = await getRides();
+    const allRides = ridesData.filter(r => r.status === 'active' && r.availableSeats > 0);
     setRides(allRides);
     setFilteredRides(allRides);
   };
@@ -50,10 +51,10 @@ const PassengerDashboard = () => {
     setFilteredRides(filtered);
   };
 
-  const handleBookRide = (rideId: string) => {
+  const handleBookRide = async (rideId: string) => {
     if (!user) return;
 
-    const result = bookRide(rideId, user.id);
+    const result = await bookRide(rideId, user.id);
     if (result.success) {
       toast({
         title: "Ride booked!",
@@ -69,12 +70,12 @@ const PassengerDashboard = () => {
     }
   };
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     navigate('/');
   };
 
-  const myBookings = getRides().filter(r => r.passengers.includes(user?.id || ''));
+  const myBookings = rides.filter(r => r.passengers.includes(user?.id || ''));
 
   if (!user) return null;
 

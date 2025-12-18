@@ -20,7 +20,7 @@ const SignIn = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const result = signIn(email, password);
+    const result = await signIn(email, password);
 
     if (result.success && result.user) {
       toast({

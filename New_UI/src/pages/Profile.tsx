@@ -67,7 +67,7 @@ const Profile = () => {
         }
     };
 
-    const handleUpdateProfile = (e: React.FormEvent) => {
+    const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
         setIsLoading(true);
@@ -84,7 +84,7 @@ const Profile = () => {
             updates.vehicleCapacity = Number(formData.vehicleCapacity);
         }
 
-        updateUser(user.id, updates);
+        await updateUser(user.id, updates);
         setUser(getCurrentUser()); // Refresh user data
 
         toast({
@@ -94,7 +94,7 @@ const Profile = () => {
         setIsLoading(false);
     };
 
-    const handleChangePassword = (e: React.FormEvent) => {
+    const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
@@ -107,7 +107,7 @@ const Profile = () => {
             return;
         }
 
-        const result = changePassword(user.id, passwordData.currentPassword, passwordData.newPassword);
+        const result = await changePassword(user.id, passwordData.currentPassword, passwordData.newPassword);
         if (result.success) {
             toast({
                 title: "Password changed",
@@ -124,8 +124,8 @@ const Profile = () => {
         }
     };
 
-    const handleSignOut = () => {
-        signOut();
+    const handleSignOut = async () => {
+        await signOut();
         navigate('/');
     };
 
