@@ -16,6 +16,8 @@ const Navbar = () => {
         navigate('/');
     };
 
+    const isVerified = user?.isVerified === true;
+
     const handleAboutClick = (e) => {
         e.preventDefault();
         if (location.pathname === '/') {
@@ -48,7 +50,7 @@ const Navbar = () => {
 
                             {user?.role === 'DRIVER' && (
                                 <Link to="/post-ride">
-                                    <Button size="sm" variant="outline">Publish a Ride</Button>
+                                    <Button size="sm" variant="outline" disabled={!isVerified}>Publish a Ride</Button>
                                 </Link>
                             )}
 

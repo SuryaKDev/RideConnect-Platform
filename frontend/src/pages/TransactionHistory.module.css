@@ -77,14 +77,22 @@
     text-transform: uppercase;
 }
 
-.success {
+.SUCCESS {
     background-color: #d3f9d8;
     color: #2b8a3e;
+    border: 1px solid #ced4da;
 }
 
-.failed {
+.FAILED {
     background-color: #ffe3e3;
     color: #c92a2a;
+    border: 1px solid #ced4da;
+}
+
+.REFUNDED {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
 }
 
 .error {

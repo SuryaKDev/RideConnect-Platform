@@ -66,6 +66,14 @@ function App() {
             }
           />
 
+            // 2. Passenger Route
+            <Route
+                path="/history"
+                element={
+                <ProtectedRoute allowedRoles={['PASSENGER']}>
+                    <TransactionHistory />
+                </ProtectedRoute>} />
+
           <Route
             path="/passenger-dashboard"
             element={

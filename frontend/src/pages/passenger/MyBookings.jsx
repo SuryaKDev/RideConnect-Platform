@@ -4,7 +4,8 @@ import Button from '../../components/ui/Button';
 import PaymentModal from '../../components/PaymentModal'; 
 import { getMyBookings, cancelBooking } from '../../services/api'; // Import cancelBooking
 import styles from './MyBookings.module.css';
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle } from 'lucide-react';
+import {Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, Plus} from 'lucide-react';
+import {Link} from "react-router-dom";
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -53,7 +54,14 @@ const MyBookings = () => {
         <div className={styles.pageWrapper}>
             <Navbar />
             <div className="container">
-                <h1 className={styles.pageTitle}>My Bookings</h1>
+                <div className={styles.header}>
+                    <h1>My Bookings</h1>
+                    <div className={styles.button}>
+                        <Link to="/history">
+                            <Button variant="outline">Payment History</Button>
+                        </Link>
+                    </div>
+                </div>
 
                 {loading ? (
                     <p>Loading bookings...</p>

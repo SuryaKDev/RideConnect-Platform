@@ -64,11 +64,11 @@ const TransactionHistory = () => {
                                             <div className={styles.subText}>Booking #{p.booking?.id}</div>
                                         </td>
                                         <td className={styles.amount}>
-                                            ₹{p.amount ? (p.amount / 100).toFixed(2) : '0.00'} {/* Razorpay stores amounts in paisa, assuming backend sends that or adjust if backend sends Rupees */}
+                                            ₹{p.amount } {/* Razorpay stores amounts in paisa, assuming backend sends that or adjust if backend sends Rupees */}
                                         </td>
                                         <td>{p.paymentMethod}</td>
                                         <td>
-                                            <span className={`${styles.status} ${p.status === 'SUCCESS' ? styles.success : styles.failed}`}>
+                                            <span className={`${styles.status} ${styles[p.status]}`}>
                                                 {p.status}
                                             </span>
                                         </td>
