@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
@@ -19,4 +20,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // Find payments where the Booking -> Ride -> Driver -> Email matches
     @Query("SELECT p FROM Payment p WHERE p.booking.ride.driver.email = :driverEmail AND p.status = 'SUCCESS'")
     List<Payment> findDriverEarnings(@Param("driverEmail") String driverEmail);
+
+    Optional<Payment> findByBookingId(Long bookingId);
 }

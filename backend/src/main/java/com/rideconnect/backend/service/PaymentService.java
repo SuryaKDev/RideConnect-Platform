@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class PaymentService {
@@ -123,6 +124,27 @@ public class PaymentService {
         } else {
             // If Passenger, show payments made
             return paymentRepository.findByBooking_Passenger_Email(email);
+        }
+    }
+
+    // --- NEW: REFUND LOGIC ---
+    public void processRefund(Long bookingId) {
+        // Find if a payment exists for this booking
+        Optional<Payment> paymentOpt = paymentRepository.findByBookingId(bookingId);
+
+        if (paymentOpt.isPresent()) {
+            Payment payment = paymentOpt.get();
+
+            // Only refund if it was successful previously
+            if ("SUCCESS".equals(payment.getStatus())) {
+
+                // In a real Production App, you would call razorpayProvider.refund() here.
+                // For this project, we simulate it by updating the DB status.
+                payment.setStatus("REFUNDED");
+                paymentRepository.save(payment);
+
+                System.out.println("Processing Refund for Booking ID: " + bookingId);
+            }
         }
     }
 }

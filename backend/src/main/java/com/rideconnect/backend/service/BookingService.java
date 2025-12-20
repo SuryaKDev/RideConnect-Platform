@@ -27,6 +27,9 @@ public class BookingService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PaymentService paymentService;
+
     @Transactional
     public Booking bookRide(Long rideId, Integer seats, String passengerEmail) {
         User passenger = userRepository.findByEmail(passengerEmail)
@@ -83,7 +86,7 @@ public class BookingService {
         return bookingRepository.findByPassengerEmail(email);
     }
 
-    @Transactional
+@Transactional
     public void cancelBooking(Long bookingId, String userEmail) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
@@ -92,14 +95,21 @@ public class BookingService {
             throw new RuntimeException("Not authorized to cancel this booking");
         }
 
-        if ("CANCELLED".equals(booking.getStatus())) {
+        if (booking.getStatus().contains("CANCELLED")) {
             throw new RuntimeException("Booking is already cancelled");
         }
 
+        // 1. Restore Seats
         Ride ride = booking.getRide();
         ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
         rideRepository.save(ride);
 
+        // 2. Trigger Refund if they already paid
+        if ("CONFIRMED".equals(booking.getStatus())) {
+            paymentService.processRefund(bookingId);
+        }
+
+        // 3. Update Status
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
     }
