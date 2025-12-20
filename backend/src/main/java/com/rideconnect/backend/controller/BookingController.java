@@ -18,35 +18,24 @@ public class BookingController {
     @Autowired
     private BookingService bookingService;
 
-    // POST /api/bookings/book?rideId=1&seats=2
     @PostMapping("/book")
     public ResponseEntity<?> bookRide(
-            @RequestParam Long rideId, 
+            @RequestParam Long rideId,
             @RequestParam Integer seats,
             @AuthenticationPrincipal UserDetails userDetails) {
-        
-        try {
-            Booking booking = bookingService.bookRide(rideId, seats, userDetails.getUsername());
-            return ResponseEntity.ok(booking);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+
+        Booking booking = bookingService.bookRide(rideId, seats, userDetails.getUsername());
+        return ResponseEntity.ok(booking);
     }
 
-    // GET /api/bookings/my-bookings
     @GetMapping("/my-bookings")
     public List<Booking> getMyBookings(@AuthenticationPrincipal UserDetails userDetails) {
         return bookingService.getMyBookings(userDetails.getUsername());
     }
 
-    // Cancel Booking Endpoint
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelBooking(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            bookingService.cancelBooking(id, userDetails.getUsername());
-            return ResponseEntity.ok(Map.of("message", "Booking cancelled successfully"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+        bookingService.cancelBooking(id, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Booking cancelled successfully"));
     }
 }
