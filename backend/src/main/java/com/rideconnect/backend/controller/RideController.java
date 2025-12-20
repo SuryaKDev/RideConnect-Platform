@@ -20,14 +20,11 @@ public class RideController {
     @Autowired
     private RideService rideService;
 
-    // Endpoint: POST /api/rides/post
     @PostMapping("/post")
     public Ride postRide(@RequestBody Ride ride, @AuthenticationPrincipal UserDetails userDetails) {
-        // userDetails.getUsername() gives us the email from the token
         return rideService.postRide(ride, userDetails.getUsername());
     }
-    
-    // Endpoint: GET /api/rides/all (For testing)
+
     @GetMapping("/all")
     public List<Ride> getAllRides() {
         return rideService.getAllRides();
@@ -37,20 +34,18 @@ public class RideController {
     public List<Ride> getMyRides(@AuthenticationPrincipal UserDetails userDetails) {
         return rideService.getMyRides(userDetails.getUsername());
     }
-    // UPDATED SEARCH ENDPOINT
-    // Date is now optional. Example: /api/rides/search?source=Chennai&destination=Bangalore
+
     @GetMapping("/search")
     public List<Ride> searchRides(
             @RequestParam String source,
             @RequestParam String destination,
-            @RequestParam(required = false) String date, // Made Optional
+            @RequestParam(required = false) String date,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) Integer minSeats,
             @RequestParam(required = false) Double minRating) {
 
         LocalDate travelDate = null;
-        // Only parse if date is provided and not empty string
         if (date != null && !date.trim().isEmpty()) {
             travelDate = LocalDate.parse(date);
         }
@@ -61,25 +56,15 @@ public class RideController {
         );
     }
 
-    // Cancel Ride Endpoint
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelRide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            rideService.cancelRide(id, userDetails.getUsername());
-            return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+        rideService.cancelRide(id, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully"));
     }
 
-    // Endpoint to get Passengers for a specific Ride
     @GetMapping("/{id}/bookings")
     public ResponseEntity<?> getRideBookings(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            List<PassengerDto> passengers = rideService.getPassengersForRide(id, userDetails.getUsername());
-            return ResponseEntity.ok(passengers);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+        List<PassengerDto> passengers = rideService.getPassengersForRide(id, userDetails.getUsername());
+        return ResponseEntity.ok(passengers);
     }
 }
