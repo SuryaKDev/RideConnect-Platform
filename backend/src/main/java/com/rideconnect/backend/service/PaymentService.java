@@ -1,5 +1,6 @@
 package com.rideconnect.backend.service;
 
+import com.rideconnect.backend.dto.NotificationDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Payment;
 import com.rideconnect.backend.model.Role;
@@ -10,6 +11,7 @@ import com.rideconnect.backend.repository.UserRepository;
 import com.rideconnect.backend.service.payment.PaymentProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -35,6 +37,9 @@ public class PaymentService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate; // Inject WebSocket sender
 
     public Map<String, Object> initiatePayment(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -93,6 +98,14 @@ public class PaymentService {
 
             booking.setStatus("CONFIRMED");
             bookingRepository.save(booking);
+
+            // --- REAL-TIME NOTIFICATION ---
+            String driverEmail = booking.getRide().getDriver().getEmail();
+            String message = "New Booking! " + booking.getPassenger().getName() + " paid ₹" + payment.getAmount();
+
+            // Send to channel: /topic/driver/{email}
+            messagingTemplate.convertAndSend("/topic/driver/" + driverEmail,
+                    new NotificationDto(message, "PAYMENT", booking.getId()));
 
             return payment;
         } else {

@@ -2,6 +2,8 @@ package com.rideconnect.backend.repository;
 
 import com.rideconnect.backend.model.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,4 +15,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByBooking_Passenger_Email(String email);
 
     List<Payment> findByBooking_Ride_Driver_Email(String email);
+
+    // Find payments where the Booking -> Ride -> Driver -> Email matches
+    @Query("SELECT p FROM Payment p WHERE p.booking.ride.driver.email = :driverEmail AND p.status = 'SUCCESS'")
+    List<Payment> findDriverEarnings(@Param("driverEmail") String driverEmail);
 }

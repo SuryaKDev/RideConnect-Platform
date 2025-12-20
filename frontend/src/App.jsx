@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import PostRide from './pages/driver/PostRide';
+import DriverHistory from './pages/driver/DriverHistory';
 import PassengerDashboard from './pages/passenger/PassengerDashboard';
 import MyBookings from './pages/passenger/MyBookings';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -52,6 +53,15 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['DRIVER']}>
                 <PostRide />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/driver-history"
+            element={
+              <ProtectedRoute allowedRoles={['DRIVER']}>
+                <DriverHistory />
               </ProtectedRoute>
             }
           />

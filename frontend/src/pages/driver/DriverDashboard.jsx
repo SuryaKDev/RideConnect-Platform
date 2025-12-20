@@ -12,7 +12,7 @@ const DriverDashboard = () => {
     const { user } = useAuth();
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     // Passenger Modal State
     const [passengerModal, setPassengerModal] = useState({ show: false, passengers: [], rideId: null });
     const [loadingPassengers, setLoadingPassengers] = useState(false);
@@ -67,7 +67,12 @@ const DriverDashboard = () => {
 
                 <div className={styles.header}>
                     <h1>Driver Dashboard</h1>
-                    <Link to="/post-ride"><Button disabled={!isVerified}><Plus size={18} /> Post Ride</Button></Link>
+                    <div className={styles.button}>
+                        <Link to="/post-ride"><Button disabled={!isVerified}><Plus size={18} /> Post Ride</Button></Link>
+                        <Link to="/driver-history">
+                            <Button variant="outline">View Earnings</Button>
+                        </Link>
+                    </div>
                 </div>
 
                 <div className={styles.ridesSection}>
@@ -77,47 +82,47 @@ const DriverDashboard = () => {
                             {rides.map((ride) => {
                                 const isCancelledByAdmin = ride.status === 'CANCELLED_BY_ADMIN';
                                 const isCancelled = ride.status === 'CANCELLED' || isCancelledByAdmin;
-                                
+
                                 return (
                                     <div key={ride.id} className={styles.rideCard}>
                                         <div className={styles.statusBadge}>{ride.status || 'AVAILABLE'}</div>
                                         <div className={styles.route}>
-                                            <div className={styles.location}><MapPin size={16}/> {ride.source}</div>
+                                            <div className={styles.location}><MapPin size={16} /> {ride.source}</div>
                                             <div className={styles.connector}></div>
-                                            <div className={styles.location}><MapPin size={16}/> {ride.destination}</div>
+                                            <div className={styles.location}><MapPin size={16} /> {ride.destination}</div>
                                         </div>
                                         <div className={styles.details}>
-                                            <div className={styles.detailItem}><Calendar size={16}/> {ride.travelDate}</div>
-                                            <div className={styles.detailItem}><Clock size={16}/> {ride.travelTime}</div>
+                                            <div className={styles.detailItem}><Calendar size={16} /> {ride.travelDate}</div>
+                                            <div className={styles.detailItem}><Clock size={16} /> {ride.travelTime}</div>
                                         </div>
-                                        
+
                                         {/* Show admin cancellation reason if ride was cancelled by admin */}
                                         {isCancelledByAdmin && ride.cancellationReason && (
                                             <div className={styles.cancellationNotice}>
-                                                <AlertCircle size={16} style={{color: '#dc3545', marginRight: '8px'}} />
+                                                <AlertCircle size={16} style={{ color: '#dc3545', marginRight: '8px' }} />
                                                 <div>
                                                     <strong>Cancelled by Admin:</strong>
-                                                    <p style={{margin: '4px 0 0 0', fontSize: '0.9em'}}>{ride.cancellationReason}</p>
+                                                    <p style={{ margin: '4px 0 0 0', fontSize: '0.9em' }}>{ride.cancellationReason}</p>
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {/* Only show action buttons if ride is not cancelled by admin */}
                                         {!isCancelledByAdmin && (
                                             <div className={styles.actions}>
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                     className={styles.viewBtn}
                                                     onClick={() => openPassengerList(ride.id)}
                                                 >
-                                                    <List size={16} style={{marginRight:'5px'}}/> Passengers
+                                                    <List size={16} style={{ marginRight: '5px' }} /> Passengers
                                                 </Button>
 
                                                 {!isCancelled && (
-                                                    <Button 
-                                                        variant="outline" 
+                                                    <Button
+                                                        variant="outline"
                                                         onClick={() => handleCancelRide(ride.id)}
-                                                        style={{borderColor: '#dc3545', color: '#dc3545'}}
+                                                        style={{ borderColor: '#dc3545', color: '#dc3545' }}
                                                     >
                                                         Cancel
                                                     </Button>
@@ -140,7 +145,7 @@ const DriverDashboard = () => {
                             <h3>Passenger List (Ride #{passengerModal.rideId})</h3>
                             <button onClick={() => setPassengerModal({ show: false, passengers: [] })} className={styles.closeBtn}>&times;</button>
                         </div>
-                        
+
                         {loadingPassengers ? <p>Loading...</p> : passengerModal.passengers.length === 0 ? (
                             <p className={styles.emptyText}>No passengers have booked this ride yet.</p>
                         ) : (

@@ -17,11 +17,13 @@ public class SmartDistanceService implements DistanceService {
     @Autowired
     private RouteDistanceRepository routeRepository;
 
+    @Qualifier("googleMapsDistanceService")
     @Autowired
     // Inject the Real Google Maps Service (we wrote this earlier)
     // Make sure you REMOVED @Primary from GoogleMapsDistanceService
     private GoogleMapsDistanceService googleMapsService;
 
+    @Qualifier("mockDistanceService")
     @Autowired
     // Inject the Mock Service (we wrote this earlier)
     private MockDistanceService mockService;
