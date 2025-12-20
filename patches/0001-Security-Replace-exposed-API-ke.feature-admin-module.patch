@@ -1,0 +1,31 @@
+From 8f81c7bb9b825315699089d990f9418156c7de9a Mon Sep 17 00:00:00 2001
+From: "copilot-swe-agent[bot]" <198982749+Copilot@users.noreply.github.com>
+Date: Sat, 20 Dec 2025 17:52:38 +0000
+Subject: [PATCH] Security: Replace exposed API keys with environment variables
+
+---
+ backend/src/main/resources/application.properties | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/backend/src/main/resources/application.properties b/backend/src/main/resources/application.properties
+index 8546cd0..b316ff2 100644
+--- a/backend/src/main/resources/application.properties
++++ b/backend/src/main/resources/application.properties
+@@ -1,8 +1,8 @@
+ spring.application.name=backend
+-spring.datasource.url=jdbc:postgresql://localhost:5432/ride_sharing_db
+-spring.datasource.username=postgres
+-spring.datasource.password=Thenmoli123!
++spring.datasource.url=${spring.datasource.url}
++spring.datasource.username=${spring.datasource.username}
++spring.datasource.password=${spring.datasource.password}
+ spring.jpa.hibernate.ddl-auto=create
+ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+ 
+-jwt.secret=super_secret_key_for_ride_sharing_app_123!
+\ No newline at end of file
++jwt.secret=${jwt.secret}
+\ No newline at end of file
+-- 
+2.52.0
+

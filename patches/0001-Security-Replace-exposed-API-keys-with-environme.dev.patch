@@ -1,0 +1,47 @@
+From b659934762edfe9c24583a71ab981c45f4337520 Mon Sep 17 00:00:00 2001
+From: "copilot-swe-agent[bot]" <198982749+Copilot@users.noreply.github.com>
+Date: Sat, 20 Dec 2025 17:51:20 +0000
+Subject: [PATCH] Security: Replace exposed API keys with environment variables
+ in dev branch
+
+---
+ .../src/main/resources/application.properties | 19 +++++++++----------
+ 1 file changed, 9 insertions(+), 10 deletions(-)
+
+diff --git a/backend/src/main/resources/application.properties b/backend/src/main/resources/application.properties
+index 04a9adc..d6047b8 100644
+--- a/backend/src/main/resources/application.properties
++++ b/backend/src/main/resources/application.properties
+@@ -1,20 +1,19 @@
+ spring.application.name=backend
+-spring.datasource.url=jdbc:postgresql://localhost:5432/ride_sharing_db
+-spring.datasource.username=postgres
+-spring.datasource.password=Thenmoli123!
++spring.datasource.url=${spring.datasource.url}
++spring.datasource.username=${spring.datasource.username}
++spring.datasource.password=${spring.datasource.password}
+ spring.jpa.hibernate.ddl-auto=update
+ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+ 
+-jwt.secret=super_secret_key_for_ride_sharing_app_123!
++jwt.secret=${jwt.secret}
+ 
+ #Admin Details
+-admin.email=admin@rideconnect.com
+-admin.password=admin123
++admin.email=${admin.email}
++admin.password=${admin.password}
+ 
+ # Google Maps Configuration
+-google.maps.api.key=AIzaSyAYu6n-Vwz8LMXwsYGogD2WnYttR3yta9M
+-#${Google-API-Key}
++google.maps.api.key=${Google.API.Key}
+ 
+ # Razorpay API Keys (Get these from Razorpay Dashboard > Settings > API Keys)
+-razorpay.key.id=rzp_test_RpSNiUHKHGT1rz
+-razorpay.key.secret=pfRgTw6TMvLE5HF1g9O994LP
++razorpay.key.id=${razorpay.key.id}
++razorpay.key.secret=${razorpay.key.secret}
+-- 
+2.52.0
+
