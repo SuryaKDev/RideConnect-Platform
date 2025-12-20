@@ -33,6 +33,9 @@ public class RideService {
     @Autowired
     private BookingRepository bookingRepository;
 
+    @Autowired
+    private PaymentService paymentService;
+
     private static final double BASE_FARE = 50.0;
     private static final double RATE_PER_KM = 5.0;
 
@@ -97,13 +100,27 @@ public class RideService {
 
     @Transactional
     public void cancelRide(Long rideId, String driverEmail) {
-        Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
-        if (!ride.getDriver().getEmail().equals(driverEmail)) throw new RuntimeException("Not authorized to cancel this ride");
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+
+        if (!ride.getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized to cancel this ride");
+        }
+
+        // 1. Mark Ride Cancelled
         ride.setStatus("CANCELLED");
         rideRepository.save(ride);
+
+        // 2. Process All Bookings
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
-            if (!"CANCELLED".equals(b.getStatus())) {
+            if (!b.getStatus().contains("CANCELLED")) {
+
+                // REFUND if they paid
+                if ("CONFIRMED".equals(b.getStatus())) {
+                    paymentService.processRefund(b.getId());
+                }
+
                 b.setStatus("CANCELLED_BY_DRIVER");
                 bookingRepository.save(b);
             }

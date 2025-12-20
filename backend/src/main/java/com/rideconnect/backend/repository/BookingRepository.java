@@ -13,6 +13,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     //Needed for RideService to cancel all bookings
     List<Booking> findByRideId(Long rideId);
 
+    
+
     boolean existsByRideIdAndPassengerEmailAndStatusNot(Long rideId, String email, String status);
 
 }

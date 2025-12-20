@@ -60,3 +60,29 @@ tbody tr:hover {
     padding: 40px;
     color: #999;
 }
+
+.status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.SUCCESS {
+    background-color: #d3f9d8;
+    color: #2b8a3e;
+    border: 1px solid #ced4da;
+}
+
+.FAILED {
+    background-color: #ffe3e3;
+    color: #c92a2a;
+    border: 1px solid #ced4da;
+}
+
+.REFUNDED {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+}
