@@ -14,14 +14,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic"); // For public broadcasts
+
+        // 1. Enable a simple memory-based message broker
+        // Frontend subscribes to /topic/user/{email}
+        config.enableSimpleBroker("/topic");
+        // 2. Prefix for messages sent FROM client to server (if needed)
         config.setApplicationDestinationPrefixes("/app");
 
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Frontend connects to this URL: http://localhost:8080/ws
+        // 3. Register the endpoint the client connects to
+        // Allowed origins * fixes CORS for sockets
         registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
     }
 }

@@ -39,8 +39,7 @@ public class PaymentService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate; // Inject WebSocket sender
+    @Autowired private NotificationService notificationService; // Inject WebSocket sender
 
     public Map<String, Object> initiatePayment(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -100,13 +99,14 @@ public class PaymentService {
             booking.setStatus("CONFIRMED");
             bookingRepository.save(booking);
 
-            // --- REAL-TIME NOTIFICATION ---
+            // 🔔 1. NOTIFY DRIVER (New Booking!)
             String driverEmail = booking.getRide().getDriver().getEmail();
-            String message = "New Booking! " + booking.getPassenger().getName() + " paid ₹" + payment.getAmount();
+            notificationService.notifyUser(driverEmail, "New Booking!",
+                    booking.getPassenger().getName() + " booked " + booking.getSeatsBooked() + " seat(s).", "SUCCESS");
 
-            // Send to channel: /topic/driver/{email}
-            messagingTemplate.convertAndSend("/topic/driver/" + driverEmail,
-                    new NotificationDto(message, "PAYMENT", booking.getId()));
+            // 🔔 2. NOTIFY PASSENGER (Confirmation)
+            notificationService.notifyUser(booking.getPassenger().getEmail(), "Booking Confirmed",
+                    "Your ride to " + booking.getRide().getDestination() + " is confirmed.", "SUCCESS");
 
             return payment;
         } else {
@@ -142,6 +142,12 @@ public class PaymentService {
                 // For this project, we simulate it by updating the DB status.
                 payment.setStatus("REFUNDED");
                 paymentRepository.save(payment);
+
+                // 🔔 3. NOTIFY PASSENGER (Refund)
+                String userEmail = payment.getBooking().getPassenger().getEmail();
+                notificationService.notifyUser(userEmail, "Refund Processed",
+                        "₹" + payment.getAmount() + " has been refunded.", "INFO");
+
 
                 System.out.println("Processing Refund for Booking ID: " + bookingId);
             }

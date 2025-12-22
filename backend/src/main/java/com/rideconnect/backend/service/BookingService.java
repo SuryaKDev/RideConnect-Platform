@@ -30,6 +30,9 @@ public class BookingService {
     @Autowired
     private PaymentService paymentService;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Transactional
     public Booking bookRide(Long rideId, Integer seats, String passengerEmail) {
         User passenger = userRepository.findByEmail(passengerEmail)
@@ -112,5 +115,10 @@ public class BookingService {
         // 3. Update Status
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
+
+    // 🔔 NOTIFY DRIVER
+    String driverEmail = ride.getDriver().getEmail();
+    notificationService.notifyUser(driverEmail, "Booking Cancelled",
+            booking.getPassenger().getName() + " has cancelled their booking.", "WARNING");
     }
 }
