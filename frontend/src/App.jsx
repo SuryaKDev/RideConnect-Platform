@@ -12,6 +12,7 @@ import MyBookings from './pages/passenger/MyBookings';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Profile from './pages/Profile';
 import TransactionHistory from './pages/TransactionHistory';
+import NotificationToast from './components/NotificationToast';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -31,8 +32,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
+
+        <Router>
+            <NotificationToast />
+          <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
