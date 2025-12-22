@@ -36,6 +36,9 @@ public class RideService {
     @Autowired
     private PaymentService paymentService;
 
+    @Autowired
+    private NotificationService notificationService;
+
     private static final double BASE_FARE = 50.0;
     private static final double RATE_PER_KM = 5.0;
 
@@ -123,6 +126,10 @@ public class RideService {
 
                 b.setStatus("CANCELLED_BY_DRIVER");
                 bookingRepository.save(b);
+
+                // 🔔 NOTIFY PASSENGER
+                notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Cancelled",
+                        "The driver has cancelled the ride to " + ride.getDestination() + ". Refund initiated.", "WARNING");
             }
         }
     }

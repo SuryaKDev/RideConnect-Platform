@@ -5,6 +5,7 @@ import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.BookingRepository;
 import com.rideconnect.backend.repository.RideRepository;
 import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,9 @@ public class AdminController {
     @Autowired
     private RideRepository rideRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @GetMapping("/users")
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -40,6 +44,11 @@ public class AdminController {
         return userRepository.findById(id).map(user -> {
             user.setVerified(true);
             userRepository.save(user);
+
+            // 🔔 NOTIFY DRIVER
+            notificationService.notifyUser(user.getEmail(), "Account Verified",
+                    "You can now post rides!", "SUCCESS");
+
             return ResponseEntity.ok(Map.of("message", "User verified successfully: " + user.getName()));
         }).orElseThrow(() -> new RuntimeException("User not found"));
     }
