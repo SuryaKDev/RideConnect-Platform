@@ -1,161 +1,189 @@
 .pageWrapper {
     min-height: 100vh;
-    background-color: #f8fafc;
-}
-
-.verificationBanner {
-    background-color: #fff7ed;
-    border: 1px solid #ffedd5;
-    color: #c2410c;
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    margin-top: 1.5rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    background-color: #f8f9fa;
+    padding-bottom: 2rem;
 }
 
 .header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin: 2rem 0;
-}
-.button {
-    display: flex;
     align-items: center;
-    gap: 1rem;
+    margin-bottom: 1.5rem;
+    margin-top: 1rem;
 }
 
 .header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-main);
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: #333;
 }
 
 .subHeader {
-    color: var(--text-muted);
+    color: #666;
+    margin: 0;
 }
 
-.ridesSection h2 {
-    font-size: 1.25rem;
+.sideNav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    
+}
+
+.verifiedBadge {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: var(--text-main);
+    margin-left: 10px;
 }
 
+.verificationBanner {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #ffeeba;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.tabBtn {
+    background: none;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.tabBtn:hover {
+    color: #0f4c81;
+    background-color: #f1f5f9;
+}
+
+.active {
+    color: #0f4c81;
+    border-bottom-color: #0f4c81;
+    font-weight: 600;
+}
+
+/* Rides Grid */
 .ridesGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
 }
 
 .rideCard {
     background: white;
-    border-radius: var(--radius-lg);
     padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e2e8f0;
-    transition: var(--transition);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+    transition: transform 0.2s;
 }
 
 .rideCard:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
 }
+
+.statusBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
+.AVAILABLE { background: #e3f2fd; color: #1565c0; }
+.IN_PROGRESS { background: #fff3cd; color: #856404; }
+.FULL { background: #f8d7da; color: #721c24; }
+.COMPLETED { background: #d4edda; color: #155724; }
+.CANCELLED, .CANCELLED_BY_ADMIN, .CANCELLED_BY_DRIVER { background: #ffebee; color: #c62828; }
 
 .route {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    position: relative;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #333;
 }
 
 .location {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: var(--text-main);
+    gap: 6px;
+    font-size: 1rem;
 }
 
 .connector {
-    width: 2px;
-    height: 12px;
-    background-color: #e2e8f0;
-    margin-left: 7px;
+    flex: 1;
+    height: 2px;
+    background-color: #eee;
 }
 
 .details {
     display: flex;
-    justify-content: space-between;
+    gap: 15px;
+    color: #666;
     margin-bottom: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f1f5f9;
+    font-size: 0.9rem;
+    flex-wrap: wrap;
 }
 
 .detailItem {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-}
-
-.icon {
-    color: var(--primary);
+    gap: 5px;
 }
 
 .priceTag {
-    background-color: #eff6ff;
-    color: var(--primary);
-    padding: 0.5rem;
-    border-radius: var(--radius-md);
-    text-align: center;
+    font-size: 1.1rem;
     font-weight: 700;
-    font-size: 1.125rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f0f0f0;
 }
-
-.emptyState {
-    text-align: center;
-    padding: 3rem;
-    background: white;
-    border-radius: var(--radius-lg);
-    color: var(--text-muted);
-    border: 1px dashed #e2e8f0;
-}
-
-.verifiedBadge {
-    background-color: #dcfce7;
-    color: #166534;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-full);
-    font-size: 0.875rem;
-    font-weight: 600;
-    border: 1px solid #bbf7d0;
-}
-
-.pageWrapper { min-height: 100vh; background-color: #f8f9fa; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; margin-top: 1rem; }
-.ridesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
-.rideCard { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-.statusBadge { background: #e3f2fd; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; width: fit-content; margin-bottom: 10px; font-weight: bold; }
-.route { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; font-weight: 600; color: #333; }
-.connector { flex: 1; height: 1px; background: #ddd; }
-.details { display: flex; gap: 15px; color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
-.detailItem { display: flex; align-items: center; gap: 5px; }
 
 .actions {
     display: flex;
     gap: 10px;
     margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #eee;
 }
 
-.actions button { flex: 1; }
+.actions button {
+    flex: 1;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 4rem;
+    background: white;
+    border-radius: 12px;
+    color: #888;
+    border: 1px dashed #ccc;
+}
 
 /* Modal Styles */
 .modalOverlay {
@@ -164,40 +192,17 @@
 }
 .modal { background: white; padding: 1.5rem; border-radius: 8px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
 .modalHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
-.closeBtn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.closeBtn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
 .passengerList { list-style: none; padding: 0; margin: 0; }
-.passengerItem { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
-.pInfo { display: flex; flex-direction: column; }
+.passengerItem { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+.pInfo { display: flex; flex-direction: column; gap: 2px; }
 .pName { font-weight: 600; color: #333; }
 .pContact { font-size: 0.85rem; color: #666; }
-.pMeta { text-align: right; }
-.pSeats { display: block; font-weight: bold; color: #0f4c81; }
-.pStatus { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
+.pEmail { font-size: 0.8rem; color: #999; }
+.pMeta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pSeats { font-weight: bold; color: #0f4c81; font-size: 0.9rem; }
+.pStatus { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: 600; }
 .CONFIRMED { background: #d4edda; color: #155724; }
 .PENDING_PAYMENT { background: #fff3cd; color: #856404; }
 .CANCELLED { background: #f8d7da; color: #721c24; }
 .emptyText { text-align: center; color: #888; margin: 2rem 0; }
-
-/* Cancellation Notice */
-.cancellationNotice {
-    background-color: #fff5f5;
-    border: 1px solid #feb2b2;
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 12px;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: flex-start;
-    color: #742a2a;
-}
-
-.cancellationNotice strong {
-    color: #c53030;
-    display: block;
-    margin-bottom: 2px;
-}
-
-.cancellationNotice p {
-    color: #742a2a;
-    line-height: 1.4;
-}
