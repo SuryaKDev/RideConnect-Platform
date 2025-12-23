@@ -41,36 +41,19 @@ public class BookingService {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new RuntimeException("Ride not found"));
 
-        // 1. VALIDATION: Check for Past Dates
-        // If date is before today, OR (date is today AND time is past), block it.
+        // Validations
         LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
+        if (ride.getTravelDate().isBefore(today)) throw new RuntimeException("Cannot book past rides");
+        if (ride.getDriver().getId().equals(passenger.getId())) throw new RuntimeException("Cannot book own ride");
 
-        if (ride.getTravelDate().isBefore(today) ||
-                (ride.getTravelDate().equals(today) && ride.getTravelTime().isBefore(now))) {
-            throw new RuntimeException("Cannot book a ride in the past!");
-        }
+        boolean exists = bookingRepository.existsByRideIdAndPassengerEmailAndStatusNot(rideId, passengerEmail, "CANCELLED");
+        if (exists) throw new RuntimeException("You have already requested/booked this ride!");
 
-        // 2. VALIDATION: Self Booking
-        if (ride.getDriver().getId().equals(passenger.getId())) {
-            throw new RuntimeException("You cannot book your own ride!");
-        }
-
-        // 3. VALIDATION: Double Booking
-        // Check if user already booked this ride (and didn't cancel it)
-        boolean alreadyBooked = bookingRepository.existsByRideIdAndPassengerEmailAndStatusNot(
-                rideId, passengerEmail, "CANCELLED");
-
-        if (alreadyBooked) {
-            throw new RuntimeException("You have already booked this ride!");
-        }
-
-        // 4. Check Seats
         if (ride.getAvailableSeats() < seats) {
             throw new RuntimeException("Not enough seats available!");
         }
 
-        // Proceed with booking
+        // Reserve seats immediately to prevent overbooking while waiting for approval
         ride.setAvailableSeats(ride.getAvailableSeats() - seats);
         rideRepository.save(ride);
 
@@ -79,46 +62,92 @@ public class BookingService {
                 .passenger(passenger)
                 .seatsBooked(seats)
                 .bookingTime(LocalDateTime.now())
-                .status("PENDING_PAYMENT")
+                // CHANGED: New Initial Status
+                .status("PENDING_APPROVAL")
                 .build();
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // Notify Driver
+        notificationService.notifyUser(ride.getDriver().getEmail(), "New Ride Request",
+                passenger.getName() + " requested " + seats + " seat(s). Please Accept or Reject.", "INFO");
+
+        return savedBooking;
     }
 
-    public List<Booking> getMyBookings(String email) {
-        return bookingRepository.findByPassengerEmail(email);
+    // --- NEW: Driver Accepts Booking ---
+    @Transactional
+    public void acceptBooking(Long bookingId, String driverEmail) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        // Security Check
+        if (!booking.getRide().getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized to accept this booking");
+        }
+
+        if (!"PENDING_APPROVAL".equals(booking.getStatus())) {
+            throw new RuntimeException("Booking is not pending approval");
+        }
+
+        booking.setStatus("PENDING_PAYMENT"); // Now ready for payment
+        bookingRepository.save(booking);
+
+        // Notify Passenger
+        notificationService.notifyUser(booking.getPassenger().getEmail(), "Request Accepted!",
+                "The driver accepted your request. Please complete payment to confirm.", "SUCCESS");
     }
 
-@Transactional
-    public void cancelBooking(Long bookingId, String userEmail) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+    // --- NEW: Driver Rejects Booking ---
+    @Transactional
+    public void rejectBooking(Long bookingId, String driverEmail) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
 
-        if (!booking.getPassenger().getEmail().equals(userEmail)) {
-            throw new RuntimeException("Not authorized to cancel this booking");
+        if (!booking.getRide().getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized");
         }
 
-        if (booking.getStatus().contains("CANCELLED")) {
-            throw new RuntimeException("Booking is already cancelled");
+        if (!"PENDING_APPROVAL".equals(booking.getStatus())) {
+            throw new RuntimeException("Cannot reject this booking");
         }
 
-        // 1. Restore Seats
+        // Restore Seats
         Ride ride = booking.getRide();
         ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
         rideRepository.save(ride);
 
-        // 2. Trigger Refund if they already paid
+        booking.setStatus("REJECTED");
+        bookingRepository.save(booking);
+
+        // Notify Passenger
+        notificationService.notifyUser(booking.getPassenger().getEmail(), "Request Rejected",
+                "The driver declined your request.", "ERROR");
+    }
+
+    @Transactional
+    public void cancelBooking(Long bookingId, String userEmail) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
+        if (!booking.getPassenger().getEmail().equals(userEmail)) throw new RuntimeException("Not authorized");
+
+        if (booking.getStatus().contains("CANCELLED") || "REJECTED".equals(booking.getStatus())) {
+            throw new RuntimeException("Booking is already cancelled/rejected");
+        }
+
+        Ride ride = booking.getRide();
+        ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
+        rideRepository.save(ride);
+
         if ("CONFIRMED".equals(booking.getStatus())) {
             paymentService.processRefund(bookingId);
         }
 
-        // 3. Update Status
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
 
-    // 🔔 NOTIFY DRIVER
-    String driverEmail = ride.getDriver().getEmail();
-    notificationService.notifyUser(driverEmail, "Booking Cancelled",
-            booking.getPassenger().getName() + " has cancelled their booking.", "WARNING");
+        notificationService.notifyUser(ride.getDriver().getEmail(), "Booking Cancelled",
+                booking.getPassenger().getName() + " cancelled their request.", "WARNING");
+    }
+
+    public List<Booking> getMyBookings(String email) {
+        return bookingRepository.findByPassengerEmail(email);
     }
 }

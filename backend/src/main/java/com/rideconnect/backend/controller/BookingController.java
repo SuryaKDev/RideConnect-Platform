@@ -38,4 +38,16 @@ public class BookingController {
         bookingService.cancelBooking(id, userDetails.getUsername());
         return ResponseEntity.ok(Map.of("message", "Booking cancelled successfully"));
     }
+
+    @PutMapping("/{id}/accept")
+    public ResponseEntity<?> acceptBooking(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        bookingService.acceptBooking(id, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Booking accepted"));
+    }
+
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<?> rejectBooking(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        bookingService.rejectBooking(id, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Booking rejected"));
+    }
 }

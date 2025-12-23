@@ -37,8 +37,8 @@ public class RideController {
 
     @GetMapping("/search")
     public List<Ride> searchRides(
-            @RequestParam String source,
-            @RequestParam String destination,
+            @RequestParam(required = false) String source,
+            @RequestParam(required = false) String destination,
             @RequestParam(required = false) String date,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
