@@ -1,8 +1,11 @@
 package com.rideconnect.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Point;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -24,7 +27,6 @@ public class Ride {
     @Column(nullable = false)
     private String destination;
 
-    // NEW: Comma-separated list of cities (e.g., "Ambur, Vellore")
     private String stopovers;
 
     @Column(nullable = false)
@@ -43,8 +45,24 @@ public class Ride {
 
     private Double distanceKm;
 
-    // Store why it was cancelled
     private String cancellationReason;
+
+    // --- SPATIAL COLUMNS ---
+
+    // Store exact start point
+    @Column(columnDefinition = "geometry(Point, 4326)")
+    @JsonIgnore // Don't send complex geometry to frontend list
+    private Point sourceLocation;
+
+    // Store exact end point
+    @Column(columnDefinition = "geometry(Point, 4326)")
+    @JsonIgnore
+    private Point destinationLocation;
+
+    // Store the full path
+    @Column(columnDefinition = "geometry(LineString, 4326)")
+    @JsonIgnore
+    private LineString routePath;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "driver_id", nullable = false)
