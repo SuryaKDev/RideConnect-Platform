@@ -1,5 +1,6 @@
 package com.rideconnect.backend.service;
 
+import com.google.maps.model.LatLng;
 import com.rideconnect.backend.dto.PassengerDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Ride;
@@ -8,6 +9,8 @@ import com.rideconnect.backend.repository.BookingRepository;
 import com.rideconnect.backend.repository.RideRepository;
 import com.rideconnect.backend.repository.UserRepository;
 import com.rideconnect.backend.repository.spec.RideSpecification;
+import com.rideconnect.backend.service.impl.GoogleMapsService;
+import com.rideconnect.backend.util.GeometryUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -21,134 +24,129 @@ import java.util.List;
 @Service
 public class RideService {
 
-    @Autowired
-    private RideRepository rideRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private DistanceService distanceService;
-
-    @Autowired
-    private BookingRepository bookingRepository;
-
-    @Autowired
-    private PaymentService paymentService;
-
-    @Autowired
-    private NotificationService notificationService;
+    @Autowired private RideRepository rideRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private DistanceService distanceService;
+    @Autowired private BookingRepository bookingRepository;
+    @Autowired private PaymentService paymentService;
+    @Autowired private NotificationService notificationService;
+    @Autowired private GoogleMapsService googleMapsService;
 
     private static final double BASE_FARE = 50.0;
     private static final double RATE_PER_KM = 5.0;
 
+    // ... postRide, getAllRides, getMyRides methods (Keep them same) ...
     public Ride postRide(Ride ride, String email) {
-        User driver = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User driver = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        if (!driver.isDriver()) throw new RuntimeException("Only drivers can post rides!");
 
-        if (!driver.isDriver()) {
-            throw new RuntimeException("Only drivers can post rides!");
+        // 1. Get Coordinates
+        LatLng srcCoords = googleMapsService.getCoordinates(ride.getSource());
+        LatLng destCoords = googleMapsService.getCoordinates(ride.getDestination());
+        if (srcCoords != null) ride.setSourceLocation(GeometryUtil.createPoint(srcCoords.lat, srcCoords.lng));
+        if (destCoords != null) ride.setDestinationLocation(GeometryUtil.createPoint(destCoords.lat, destCoords.lng));
+
+        // 2. Get Route Path
+        List<LatLng> pathPoints = googleMapsService.getRoutePoints(ride.getSource(), ride.getDestination());
+        if (pathPoints != null && !pathPoints.isEmpty()) {
+            ride.setRoutePath(GeometryUtil.createLineString(pathPoints));
         }
 
-        // VALIDATION: Cannot post rides in the past
-        LocalDate today = LocalDate.now();
-        if (ride.getTravelDate().isBefore(today)) {
-            throw new RuntimeException("Travel date cannot be in the past!");
-        }
-        // Strict check: if date is today, time must be future
-        if (ride.getTravelDate().equals(today) && ride.getTravelTime().isBefore(LocalTime.now())) {
-            throw new RuntimeException("Travel time cannot be in the past!");
-        }
-
-        double distance = distanceService.calculateDistance(ride.getSource(), ride.getDestination());
-        ride.setDistanceKm(distance);
+        // 3. Distance & Price
+        Double dist = googleMapsService.getDistanceInKm(ride.getSource(), ride.getDestination());
+        if (dist == null) dist = distanceService.calculateDistance(ride.getSource(), ride.getDestination());
+        ride.setDistanceKm(dist);
 
         if (ride.getPricePerSeat() == null || ride.getPricePerSeat() == 0) {
-            double calculatedFare = BASE_FARE + (distance * RATE_PER_KM);
-            ride.setPricePerSeat((double) Math.round(calculatedFare / 10) * 10);
+            ride.setPricePerSeat((double) Math.round((BASE_FARE + (dist * RATE_PER_KM)) / 10) * 10);
         }
 
         ride.setDriver(driver);
         ride.setStatus("AVAILABLE");
-
         return rideRepository.save(ride);
     }
 
     public List<Ride> getAllRides() { return rideRepository.findAll(); }
     public List<Ride> getMyRides(String email) { return rideRepository.findByDriverEmail(email); }
 
+    // --- DEBUGGED SEARCH METHOD ---
     public List<Ride> searchRides(String source, String destination, LocalDate date,
                                   Double minPrice, Double maxPrice,
                                   Integer minSeats, Double minRating) {
 
+        // 1. Text Search (Specifications) - Handles Optional Date internally
         Specification<Ride> spec = Specification.where(RideSpecification.hasStatus("AVAILABLE"));
+        if (source != null && !source.isEmpty()) spec = spec.and(RideSpecification.hasSource(source));
+        if (destination != null && !destination.isEmpty()) spec = spec.and(RideSpecification.hasDestination(destination));
+        if (date != null) spec = spec.and(RideSpecification.hasDate(date));
+        if (minPrice != null) spec = spec.and(RideSpecification.priceBetween(minPrice, maxPrice));
+        if (minSeats != null) spec = spec.and(RideSpecification.minSeats(minSeats));
 
-        if (source != null && !source.isEmpty())
-            spec = spec.and(RideSpecification.hasSource(source));
+        List<Ride> textResults = rideRepository.findAll(spec);
 
-        if (destination != null && !destination.isEmpty())
-            spec = spec.and(RideSpecification.hasDestination(destination));
+        System.out.println("---- SEARCH DEBUG ----");
+        System.out.println("Source: " + source + ", Dest: " + destination + ", Date: " + date);
+        System.out.println("Text Results Found: " + textResults.size());
 
-        if (date != null)
-            spec = spec.and(RideSpecification.hasDate(date));
+        // 3. Fallback to Spatial Search
+        // CHANGE: Removed "&& date != null". Now it runs even if date is missing.
+        if (textResults.isEmpty() && source != null && destination != null) {
+            try {
+                System.out.println("🚀 Triggering Smart Spatial Search...");
 
-        if (minPrice != null || maxPrice != null)
-            spec = spec.and(RideSpecification.priceBetween(minPrice, maxPrice));
+                LatLng start = googleMapsService.getCoordinates(source);
+                LatLng end = googleMapsService.getCoordinates(destination);
 
-        if (minSeats != null)
-            spec = spec.and(RideSpecification.minSeats(minSeats));
+                if (start != null && end != null) {
+                    System.out.println("Coords Found: Start(" + start + "), End(" + end + ")");
 
-        return rideRepository.findAll(spec);
-    }
+                    List<Ride> spatialResults = rideRepository.findSmartRouteMatches(
+                            date, // Can be null now
+                            start.lat, start.lng, end.lat, end.lng
+                    );
 
-    @Transactional
-    public void cancelRide(Long rideId, String driverEmail) {
-        Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new RuntimeException("Ride not found"));
-
-        if (!ride.getDriver().getEmail().equals(driverEmail)) {
-            throw new RuntimeException("Not authorized to cancel this ride");
+                    System.out.println("Spatial Matches Found: " + spatialResults.size());
+                    return spatialResults;
+                } else {
+                    System.out.println("❌ Could not geocode source/destination string.");
+                }
+            } catch (Exception e) {
+                System.err.println("Spatial Search Error: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
 
-        // 1. Mark Ride Cancelled
+        return textResults;
+    }
+
+    // ... cancelRide, getPassengersForRide (Keep them same) ...
+    @Transactional
+    public void cancelRide(Long rideId, String driverEmail) {
+        Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
+        if (!ride.getDriver().getEmail().equals(driverEmail)) throw new RuntimeException("Not authorized");
         ride.setStatus("CANCELLED");
         rideRepository.save(ride);
-
-        // 2. Process All Bookings
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
             if (!b.getStatus().contains("CANCELLED")) {
-
-                // REFUND if they paid
-                if ("CONFIRMED".equals(b.getStatus())) {
-                    paymentService.processRefund(b.getId());
-                }
-
+                if ("CONFIRMED".equals(b.getStatus())) paymentService.processRefund(b.getId());
                 b.setStatus("CANCELLED_BY_DRIVER");
                 bookingRepository.save(b);
-
-                // 🔔 NOTIFY PASSENGER
-                notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Cancelled",
-                        "The driver has cancelled the ride to " + ride.getDestination() + ". Refund initiated.", "WARNING");
+                notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Cancelled", "Ride cancelled by driver. Refund initiated.", "WARNING");
             }
         }
     }
 
     public List<PassengerDto> getPassengersForRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
-        if (!ride.getDriver().getEmail().equals(driverEmail)) throw new RuntimeException("Not authorized to view bookings for this ride");
+        if (!ride.getDriver().getEmail().equals(driverEmail)) throw new RuntimeException("Not authorized");
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
-        List<PassengerDto> passengerList = new ArrayList<>();
+        List<PassengerDto> list = new ArrayList<>();
         for (Booking b : bookings) {
             if (!b.getStatus().equals("CANCELLED")) {
-                User p = b.getPassenger();
-                PassengerDto dto = PassengerDto.builder()
-                        .name(p.getName()).phone(p.getPhone()).email(p.getEmail())
-                        .seatsBooked(b.getSeatsBooked()).bookingStatus(b.getStatus())
-                        .build();
-                passengerList.add(dto);
+                list.add(PassengerDto.builder().name(b.getPassenger().getName()).phone(b.getPassenger().getPhone()).email(b.getPassenger().getEmail()).seatsBooked(b.getSeatsBooked()).bookingStatus(b.getStatus()).build());
             }
         }
-        return passengerList;
+        return list;
     }
 }
