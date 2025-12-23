@@ -85,24 +85,24 @@ export const postRide = async (rideData) => {
 
 // --- UPDATED SEARCH FUNCTION ---
 export const searchRides = async (filters) => {
-    // filters is an object like: { source: '...', minPrice: 500, ... }
-    
-    // Remove empty keys to keep URL clean
-    const params = new URLSearchParams();
-    Object.keys(filters).forEach(key => {
-        if (filters[key] !== null && filters[key] !== "") {
-            params.append(key, filters[key]);
-        }
-    });
+  // filters is an object like: { source: '...', minPrice: 500, ... }
 
-    const response = await fetch(`${API_URL}/rides/search?${params.toString()}`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
+  // Remove empty keys to keep URL clean
+  const params = new URLSearchParams();
+  Object.keys(filters).forEach(key => {
+    if (filters[key] !== null && filters[key] !== "") {
+      params.append(key, filters[key]);
+    }
+  });
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Search failed");
-    return data;
+  const response = await fetch(`${API_URL}/rides/search?${params.toString()}`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Search failed");
+  return data;
 };
 
 // --- BOOKING SERVICES ---
@@ -127,6 +127,18 @@ export const getMyBookings = async () => {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Failed to fetch bookings");
+  return data;
+};
+
+// Get rides posted by current driver
+export const getMyRides = async () => {
+  const response = await fetch(`${API_URL}/rides/my-rides`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch my rides");
   return data;
 };
 
@@ -192,99 +204,120 @@ export const cancelRide = async (rideId) => {
   return data;
 };
 
+export const cancelRideAdmin = async (rideId, reason) => {
+  const response = await fetch(`${API_URL}/admin/rides/${rideId}/cancel`, {
+    method: "PUT",
+    headers: getHeaders(),
+    body: JSON.stringify({ reason }), // Send reason in body
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
+  return data;
+};
+
 export const getProfile = async () => {
-    const response = await fetch(`${API_URL}/users/profile`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch profile");
-    return data;
+  const response = await fetch(`${API_URL}/users/profile`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch profile");
+  return data;
 };
 
 export const updateProfile = async (profileData) => {
-    const response = await fetch(`${API_URL}/users/profile`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(profileData),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to update profile");
-    return data;
+  const response = await fetch(`${API_URL}/users/profile`, {
+    method: "PUT",
+    headers: getHeaders(),
+    body: JSON.stringify(profileData),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to update profile");
+  return data;
 };
 
 // --- PAYMENT SERVICES ---
 
 export const createOrder = async (bookingId) => {
-    const response = await fetch(`${API_URL}/payments/create-order`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify({ bookingId }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to create order");
-    return data;
+  const response = await fetch(`${API_URL}/payments/create-order`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ bookingId }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to create order");
+  return data;
 };
 
 export const verifyPayment = async (paymentData) => {
-    const response = await fetch(`${API_URL}/payments/verify`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(paymentData),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Payment verification failed");
-    return data;
+  const response = await fetch(`${API_URL}/payments/verify`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(paymentData),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Payment verification failed");
+  return data;
 };
 
 export const getTransactionHistory = async () => {
-    const response = await fetch(`${API_URL}/payments/history`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch history");
-    return data;
+  const response = await fetch(`${API_URL}/payments/history`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch history");
+  return data;
 };
 
 export const cancelBooking = async (bookingId) => {
-    const response = await fetch(`${API_URL}/bookings/${bookingId}/cancel`, {
-        method: "PUT",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to cancel booking");
-    return data;
+  const response = await fetch(`${API_URL}/bookings/${bookingId}/cancel`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to cancel booking");
+  return data;
 };
 
 export const cancelPublishedRide = async (rideId) => {
-    const response = await fetch(`${API_URL}/rides/${rideId}/cancel`, {
-        method: "PUT",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
-    return data;
-};
-
-export const cancelRideAdmin = async (rideId, reason) => {
-    const response = await fetch(`${API_URL}/admin/rides/${rideId}/cancel`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify({ reason }), // Send reason in body
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
-    return data;
+  const response = await fetch(`${API_URL}/rides/${rideId}/cancel`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to cancel ride");
+  return data;
 };
 
 // Fetch passengers for a specific ride
 export const getRidePassengers = async (rideId) => {
-    const response = await fetch(`${API_URL}/rides/${rideId}/bookings`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch passengers");
-    return data;
+  const response = await fetch(`${API_URL}/rides/${rideId}/bookings`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch passengers");
+  return data;
+};
+
+// --- DRIVER ACTIONS ---
+export const acceptBookingRequest = async (bookingId) => {
+  const response = await fetch(`${API_URL}/bookings/${bookingId}/accept`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to accept booking");
+  return data;
+};
+
+export const rejectBookingRequest = async (bookingId) => {
+  const response = await fetch(`${API_URL}/bookings/${bookingId}/reject`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to reject booking");
+  return data;
 };

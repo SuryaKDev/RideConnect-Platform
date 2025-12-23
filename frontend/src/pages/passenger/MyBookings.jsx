@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
-import PaymentModal from '../../components/PaymentModal';
+import PaymentModal from '../../components/PaymentModal'; 
 import { getMyBookings, cancelBooking } from '../../services/api';
+import { Link } from 'react-router-dom';
 import styles from './MyBookings.module.css';
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3 } from 'lucide-react';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [paymentBooking, setPaymentBooking] = useState(null);
-    const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'history'
+    const [paymentBooking, setPaymentBooking] = useState(null); 
+    const [activeTab, setActiveTab] = useState('upcoming');
 
     const fetchBookings = async () => {
         try {
@@ -28,13 +29,13 @@ const MyBookings = () => {
     }, []);
 
     const handlePaymentSuccess = () => {
-        setPaymentBooking(null);
+        setPaymentBooking(null); 
         setLoading(true);
-        fetchBookings();
+        fetchBookings(); 
     };
 
     const handleCancel = async (id) => {
-        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+        if (!window.confirm("Are you sure you want to cancel this request?")) return;
         try {
             await cancelBooking(id);
             alert("Booking Cancelled");
@@ -45,39 +46,40 @@ const MyBookings = () => {
     };
 
     const handleRefundRequest = () => {
-        alert("Refund request submitted. Refund will be credited within 5-7 working days.");
+        alert("Refund request submitted.");
     };
 
     // Filter Logic
-    // Upcoming: PENDING_PAYMENT or CONFIRMED
-    const upcomingBookings = bookings.filter(b =>
-        (b.status === 'PENDING_PAYMENT' || b.status === 'CONFIRMED') &&
-        b.ride.status !== 'CANCELLED_BY_ADMIN' &&
-        b.ride.status !== 'CANCELLED' &&
+    const upcomingBookings = bookings.filter(b => 
+        (b.status === 'PENDING_APPROVAL' || b.status === 'PENDING_PAYMENT' || b.status === 'CONFIRMED') && 
+        !b.ride.status.includes('CANCELLED') && 
         b.ride.status !== 'COMPLETED'
     );
 
-    // History: CANCELLED, REFUNDED, COMPLETED, or Admin Cancelled
-    const historyBookings = bookings.filter(b =>
-        b.status.includes('CANCELLED') ||
-        b.status === 'REFUNDED' ||
-        b.ride.status === 'COMPLETED' ||
-        b.ride.status === 'CANCELLED_BY_ADMIN' ||
-        b.ride.status === 'CANCELLED'
+    const historyBookings = bookings.filter(b => 
+        b.status.includes('CANCELLED') || 
+        b.status === 'REJECTED' ||
+        b.status === 'REFUNDED' || 
+        b.ride.status === 'COMPLETED' || 
+        b.ride.status.includes('CANCELLED')
     );
+
+    const getStatusBadge = (status, rideStatus) => {
+        if (rideStatus === 'CANCELLED_BY_ADMIN') return <div className={`${styles.statusBadge} ${styles.CANCELLED}`}><XCircle size={14} /> Ride Cancelled (Admin)</div>;
+        if (status === 'CONFIRMED') return <div className={`${styles.statusBadge} ${styles.CONFIRMED}`}><CheckCircle size={14} /> Confirmed</div>;
+        if (status === 'PENDING_APPROVAL') return <div className={`${styles.statusBadge} ${styles.PENDING}`}><Clock3 size={14} /> Awaiting Approval</div>;
+        if (status === 'PENDING_PAYMENT') return <div className={`${styles.statusBadge} ${styles.PAYMENT}`}><CreditCard size={14} /> Payment Due</div>;
+        if (status === 'REJECTED') return <div className={`${styles.statusBadge} ${styles.CANCELLED}`}><XCircle size={14} /> Rejected</div>;
+        if (status.includes('CANCELLED')) return <div className={`${styles.statusBadge} ${styles.CANCELLED}`}><XCircle size={14} /> Cancelled</div>;
+        return <div className={styles.statusBadge}>{status}</div>;
+    };
 
     const renderBookings = (list) => (
         <div className={styles.bookingsList}>
             {list.map((booking) => (
                 <div key={booking.id} className={styles.bookingCard}>
                     <div className={styles.cardHeader}>
-                        <div className={`${styles.statusBadge} ${booking.ride.status === 'CANCELLED_BY_ADMIN' ? styles.CANCELLED : styles[booking.status]}`}>
-                            {booking.ride.status === 'CANCELLED_BY_ADMIN' ? <XCircle size={14} /> :
-                                booking.status === 'CONFIRMED' ? <CheckCircle size={14} /> :
-                                    booking.status.includes('CANCELLED') ? <XCircle size={14} /> :
-                                        <AlertCircle size={14} />}
-                            {booking.ride.status === 'CANCELLED_BY_ADMIN' ? 'Ride Cancelled' : booking.status.replace('_', ' ')}
-                        </div>
+                        {getStatusBadge(booking.status, booking.ride.status)}
                         <span className={styles.bookingId}>ID: #{booking.id}</span>
                     </div>
 
@@ -112,36 +114,31 @@ const MyBookings = () => {
                                 Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked}
                             </span>
                         </div>
+                        
+                        <div className={styles.actions} style={{display: 'flex', gap: '10px'}}>
+                            {/* Cancel Request Button */}
+                            {!booking.status.includes('CANCELLED') && booking.status !== 'REJECTED' && booking.ride.status !== 'COMPLETED' && (
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => handleCancel(booking.id)}
+                                    style={{borderColor: '#dc3545', color: '#dc3545'}}
+                                >
+                                    Cancel Request
+                                </Button>
+                            )}
 
-                        <div className={styles.actions} style={{display: 'flex', gap: '10px', flexDirection: 'row'}}>
-                            {/* REFUND BUTTON Logic */}
-                            {(booking.ride.status === 'CANCELLED_BY_ADMIN' || booking.status.includes('CANCELLED')) ? (
-                                <>
-                                    {(booking.status === 'CONFIRMED' || booking.status.includes('CANCELLED')) && booking.status !== 'PENDING_PAYMENT' && (
-                                        <Button variant="outline" onClick={handleRefundRequest} style={{borderColor: '#FFCC00', color: '#FFCC00'}}>
-                                            Request Refund
-                                        </Button>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    {/* Action Buttons for Active Rides */}
-                                    {!booking.status.includes('CANCELLED') && booking.ride.status !== 'CANCELLED_BY_ADMIN' && booking.ride.status !== 'COMPLETED' && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => handleCancel(booking.id)}
-                                            style={{borderColor: '#dc3545', color: '#dc3545'}}
-                                        >
-                                            Cancel
-                                        </Button>
-                                    )}
-
-                                    {booking.status === 'PENDING_PAYMENT' && booking.ride.status !== 'COMPLETED' && (
-                                        <Button className={styles.payBtn} onClick={() => setPaymentBooking(booking)}>
-                                            <CreditCard size={16} style={{marginRight: '5px'}}/> Pay Now
-                                        </Button>
-                                    )}
-                                </>
+                            {/* Pay Button - Only shows when Driver has accepted */}
+                            {booking.status === 'PENDING_PAYMENT' && booking.ride.status !== 'COMPLETED' && (
+                                <Button className={styles.payBtn} onClick={() => setPaymentBooking(booking)}>
+                                    <CreditCard size={16} style={{marginRight: '5px'}}/> Pay Now
+                                </Button>
+                            )}
+                            
+                            {/* Refund Button for History */}
+                            {activeTab === 'history' && booking.status === 'CONFIRMED' && booking.ride.status.includes('CANCELLED') && (
+                                <Button variant="outline" onClick={handleRefundRequest} style={{borderColor: '#ffc107', color: '#ffc107'}}>
+                                    Request Refund
+                                </Button>
                             )}
                         </div>
                     </div>
@@ -155,19 +152,21 @@ const MyBookings = () => {
             <Navbar />
             <div className="container">
                 <div className={styles.header}>
-                    <h1>My Bookings</h1>
-                    {/* Optional: Keep Payment History Link if you want */}
-                    {/* <Link to="/history"><Button variant="outline">Payment History</Button></Link> */}
+                        <div>
+                                                <h1>My Bookings</h1>
+                    <p className={styles.subtitle}>Manage your ride bookings and payments.</p>
+                        </div>
+                       <Link to="/history"><Button variant="outline">Payment History</Button></Link>
                 </div>
 
                 <div className={styles.tabs}>
-                    <button
+                    <button 
                         className={`${styles.tabBtn} ${activeTab === 'upcoming' ? styles.active : ''}`}
                         onClick={() => setActiveTab('upcoming')}
                     >
                         <Calendar size={18} style={{marginRight: '5px'}} /> Upcoming
                     </button>
-                    <button
+                    <button 
                         className={`${styles.tabBtn} ${activeTab === 'history' ? styles.active : ''}`}
                         onClick={() => setActiveTab('history')}
                     >
@@ -179,22 +178,18 @@ const MyBookings = () => {
                     <p>Loading bookings...</p>
                 ) : (
                     activeTab === 'upcoming' ? (
-                        upcomingBookings.length === 0 ?
-                            <div className={styles.emptyState}>No upcoming trips. Book a ride now!</div> :
-                            renderBookings(upcomingBookings)
+                        upcomingBookings.length === 0 ? <div className={styles.emptyState}>No upcoming trips. Book a ride now!</div> : renderBookings(upcomingBookings)
                     ) : (
-                        historyBookings.length === 0 ?
-                            <div className={styles.emptyState}>No past trips.</div> :
-                            renderBookings(historyBookings)
+                        historyBookings.length === 0 ? <div className={styles.emptyState}>No past trips.</div> : renderBookings(historyBookings)
                     )
                 )}
             </div>
 
             {paymentBooking && (
-                <PaymentModal
-                    booking={paymentBooking}
-                    onClose={() => setPaymentBooking(null)}
-                    onSuccess={handlePaymentSuccess}
+                <PaymentModal 
+                    booking={paymentBooking} 
+                    onClose={() => setPaymentBooking(null)} 
+                    onSuccess={handlePaymentSuccess} 
                 />
             )}
         </div>

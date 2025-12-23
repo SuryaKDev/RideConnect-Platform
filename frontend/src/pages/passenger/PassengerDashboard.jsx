@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import { searchRides, bookRide } from '../../services/api';
@@ -8,33 +8,32 @@ import { Search, MapPin, Calendar, Clock, User, CheckCircle, Filter } from 'luci
 const PassengerDashboard = () => {
     // Consolidated state for all search params
     const [searchParams, setSearchParams] = useState({ 
-        source: '', 
-        destination: '', 
-        date: '',
-        minPrice: '',
-        maxPrice: '',
-        minSeats: 1
+        source: '', destination: '', date: '',
+        minPrice: '', maxPrice: '', minSeats: 1
     });
     
     const [rides, setRides] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [searched, setSearched] = useState(false);
     const [selectedRide, setSelectedRide] = useState(null); 
     const [seatsToBook, setSeatsToBook] = useState(1);
     const [bookingStatus, setBookingStatus] = useState(null); 
     const [showFilters, setShowFilters] = useState(false); // Toggle for advanced filters
 
+    // Initial Fetch (Browse All Rides)
+    useEffect(() => {
+        performSearch({});
+    }, []);
+
     const handleSearchChange = (e) => {
         setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
     };
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
+    const performSearch = async (filters) => {
         setLoading(true);
-        setSearched(true);
         try {
-            // Pass the whole object to our updated API function
-            const data = await searchRides(searchParams);
+            // Pass the filters object to the API
+            const data = await searchRides(filters);
 
             const mappedRides = data.map(ride => ({
                 id: ride.id,
@@ -42,6 +41,7 @@ const PassengerDashboard = () => {
                 carModel: ride.driver.vehicleModel,
                 source: ride.source,
                 destination: ride.destination,
+                stopovers: ride.stopovers, // Added stopovers support
                 date: ride.travelDate,
                 time: ride.travelTime,
                 seats: ride.availableSeats,
@@ -49,11 +49,20 @@ const PassengerDashboard = () => {
             }));
 
             setRides(mappedRides);
-            setLoading(false);
+            // If filters were provided (not initial load), mark as searched
+            if (Object.keys(filters).length > 0) {
+                setSearched(true);
+            }
         } catch (error) {
             console.error('Search failed', error);
+        } finally {
             setLoading(false);
         }
+    };
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        performSearch(searchParams);
     };
 
     const handleBookClick = (ride) => {
@@ -84,7 +93,7 @@ const PassengerDashboard = () => {
                     <h1 className={styles.heroTitle}>Find your ride</h1>
                     
                     <div className={styles.searchContainer}>
-                        <form onSubmit={handleSearch}>
+                        <form onSubmit={handleSearchSubmit}>
                             {/* Main Search Row */}
                             <div className={styles.searchBar}>
                                 <div className={styles.searchInput}>
@@ -138,8 +147,8 @@ const PassengerDashboard = () => {
                 <div className={styles.resultsSection}>
                     {loading ? (
                         <p>Searching for rides...</p>
-                    ) : searched && rides.length === 0 ? (
-                        <div className={styles.emptyState}>No rides found for your criteria.</div>
+                    ) : rides.length === 0 ? (
+                        <div className={styles.emptyState}>No rides found.</div>
                     ) : (
                         <div className={styles.ridesGrid}>
                             {rides.map((ride) => (
@@ -163,6 +172,17 @@ const PassengerDashboard = () => {
                                             <User size={16} /> {ride.seats} seats left
                                         </div>
                                     </div>
+                                    
+                                    {/* Show Stopovers if any */}
+                                    {ride.stopovers && (
+                                        <div className={styles.stopovers}>
+                                            <small style={{color: '#666', fontSize: '0.85rem'}}>Via: {ride.stopovers}</small>
+                                        </div>
+                                    )}
+
+                                    <div className={styles.routeDisplay} style={{marginTop: '10px', marginBottom: '10px', fontWeight: '500'}}>
+                                        {ride.source} ➝ {ride.destination}
+                                    </div>
 
                                     <Button
                                         className={styles.bookBtn}
@@ -170,7 +190,7 @@ const PassengerDashboard = () => {
                                         disabled={ride.seats === 0}
                                         style={ride.seats === 0 ? { backgroundColor: '#ccc', cursor: 'not-allowed', borderColor: '#ccc' } : {}}
                                     >
-                                        {ride.seats === 0 ? 'Bookings Closed' : 'Book Now'}
+                                        {ride.seats === 0 ? 'Bookings Closed' : 'Request to Book'}
                                     </Button>
                                 </div>
                             ))}
@@ -179,19 +199,20 @@ const PassengerDashboard = () => {
                 </div>
             </div>
 
-            {/* Booking Modal */}
+            {/* Booking Modal (Confirmation) */}
             {selectedRide && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
-                        <h2>Confirm Booking</h2>
+                        <h2>Confirm Request</h2>
                         <div className={styles.modalContent}>
+                            <p style={{color: '#666', fontSize:'0.9rem', marginBottom:'15px'}}>
+                                Note: This will send a request to the driver. You will only pay once the driver accepts.
+                            </p>
                             <div className={styles.summaryRow}>
-                                <span>Driver:</span>
-                                <strong>{selectedRide.driverName}</strong>
+                                <span>Driver</span> <strong>{selectedRide.driverName}</strong>
                             </div>
                             <div className={styles.summaryRow}>
-                                <span>Route:</span>
-                                <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong>
+                                <span>Route</span> <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong>
                             </div>
                             <div className={styles.inputRow}>
                                 <label>Number of Seats</label>
@@ -211,17 +232,17 @@ const PassengerDashboard = () => {
 
                             {bookingStatus === 'success' && (
                                 <div className={styles.successMessage}>
-                                    <CheckCircle size={18} /> Booking Confirmed!
+                                    <CheckCircle size={18} /> Request Sent! Check My Bookings.
                                 </div>
                             )}
                             {bookingStatus === 'error' && (
-                                <div className={styles.errorMessage}>Booking failed. Try again.</div>
+                                <div className={styles.errorMessage}>Request failed. You may have already booked this ride.</div>
                             )}
                         </div>
                         <div className={styles.modalActions}>
                             <Button variant="outline" onClick={() => setSelectedRide(null)}>Cancel</Button>
                             <Button onClick={confirmBooking} disabled={bookingStatus === 'success'}>
-                                {bookingStatus === 'success' ? 'Confirmed' : 'Confirm Booking'}
+                                {bookingStatus === 'success' ? 'Sent' : 'Send Request'}
                             </Button>
                         </div>
                     </div>

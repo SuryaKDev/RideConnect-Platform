@@ -1,6 +1,7 @@
 .pageWrapper {
     min-height: 100vh;
     background-color: #f8f9fa;
+    padding-bottom: 2rem;
 }
 
 .searchHero {
@@ -14,6 +15,7 @@
     font-weight: 700;
     text-align: center;
     margin-bottom: 2rem;
+    margin-top: 0;
 }
 
 .searchContainer {
@@ -31,6 +33,8 @@
     background: white;
     border-radius: 8px;
     padding: 5px;
+    flex-wrap: wrap; /* Handle mobile */
+    gap: 5px;
 }
 
 .searchInput {
@@ -39,6 +43,7 @@
     align-items: center;
     padding: 0 1rem;
     position: relative;
+    min-width: 150px;
 }
 
 .searchInput input {
@@ -47,7 +52,7 @@
     width: 100%;
     padding: 12px 8px;
     font-size: 1rem;
-    color: #0d0d0d;
+    color: #333;
 }
 
 .icon {
@@ -68,6 +73,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    background-color: #0f4c81;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.searchBtn:hover {
+    background-color: #0b3d6b;
 }
 
 /* --- Filter Styles --- */
@@ -82,6 +96,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 5px;
+    font-weight: 500;
 }
 
 .filterToggle:hover {
@@ -91,10 +106,13 @@
 .filterBar {
     display: flex;
     gap: 15px;
-    padding: 10px 15px;
+    padding: 15px 15px 5px;
     border-top: 1px solid #eee;
     margin-top: 5px;
     animation: slideDown 0.2s ease-out;
+    background-color: #fcfcfc;
+    border-radius: 0 0 8px 8px;
+    flex-wrap: wrap;
 }
 
 @keyframes slideDown {
@@ -105,23 +123,30 @@
 .filterItem {
     display: flex;
     flex-direction: column;
-    width: 120px;
+    min-width: 120px;
+    flex: 1;
 }
 
 .filterItem label {
     font-size: 0.75rem;
     color: #666;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
+    font-weight: 600;
 }
 
 .filterItem input {
     border: 1px solid #ddd;
     border-radius: 4px;
-    padding: 6px 8px;
+    padding: 8px;
     font-size: 0.9rem;
+    outline: none;
 }
 
-/* Results & Card Styles (Same as before) */
+.filterItem input:focus {
+    border-color: #0f4c81;
+}
+
+/* Results Section */
 .resultsSection {
     margin-top: 2rem;
     padding-bottom: 3rem;
@@ -139,7 +164,9 @@
     padding: 1.5rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     border: 1px solid #eee;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
 }
 
 .rideCard:hover {
@@ -156,7 +183,8 @@
 
 .driverInfo {
     display: flex;
-    gap: 10px;
+    gap: 12px;
+    align-items: center;
 }
 
 .avatar {
@@ -175,17 +203,18 @@
 .driverInfo h4 {
     margin: 0;
     font-size: 1rem;
+    font-weight: 600;
     color: #333;
 }
 
 .carModel {
     margin: 0;
     font-size: 0.8rem;
-    color: #888;
+    color: #666;
 }
 
 .price {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: #2c3e50;
 }
@@ -193,7 +222,7 @@
 .rideDetails {
     display: flex;
     gap: 15px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     color: #555;
     font-size: 0.9rem;
 }
@@ -204,8 +233,28 @@
     gap: 6px;
 }
 
+.stopovers {
+    margin-bottom: 0.5rem;
+    padding: 4px 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.routeDisplay {
+    margin: 0.5rem 0 1rem;
+    font-weight: 600;
+    color: #0f4c81;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .bookBtn {
     width: 100%;
+    margin-top: auto; /* Pushes button to bottom */
 }
 
 .emptyState {
@@ -214,6 +263,7 @@
     color: #888;
     background: white;
     border-radius: 8px;
+    border: 1px dashed #ddd;
 }
 
 /* Modal Styles */
@@ -228,6 +278,7 @@
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    backdrop-filter: blur(2px);
 }
 
 .modal {
@@ -237,31 +288,59 @@
     width: 90%;
     max-width: 400px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .modal h2 {
     margin-top: 0;
     margin-bottom: 1.5rem;
     text-align: center;
+    color: #333;
+}
+
+.modalContent {
+    margin-bottom: 1.5rem;
 }
 
 .summaryRow {
     display: flex;
-    justify-content: left;
+    justify-content: space-between;
     margin-bottom: 0.8rem;
     font-size: 0.95rem;
+    color: #555;
+}
+
+.summaryRow strong {
+    color: #333;
 }
 
 .inputRow {
     margin: 1.5rem 0;
 }
 
+.inputRow label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
 .seatInput {
     width: 100%;
-    padding: 8px;
+    padding: 10px;
     border: 1px solid #ccc;
-    border-radius: 4px;
-    margin-top: 5px;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.seatInput:focus {
+    border-color: #0f4c81;
 }
 
 .totalRow {
@@ -272,12 +351,16 @@
     border-top: 1px solid #eee;
     font-weight: 700;
     font-size: 1.1rem;
+    color: #333;
+}
+
+.totalPrice {
+    color: #0f4c81;
 }
 
 .modalActions {
     display: flex;
     gap: 1rem;
-    margin-top: 2rem;
 }
 
 .modalActions button {
@@ -285,16 +368,62 @@
 }
 
 .successMessage {
-    color: green;
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 0.75rem;
+    border-radius: 6px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
     margin-top: 1rem;
     justify-content: center;
+    font-weight: 500;
 }
 
 .errorMessage {
-    color: red;
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 0.75rem;
+    border-radius: 6px;
     margin-top: 1rem;
     text-align: center;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .searchBar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 10px;
+    }
+    
+    .divider {
+        display: none;
+    }
+
+    .searchInput {
+        padding: 5px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .searchInput:last-of-type {
+        border-bottom: none;
+    }
+
+    .searchBtn {
+        width: 100%;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    
+    .filterBar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .filterItem {
+        width: 100%;
+    }
 }

@@ -8,26 +8,29 @@
     margin: 3rem auto;
     background: white;
     padding: 2.5rem;
-    border-radius: var(--radius-lg);
+    border-radius: 12px; /* var(--radius-lg) usually resolves to ~12px or 0.5rem */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
 }
 
 .formContainer h1 {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: #1e293b; /* var(--text-main) */
     margin-bottom: 0.5rem;
+    margin-top: 0;
 }
 
 .subtitle {
-    color: var(--text-muted);
+    color: #64748b; /* var(--text-muted) */
     margin-bottom: 2rem;
+    margin-top: 0;
 }
 
 .form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .row {
@@ -41,21 +44,34 @@
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Ensure buttons in actions have equal width or flexibility if needed */
+.actions button {
+    min-width: 100px;
 }
 
 .errorAlert {
     background-color: #fef2f2;
     border: 1px solid #fee2e2;
-    color: var(--error);
+    color: #ef4444; /* var(--error) */
     padding: 0.75rem;
-    border-radius: var(--radius-md);
+    border-radius: 6px;
     margin-bottom: 1.5rem;
     font-size: 0.875rem;
+    font-weight: 500;
 }
 
 @media (max-width: 640px) {
     .row {
         grid-template-columns: 1fr;
         gap: 1rem;
+    }
+    
+    .formContainer {
+        padding: 1.5rem;
+        margin: 1.5rem auto;
     }
 }
