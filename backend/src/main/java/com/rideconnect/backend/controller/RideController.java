@@ -35,10 +35,11 @@ public class RideController {
         return rideService.getMyRides(userDetails.getUsername());
     }
 
+    // UPDATED: Made 'source' and 'destination' optional (required = false)
     @GetMapping("/search")
     public List<Ride> searchRides(
-            @RequestParam String source,
-            @RequestParam String destination,
+            @RequestParam(required = false) String source,
+            @RequestParam(required = false) String destination,
             @RequestParam(required = false) String date,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
@@ -58,13 +59,21 @@ public class RideController {
 
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelRide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        rideService.cancelRide(id, userDetails.getUsername());
-        return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully"));
+        try {
+            rideService.cancelRide(id, userDetails.getUsername());
+            return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}/bookings")
     public ResponseEntity<?> getRideBookings(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        List<PassengerDto> passengers = rideService.getPassengersForRide(id, userDetails.getUsername());
-        return ResponseEntity.ok(passengers);
+        try {
+            List<PassengerDto> passengers = rideService.getPassengersForRide(id, userDetails.getUsername());
+            return ResponseEntity.ok(passengers);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

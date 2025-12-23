@@ -35,10 +35,12 @@ public class RideService {
     private static final double BASE_FARE = 50.0;
     private static final double RATE_PER_KM = 5.0;
 
-    // ... postRide, getAllRides, getMyRides methods (Keep them same) ...
     public Ride postRide(Ride ride, String email) {
         User driver = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         if (!driver.isDriver()) throw new RuntimeException("Only drivers can post rides!");
+
+        LocalDate today = LocalDate.now();
+        if (ride.getTravelDate().isBefore(today)) throw new RuntimeException("Travel date cannot be in the past!");
 
         // 1. Get Coordinates
         LatLng srcCoords = googleMapsService.getCoordinates(ride.getSource());
@@ -57,6 +59,7 @@ public class RideService {
         if (dist == null) dist = distanceService.calculateDistance(ride.getSource(), ride.getDestination());
         ride.setDistanceKm(dist);
 
+        // Allow manual price override if provided
         if (ride.getPricePerSeat() == null || ride.getPricePerSeat() == 0) {
             ride.setPricePerSeat((double) Math.round((BASE_FARE + (dist * RATE_PER_KM)) / 10) * 10);
         }
@@ -69,12 +72,19 @@ public class RideService {
     public List<Ride> getAllRides() { return rideRepository.findAll(); }
     public List<Ride> getMyRides(String email) { return rideRepository.findByDriverEmail(email); }
 
-    // --- DEBUGGED SEARCH METHOD ---
+    // --- UPDATED SEARCH METHOD ---
     public List<Ride> searchRides(String source, String destination, LocalDate date,
                                   Double minPrice, Double maxPrice,
                                   Integer minSeats, Double minRating) {
 
-        // 1. Text Search (Specifications) - Handles Optional Date internally
+        // 1. If NO filters are provided, return ALL Available rides (Browse Mode)
+        if ((source == null || source.isEmpty()) &&
+                (destination == null || destination.isEmpty()) &&
+                date == null) {
+            return rideRepository.findAll(Specification.where(RideSpecification.hasStatus("AVAILABLE")));
+        }
+
+        // 2. Build Specification for Text Search
         Specification<Ride> spec = Specification.where(RideSpecification.hasStatus("AVAILABLE"));
         if (source != null && !source.isEmpty()) spec = spec.and(RideSpecification.hasSource(source));
         if (destination != null && !destination.isEmpty()) spec = spec.and(RideSpecification.hasDestination(destination));
@@ -84,42 +94,25 @@ public class RideService {
 
         List<Ride> textResults = rideRepository.findAll(spec);
 
-        System.out.println("---- SEARCH DEBUG ----");
-        System.out.println("Source: " + source + ", Dest: " + destination + ", Date: " + date);
-        System.out.println("Text Results Found: " + textResults.size());
-
         // 3. Fallback to Spatial Search
-        // CHANGE: Removed "&& date != null". Now it runs even if date is missing.
         if (textResults.isEmpty() && source != null && destination != null) {
             try {
-                System.out.println("🚀 Triggering Smart Spatial Search...");
-
                 LatLng start = googleMapsService.getCoordinates(source);
                 LatLng end = googleMapsService.getCoordinates(destination);
 
                 if (start != null && end != null) {
-                    System.out.println("Coords Found: Start(" + start + "), End(" + end + ")");
-
-                    List<Ride> spatialResults = rideRepository.findSmartRouteMatches(
-                            date, // Can be null now
-                            start.lat, start.lng, end.lat, end.lng
+                    return rideRepository.findSmartRouteMatches(
+                            date, start.lat, start.lng, end.lat, end.lng
                     );
-
-                    System.out.println("Spatial Matches Found: " + spatialResults.size());
-                    return spatialResults;
-                } else {
-                    System.out.println("❌ Could not geocode source/destination string.");
                 }
             } catch (Exception e) {
                 System.err.println("Spatial Search Error: " + e.getMessage());
-                e.printStackTrace();
             }
         }
 
         return textResults;
     }
 
-    // ... cancelRide, getPassengersForRide (Keep them same) ...
     @Transactional
     public void cancelRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
@@ -140,11 +133,20 @@ public class RideService {
     public List<PassengerDto> getPassengersForRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
         if (!ride.getDriver().getEmail().equals(driverEmail)) throw new RuntimeException("Not authorized");
+
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         List<PassengerDto> list = new ArrayList<>();
         for (Booking b : bookings) {
             if (!b.getStatus().equals("CANCELLED")) {
-                list.add(PassengerDto.builder().name(b.getPassenger().getName()).phone(b.getPassenger().getPhone()).email(b.getPassenger().getEmail()).seatsBooked(b.getSeatsBooked()).bookingStatus(b.getStatus()).build());
+                User p = b.getPassenger();
+                list.add(PassengerDto.builder()
+                        .bookingId(b.getId()) // Added ID here
+                        .name(p.getName())
+                        .phone(p.getPhone())
+                        .email(p.getEmail())
+                        .seatsBooked(b.getSeatsBooked())
+                        .bookingStatus(b.getStatus())
+                        .build());
             }
         }
         return list;
