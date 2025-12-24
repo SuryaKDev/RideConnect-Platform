@@ -31,7 +31,7 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
         AND ST_DWithin(
             r.route_path::geography, 
             ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)::geography, 
-            GREATEST(5000, LEAST(30000, (r.distance_km * 1000) * 0.10)) 
+            GREATEST(5000, LEAST(20000, (r.distance_km * 1000) * 0.10)) 
         )
         
         -- Dynamic Buffer Logic for End Point
