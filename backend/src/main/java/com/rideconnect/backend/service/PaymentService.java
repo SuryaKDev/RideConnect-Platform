@@ -1,17 +1,12 @@
 package com.rideconnect.backend.service;
 
-import com.rideconnect.backend.dto.NotificationDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Payment;
-import com.rideconnect.backend.model.Role;
-import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.BookingRepository;
 import com.rideconnect.backend.repository.PaymentRepository;
-import com.rideconnect.backend.repository.UserRepository;
 import com.rideconnect.backend.service.payment.PaymentProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,40 +17,41 @@ import java.util.Optional;
 @Service
 public class PaymentService {
 
-    @Autowired
-    private PaymentRepository paymentRepository;
+    @Autowired private PaymentRepository paymentRepository;
+    @Autowired private BookingRepository bookingRepository;
+    @Autowired private com.rideconnect.backend.repository.UserRepository userRepository;
+    @Autowired @Qualifier("razorpayProvider") private PaymentProvider razorpayProvider;
+    @Autowired @Qualifier("mockProvider") private PaymentProvider mockProvider;
+    @Autowired private NotificationService notificationService;
 
-    @Autowired
-    private BookingRepository bookingRepository;
+    // --- TAX CONSTANTS ---
+    private static final double GST_RATE = 0.05; // 5%
+    private static final double PLATFORM_FEE_RATE = 0.02; // 2%
 
-    @Autowired
-    @Qualifier("razorpayProvider")
-    private PaymentProvider razorpayProvider;
+    // Helper: Calculates Base + Taxes
+    private Double calculateTotalWithTaxes(Booking booking) {
+        Double baseFare = booking.getRide().getPricePerSeat() * booking.getSeatsBooked();
+        Double gst = baseFare * GST_RATE;
+        Double platformFee = baseFare * PLATFORM_FEE_RATE;
 
-    @Autowired
-    @Qualifier("mockProvider")
-    private PaymentProvider mockProvider;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired private NotificationService notificationService; // Inject WebSocket sender
+        // Round to 2 decimal places
+        return Math.round((baseFare + gst + platformFee) * 100.0) / 100.0;
+    }
 
     public Map<String, Object> initiatePayment(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
-        Double amount = booking.getRide().getPricePerSeat() * booking.getSeatsBooked();
+        // UPDATED: Charge the Total Amount (Base + Tax + Fee)
+        Double totalAmount = calculateTotalWithTaxes(booking);
 
         try {
-            System.out.println("💳 Attempting Razorpay Order for Booking ID: " + bookingId);
-            return razorpayProvider.createOrder(amount, bookingId);
+            return razorpayProvider.createOrder(totalAmount, bookingId);
         } catch (Exception e) {
-            System.err.println("❌ Razorpay Failed: " + e.getMessage());
             try {
-                return mockProvider.createOrder(amount, bookingId);
+                return mockProvider.createOrder(totalAmount, bookingId);
             } catch (Exception ex) {
-                throw new RuntimeException("All Payment Providers Failed: " + ex.getMessage());
+                throw new RuntimeException("Payment init failed");
             }
         }
     }
@@ -65,28 +61,24 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
         boolean isVerified = false;
-
         try {
-            // FIX: Ensure providerType is not null, default to MOCK if missing
             if (providerType == null) providerType = "MOCK";
-
             if ("RAZORPAY".equalsIgnoreCase(providerType)) {
-                // Real Verification
                 isVerified = razorpayProvider.verifyPayment(orderId, paymentId, signature);
             } else {
-                // Mock verification (Always true)
                 isVerified = true;
             }
         } catch (Exception e) {
-            // Log the error to help debug
-            System.err.println("Verification Error: " + e.getMessage());
-            throw new RuntimeException("Payment Verification Failed: " + e.getMessage());
+            throw new RuntimeException("Payment verification failed");
         }
 
         if (isVerified) {
+            // UPDATED: Save the Total Amount in the database
+            Double totalAmount = calculateTotalWithTaxes(booking);
+
             Payment payment = Payment.builder()
                     .booking(booking)
-                    .amount(booking.getRide().getPricePerSeat() * booking.getSeatsBooked())
+                    .amount(totalAmount)
                     .paymentMethod(providerType)
                     .transactionId(paymentId)
                     .orderId(orderId)
@@ -95,18 +87,17 @@ public class PaymentService {
                     .build();
 
             paymentRepository.save(payment);
-
             booking.setStatus("CONFIRMED");
             bookingRepository.save(booking);
 
-            // 🔔 1. NOTIFY DRIVER (New Booking!)
+            // Notify Driver
             String driverEmail = booking.getRide().getDriver().getEmail();
             notificationService.notifyUser(driverEmail, "New Booking!",
                     booking.getPassenger().getName() + " booked " + booking.getSeatsBooked() + " seat(s).", "SUCCESS");
 
-            // 🔔 2. NOTIFY PASSENGER (Confirmation)
+            // Notify Passenger
             notificationService.notifyUser(booking.getPassenger().getEmail(), "Booking Confirmed",
-                    "Your ride to " + booking.getRide().getDestination() + " is confirmed.", "SUCCESS");
+                    "Your ride is confirmed. Total Paid: ₹" + totalAmount, "SUCCESS");
 
             return payment;
         } else {
@@ -115,41 +106,26 @@ public class PaymentService {
     }
 
     public List<Payment> getMyPaymentHistory(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (user.getRole() == Role.DRIVER) {
-            // If Driver, show payments received
-            return paymentRepository.findByBooking_Ride_Driver_Email(email);
-        } else {
-            // If Passenger, show payments made
-            return paymentRepository.findByBooking_Passenger_Email(email);
+        var user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        if(user.getRole() == com.rideconnect.backend.model.Role.DRIVER) {
+            return paymentRepository.findDriverEarnings(email);
         }
+        return paymentRepository.findByBooking_Passenger_Email(email);
     }
 
-    // --- NEW: REFUND LOGIC ---
     public void processRefund(Long bookingId) {
-        // Find if a payment exists for this booking
         Optional<Payment> paymentOpt = paymentRepository.findByBookingId(bookingId);
 
         if (paymentOpt.isPresent()) {
             Payment payment = paymentOpt.get();
-
-            // Only refund if it was successful previously
             if ("SUCCESS".equals(payment.getStatus())) {
-
-                // In a real Production App, you would call razorpayProvider.refund() here.
-                // For this project, we simulate it by updating the DB status.
                 payment.setStatus("REFUNDED");
                 paymentRepository.save(payment);
 
-                // 🔔 3. NOTIFY PASSENGER (Refund)
+                // Refund the full amount (including taxes)
                 String userEmail = payment.getBooking().getPassenger().getEmail();
                 notificationService.notifyUser(userEmail, "Refund Processed",
                         "₹" + payment.getAmount() + " has been refunded.", "INFO");
-
-
-                System.out.println("Processing Refund for Booking ID: " + bookingId);
             }
         }
     }
