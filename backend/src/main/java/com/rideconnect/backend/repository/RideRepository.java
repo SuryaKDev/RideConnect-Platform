@@ -15,19 +15,33 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
 
     List<Ride> findByDriverEmail(String email);
 
-    // --- LEVEL 3: SMART SPATIAL MATCHING ---
-    // UPDATES:
-    // 1. Buffer increased to 20,000 meters (20km) to catch cities like Hosur.
-    // 2. Date is now optional (cast(:date as date) IS NULL OR ...)
+    // --- LEVEL 3.5: DYNAMIC SMART ROUTE MATCHING ---
+    // LOGIC:
+    // 1. Calculate Dynamic Buffer: 10% of total distance.
+    // 2. Clamp Buffer: Min 5km (5000m), Max 30km (30000m).
+    // 3. Check if Passenger Start/End is within this dynamic buffer.
+
     @Query(value = """
         SELECT * FROM rides r 
         WHERE r.status = 'AVAILABLE' 
         AND (cast(:date as date) IS NULL OR r.travel_date = :date)
         AND r.route_path IS NOT NULL
-        -- Cast to geography for Meters. Buffer increased to 20km.
-        AND ST_DWithin(r.route_path::geography, ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)::geography, 20000) 
-        AND ST_DWithin(r.route_path::geography, ST_SetSRID(ST_MakePoint(:endLng, :endLat), 4326)::geography, 20000)
-        -- Direction check
+        
+        -- Dynamic Buffer Logic for Start Point
+        AND ST_DWithin(
+            r.route_path::geography, 
+            ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)::geography, 
+            GREATEST(5000, LEAST(20000, (r.distance_km * 1000) * 0.10)) 
+        )
+        
+        -- Dynamic Buffer Logic for End Point
+        AND ST_DWithin(
+            r.route_path::geography,
+            ST_SetSRID(ST_MakePoint(:endLng, :endLat), 4326)::geography, 
+            GREATEST(5000, LEAST(20000, (r.distance_km * 1000) * 0.10))
+        )
+        
+        -- Direction Check (Start comes before End)
         AND ST_LineLocatePoint(r.route_path, ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)) < 
             ST_LineLocatePoint(r.route_path, ST_SetSRID(ST_MakePoint(:endLng, :endLat), 4326))
         """, nativeQuery = true)
