@@ -209,10 +209,10 @@ const PassengerDashboard = () => {
                                 Note: This will send a request to the driver. You will only pay once the driver accepts.
                             </p>
                             <div className={styles.summaryRow}>
-                                <span>Driver</span> <strong>{selectedRide.driverName}</strong>
+                                <span>Driver:</span> <strong>{selectedRide.driverName}</strong>
                             </div>
                             <div className={styles.summaryRow}>
-                                <span>Route</span> <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong>
+                                <span>Route: </span> <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong>
                             </div>
                             <div className={styles.inputRow}>
                                 <label>Number of Seats</label>
@@ -227,7 +227,7 @@ const PassengerDashboard = () => {
                             </div>
                             <div className={styles.totalRow}>
                                 <span>Total Price</span>
-                                <span className={styles.totalPrice}>₹{selectedRide.price * seatsToBook}</span>
+                                <span className={styles.totalPrice}>₹{selectedRide.price * seatsToBook} + Taxes</span>
                             </div>
 
                             {bookingStatus === 'success' && (

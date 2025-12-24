@@ -111,7 +111,7 @@ const MyBookings = () => {
                         <div className={styles.costInfo}>
                             <span className={styles.seats}>{booking.seatsBooked} Seat(s)</span>
                             <span className={styles.price}>
-                                Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked}
+                                Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked} + Taxes
                             </span>
                         </div>
                         

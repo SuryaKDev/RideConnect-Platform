@@ -309,7 +309,6 @@
 
 .summaryRow {
     display: flex;
-    justify-content: space-between;
     margin-bottom: 0.8rem;
     font-size: 0.95rem;
     color: #555;

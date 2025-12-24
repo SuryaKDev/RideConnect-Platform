@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { getTransactionHistory } from '../services/api';
 import Navbar from '../components/Navbar';
+import Button from '../components/ui/Button'; 
 import styles from './TransactionHistory.module.css';
+import { generatePassengerInvoice } from '../utils/invoiceGenerator';
+import { Download } from 'lucide-react'; 
 
 const TransactionHistory = () => {
     const [payments, setPayments] = useState([]);
@@ -44,15 +47,15 @@ const TransactionHistory = () => {
                                     <th>Date</th>
                                     <th>Ride Details</th>
                                     <th>Amount</th>
-                                    <th>Payment Method</th>
                                     <th>Status</th>
+                                    <th>Invoice</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {payments.map((p) => (
                                     <tr key={p.id}>
                                         <td>
-                                            {new Date(p.paymentTime).toLocaleDateString()}{' '}
+                                            {new Date(p.paymentTime).toLocaleDateString()}
                                             <span className={styles.time}>
                                                 {new Date(p.paymentTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
@@ -64,13 +67,24 @@ const TransactionHistory = () => {
                                             <div className={styles.subText}>Booking #{p.booking?.id}</div>
                                         </td>
                                         <td className={styles.amount}>
-                                            ₹{p.amount } {/* Razorpay stores amounts in paisa, assuming backend sends that or adjust if backend sends Rupees */}
+                                            ₹{(p.amount).toFixed(2)}
                                         </td>
-                                        <td>{p.paymentMethod}</td>
                                         <td>
-                                            <span className={`${styles.status} ${styles[p.status]}`}>
+                                            <span className={`${styles.status} ${p.status === 'SUCCESS' ? styles.success : styles.failed}`}>
                                                 {p.status}
                                             </span>
+                                        </td>
+                                        <td>
+                                            {p.status === 'SUCCESS' && (
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="outline"
+                                                    onClick={() => generatePassengerInvoice(p)}
+                                                    style={{display: 'flex', alignItems: 'center', gap: '5px', borderColor: '#0f4c81', color: '#0f4c81'}}
+                                                >
+                                                    <Download size={14} /> PDF
+                                                </Button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
