@@ -83,6 +83,16 @@ export const postRide = async (rideData) => {
   return data;
 };
 
+export const calculateFare = async (source, destination) => {
+    const response = await fetch(`${API_URL}/rides/calculate?source=${source}&destination=${destination}`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to calculate fare");
+    return data;
+};
+
 // --- UPDATED SEARCH FUNCTION ---
 export const searchRides = async (filters) => {
   // filters is an object like: { source: '...', minPrice: 500, ... }

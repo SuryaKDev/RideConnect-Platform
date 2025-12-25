@@ -75,3 +75,36 @@
         margin: 1.5rem auto;
     }
 }
+
+/* Suggestion Box */
+.suggestionBox {
+    background-color: #f0f9ff;
+    border: 1px solid #bce3eb;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    color: #0f4c81;
+}
+
+.suggestionBox p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.suggestionBox small {
+    display: block;
+    margin-top: 5px;
+    color: #555;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+    .row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .formContainer {
+        padding: 1.5rem;
+        margin: 1.5rem auto;
+    }
+}
