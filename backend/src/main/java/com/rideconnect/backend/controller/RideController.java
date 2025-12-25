@@ -25,6 +25,16 @@ public class RideController {
         return rideService.postRide(ride, userDetails.getUsername());
     }
 
+    @GetMapping("/calculate")
+    public ResponseEntity<?> calculateFare(@RequestParam String source, @RequestParam String destination) {
+        try {
+            Map<String, Object> details = rideService.calculateRideDetails(source, destination);
+            return ResponseEntity.ok(details);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @GetMapping("/all")
     public List<Ride> getAllRides() {
         return rideService.getAllRides();

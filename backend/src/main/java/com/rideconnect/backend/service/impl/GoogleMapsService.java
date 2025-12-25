@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class GoogleMapsService {
@@ -21,7 +23,7 @@ public class GoogleMapsService {
         return new GeoApiContext.Builder().apiKey(apiKey).build();
     }
 
-    // 1. Get Coordinates (Lat, Lng) for a City Name
+    // 1. Get Coordinates
     public LatLng getCoordinates(String city) {
         try {
             GeocodingResult[] results = GeocodingApi.newRequest(getContext())
@@ -37,8 +39,8 @@ public class GoogleMapsService {
         return null;
     }
 
-    // 2. Get the full path (list of points) between source and dest
-    public List<LatLng> getRoutePoints(String source, String destination) {
+    // 2. OPTIMIZED: Get Both Polyline and Distance in ONE call
+    public Map<String, Object> getRouteDetails(String source, String destination) {
         try {
             DirectionsResult result = DirectionsApi.newRequest(getContext())
                     .origin(source)
@@ -46,34 +48,22 @@ public class GoogleMapsService {
                     .await();
 
             if (result.routes.length > 0) {
-                // Decode the "overview polyline" into a list of GPS points
-                return result.routes[0].overviewPolyline.decodePath();
+                Map<String, Object> details = new HashMap<>();
+
+                // Decode Polyline
+                details.put("path", result.routes[0].overviewPolyline.decodePath());
+
+                // Get Distance (in KM)
+                if (result.routes[0].legs.length > 0) {
+                    long distanceMeters = result.routes[0].legs[0].distance.inMeters;
+                    details.put("distance", distanceMeters / 1000.0);
+                }
+
+                return details;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
-    }
-
-    // 3. Get Distance in KM (Using Directions API)
-    // This uses the exact same route logic as the Polyline
-    public Double getDistanceInKm(String source, String destination) {
-        try {
-            DirectionsResult result = DirectionsApi.newRequest(getContext())
-                    .origin(source)
-                    .destination(destination)
-                    .await();
-
-            if (result.routes.length > 0 && result.routes[0].legs.length > 0) {
-                // Google returns distance in meters
-                long distanceInMeters = result.routes[0].legs[0].distance.inMeters;
-                // Convert to KM
-                return distanceInMeters / 1000.0;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // Return null so the caller (RideService) can handle fallback logic if needed
         return null;
     }
 }

@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class RideService {
@@ -35,6 +36,27 @@ public class RideService {
     private static final double BASE_FARE = 50.0;
     private static final double RATE_PER_KM = 5.0;
 
+    public Map<String, Object> calculateRideDetails(String source, String destination) {
+        // Use optimized service to get distance
+        Map<String, Object> routeData = googleMapsService.getRouteDetails(source, destination);
+
+        Double distance = 0.0;
+        if (routeData != null && routeData.containsKey("distance")) {
+            distance = (Double) routeData.get("distance");
+        } else {
+            // Fallback to Mock if Google Fails
+            distance = distanceService.calculateDistance(source, destination);
+        }
+
+        double maxFare = Math.round((BASE_FARE + (distance * RATE_PER_KM)) / 10) * 10;
+
+        return Map.of(
+                "distanceKm", distance,
+                "suggestedFare", maxFare,
+                "duration", "Approx " + (int)(distance / 60) + " hrs" // Simple estimation
+        );
+    }
+
     public Ride postRide(Ride ride, String email) {
         User driver = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         if (!driver.isDriver()) throw new RuntimeException("Only drivers can post rides!");
@@ -42,33 +64,47 @@ public class RideService {
         LocalDate today = LocalDate.now();
         if (ride.getTravelDate().isBefore(today)) throw new RuntimeException("Travel date cannot be in the past!");
 
-        // 1. Get Coordinates
+        // 1. Geocoding (Coordinates)
         LatLng srcCoords = googleMapsService.getCoordinates(ride.getSource());
         LatLng destCoords = googleMapsService.getCoordinates(ride.getDestination());
         if (srcCoords != null) ride.setSourceLocation(GeometryUtil.createPoint(srcCoords.lat, srcCoords.lng));
         if (destCoords != null) ride.setDestinationLocation(GeometryUtil.createPoint(destCoords.lat, destCoords.lng));
 
-        // 2. Get Route Path
-        List<LatLng> pathPoints = googleMapsService.getRoutePoints(ride.getSource(), ride.getDestination());
-        if (pathPoints != null && !pathPoints.isEmpty()) {
-            ride.setRoutePath(GeometryUtil.createLineString(pathPoints));
+        // 2. OPTIMIZED: Get Route & Distance in ONE call
+        Map<String, Object> routeData = googleMapsService.getRouteDetails(ride.getSource(), ride.getDestination());
+        Double distance = 0.0;
+
+        if (routeData != null) {
+            if (routeData.containsKey("path")) {
+                ride.setRoutePath(GeometryUtil.createLineString((List<LatLng>) routeData.get("path")));
+            }
+            if (routeData.containsKey("distance")) {
+                distance = (Double) routeData.get("distance");
+            }
         }
 
-        // 3. Distance & Price
-        Double dist = googleMapsService.getDistanceInKm(ride.getSource(), ride.getDestination());
-        if (dist == null) dist = distanceService.calculateDistance(ride.getSource(), ride.getDestination());
-        ride.setDistanceKm(dist);
+        // Fallback Distance
+        if (distance == 0.0) distance = distanceService.calculateDistance(ride.getSource(), ride.getDestination());
+        ride.setDistanceKm(distance);
 
-        // Allow manual price override if provided
-        if (ride.getPricePerSeat() == null || ride.getPricePerSeat() == 0) {
-            ride.setPricePerSeat((double) Math.round((BASE_FARE + (dist * RATE_PER_KM)) / 10) * 10);
+        // 3. Price Validation & Logic
+        double maxFare = Math.round((BASE_FARE + (distance * RATE_PER_KM)) / 10) * 10;
+
+        if (ride.getPricePerSeat() != null && ride.getPricePerSeat() > 0) {
+            // User provided a price. VALIDATE IT.
+            if (ride.getPricePerSeat() > maxFare) {
+                throw new RuntimeException("Price cannot exceed the maximum calculated fare of ₹" + maxFare);
+            }
+        } else {
+            // Default to max/dynamic fare
+            ride.setPricePerSeat(maxFare);
         }
 
         ride.setDriver(driver);
         ride.setStatus("AVAILABLE");
+
         return rideRepository.save(ride);
     }
-
     public List<Ride> getAllRides() { return rideRepository.findAll(); }
     public List<Ride> getMyRides(String email) { return rideRepository.findByDriverEmail(email); }
 
