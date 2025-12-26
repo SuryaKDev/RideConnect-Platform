@@ -32,6 +32,7 @@ public class RideService {
     @Autowired private PaymentService paymentService;
     @Autowired private NotificationService notificationService;
     @Autowired private GoogleMapsService googleMapsService;
+    @Autowired private EmailService emailService;
 
     private static final double BASE_FARE = 50.0;
     private static final double RATE_PER_KM = 5.0;
@@ -161,6 +162,14 @@ public class RideService {
                 if ("CONFIRMED".equals(b.getStatus())) paymentService.processRefund(b.getId());
                 b.setStatus("CANCELLED_BY_DRIVER");
                 bookingRepository.save(b);
+
+                emailService.sendRideCancellation(
+                        b.getPassenger().getEmail(),
+                        b.getPassenger().getName(),
+                        ride.getSource(),
+                        ride.getDestination()
+                );
+
                 notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Cancelled", "Ride cancelled by driver. Refund initiated.", "WARNING");
             }
         }

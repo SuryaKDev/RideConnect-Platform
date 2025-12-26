@@ -23,6 +23,7 @@ public class PaymentService {
     @Autowired @Qualifier("razorpayProvider") private PaymentProvider razorpayProvider;
     @Autowired @Qualifier("mockProvider") private PaymentProvider mockProvider;
     @Autowired private NotificationService notificationService;
+    @Autowired private EmailService emailService;
 
     // --- TAX CONSTANTS ---
     private static final double GST_RATE = 0.05; // 5%
@@ -89,6 +90,14 @@ public class PaymentService {
             paymentRepository.save(payment);
             booking.setStatus("CONFIRMED");
             bookingRepository.save(booking);
+
+            emailService.sendBookingConfirmation(
+                    booking.getPassenger().getEmail(),
+                    booking.getPassenger().getName(),
+                    booking.getRide().getSource(),
+                    booking.getRide().getDestination(),
+                    payment.getAmount()
+            );
 
             // Notify Driver
             String driverEmail = booking.getRide().getDriver().getEmail();
