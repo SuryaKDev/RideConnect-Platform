@@ -29,8 +29,9 @@ export const generatePassengerInvoice = (payment) => {
   doc.setTextColor(100);
   const invoiceNo = payment.orderId || `INV-${payment.id}`;
   doc.text(`Invoice No: ${invoiceNo}`, 140, 20);
-  doc.text(`Date: ${formatDate(payment.paymentTime)}`, 140, 25);
-  doc.text(`Status: ${payment.status}`, 140, 30);
+  doc.text('Transaction ID: ' + (payment.transactionId || 'N/A'), 140, 25);
+  doc.text(`Date: ${formatDate(payment.paymentTime)}`, 140, 30);
+
 
   // Line
   doc.setDrawColor(200);
@@ -44,6 +45,8 @@ export const generatePassengerInvoice = (payment) => {
   doc.setTextColor(100);
   doc.text(`Name: ${payment.booking?.passenger?.name || "N/A"}`, 14, 50);
   doc.text(`Email: ${payment.booking?.passenger?.email || "N/A"}`, 14, 55);
+  doc.text(`Phone: ${payment.booking?.passenger?.phone || "N/A"}`, 14, 60);
+  
 
   // Ride Details
   const ride = payment.booking?.ride || {};
