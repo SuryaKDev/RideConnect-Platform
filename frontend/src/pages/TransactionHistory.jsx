@@ -75,7 +75,7 @@ const TransactionHistory = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            {p.status === 'SUCCESS' && (
+                                            {(p.status === 'SUCCESS' || p.status === 'REFUNDED') && (
                                                 <Button 
                                                     size="sm" 
                                                     variant="outline"

@@ -331,3 +331,48 @@ export const rejectBookingRequest = async (bookingId) => {
   if (!response.ok) throw new Error(data.message || "Failed to reject booking");
   return data;
 };
+
+// --- RIDE LIFECYCLE (Driver) ---
+
+export const startRide = async (rideId) => {
+    const response = await fetch(`${API_URL}/rides/${rideId}/start`, {
+        method: "PUT",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to start ride");
+    return data;
+};
+
+export const completeRide = async (rideId) => {
+    const response = await fetch(`${API_URL}/rides/${rideId}/complete`, {
+        method: "PUT",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to complete ride");
+    return data;
+};
+
+// --- REVIEW SERVICES ---
+
+export const submitReview = async (bookingId, rating, comment) => {
+    const response = await fetch(`${API_URL}/reviews/submit`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ bookingId, rating, comment }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to submit review");
+    return data;
+};
+
+export const getMyReviews = async () => {
+    const response = await fetch(`${API_URL}/reviews/my-reviews`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch reviews");
+    return data;
+};

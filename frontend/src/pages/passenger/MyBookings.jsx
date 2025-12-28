@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import PaymentModal from '../../components/PaymentModal'; 
+import ReviewModal from '../../components/ReviewModal'; 
 import { getMyBookings, cancelBooking } from '../../services/api';
-import { Link } from 'react-router-dom';
 import styles from './MyBookings.module.css';
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3 } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3, Star, Receipt } from 'lucide-react';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [paymentBooking, setPaymentBooking] = useState(null); 
+    const [reviewBooking, setReviewBooking] = useState(null); 
     const [activeTab, setActiveTab] = useState('upcoming');
 
     const fetchBookings = async () => {
@@ -34,8 +36,14 @@ const MyBookings = () => {
         fetchBookings(); 
     };
 
+    const handleReviewSuccess = () => {
+        setReviewBooking(null);
+        alert("Review Submitted! Thank you.");
+        fetchBookings();
+    };
+
     const handleCancel = async (id) => {
-        if (!window.confirm("Are you sure you want to cancel this request?")) return;
+        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
         try {
             await cancelBooking(id);
             alert("Booking Cancelled");
@@ -46,7 +54,7 @@ const MyBookings = () => {
     };
 
     const handleRefundRequest = () => {
-        alert("Refund request submitted.");
+        alert("Refund request submitted. Refund will be credited within 5-7 working days.");
     };
 
     // Filter Logic
@@ -56,8 +64,10 @@ const MyBookings = () => {
         b.ride.status !== 'COMPLETED'
     );
 
+    // History: CANCELLED, REFUNDED, COMPLETED, or Admin/Driver Cancelled
     const historyBookings = bookings.filter(b => 
-        b.status.includes('CANCELLED') || 
+        b.status === 'CANCELLED' || 
+        b.status === 'CANCELLED_BY_DRIVER' ||
         b.status === 'REJECTED' ||
         b.status === 'REFUNDED' || 
         b.ride.status === 'COMPLETED' || 
@@ -66,6 +76,7 @@ const MyBookings = () => {
 
     const getStatusBadge = (status, rideStatus) => {
         if (rideStatus === 'CANCELLED_BY_ADMIN') return <div className={`${styles.statusBadge} ${styles.CANCELLED}`}><XCircle size={14} /> Ride Cancelled (Admin)</div>;
+        if (rideStatus === 'COMPLETED') return <div className={`${styles.statusBadge} ${styles.CONFIRMED}`}><CheckCircle size={14} /> Ride Completed</div>;
         if (status === 'CONFIRMED') return <div className={`${styles.statusBadge} ${styles.CONFIRMED}`}><CheckCircle size={14} /> Confirmed</div>;
         if (status === 'PENDING_APPROVAL') return <div className={`${styles.statusBadge} ${styles.PENDING}`}><Clock3 size={14} /> Awaiting Approval</div>;
         if (status === 'PENDING_PAYMENT') return <div className={`${styles.statusBadge} ${styles.PAYMENT}`}><CreditCard size={14} /> Payment Due</div>;
@@ -111,31 +122,41 @@ const MyBookings = () => {
                         <div className={styles.costInfo}>
                             <span className={styles.seats}>{booking.seatsBooked} Seat(s)</span>
                             <span className={styles.price}>
-                                Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked} + Taxes
+                                Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked}
                             </span>
                         </div>
                         
                         <div className={styles.actions} style={{display: 'flex', gap: '10px'}}>
-                            {/* Cancel Request Button */}
-                            {!booking.status.includes('CANCELLED') && booking.status !== 'REJECTED' && booking.ride.status !== 'COMPLETED' && (
+                            {/* Cancel Button - Show if active and not completed */}
+                            {!booking.status.includes('CANCELLED') && booking.status !== 'REJECTED' && booking.ride.status !== 'COMPLETED' && booking.ride.status !== 'CANCELLED' && (
                                 <Button 
                                     variant="outline" 
                                     onClick={() => handleCancel(booking.id)}
                                     style={{borderColor: '#dc3545', color: '#dc3545'}}
                                 >
-                                    Cancel Request
+                                    Cancel
                                 </Button>
                             )}
 
-                            {/* Pay Button - Only shows when Driver has accepted */}
+                            {/* Pay Button - Only if Pending Payment */}
                             {booking.status === 'PENDING_PAYMENT' && booking.ride.status !== 'COMPLETED' && (
                                 <Button className={styles.payBtn} onClick={() => setPaymentBooking(booking)}>
                                     <CreditCard size={16} style={{marginRight: '5px'}}/> Pay Now
                                 </Button>
                             )}
                             
-                            {/* Refund Button for History */}
-                            {activeTab === 'history' && booking.status === 'CONFIRMED' && booking.ride.status.includes('CANCELLED') && (
+                            {/* Review Button - Only if Completed & Confirmed */}
+                            {booking.ride.status === 'COMPLETED' && booking.status === 'CONFIRMED' && (
+                                <Button 
+                                    onClick={() => setReviewBooking(booking)}
+                                    style={{backgroundColor: '#ffc107', color: '#333', borderColor: '#ffc107'}}
+                                >
+                                    <Star size={16} style={{marginRight:'5px'}}/> Rate Driver
+                                </Button>
+                            )}
+                            
+                            {/* Refund Button - For Cancelled/Rejected rides in history */}
+                            {activeTab === 'history' && booking.status === 'CONFIRMED' && (booking.ride.status.includes('CANCELLED') || booking.status === 'CANCELLED') && (
                                 <Button variant="outline" onClick={handleRefundRequest} style={{borderColor: '#ffc107', color: '#ffc107'}}>
                                     Request Refund
                                 </Button>
@@ -152,11 +173,12 @@ const MyBookings = () => {
             <Navbar />
             <div className="container">
                 <div className={styles.header}>
-                        <div>
-                                                <h1>My Bookings</h1>
-                    <p className={styles.subtitle}>Manage your ride bookings and payments.</p>
-                        </div>
-                       <Link to="/history"><Button variant="outline">Payment History</Button></Link>
+                    <h1>My Bookings</h1>
+                    <Link to="/history">
+                        <Button variant="outline" style={{borderColor: '#0f4c81', color: '#0f4c81', display: 'flex', alignItems: 'center', gap: '5px'}}>
+                            <Receipt size={18} /> Payment History
+                        </Button>
+                    </Link>
                 </div>
 
                 <div className={styles.tabs}>
@@ -185,11 +207,20 @@ const MyBookings = () => {
                 )}
             </div>
 
+            {/* Modals */}
             {paymentBooking && (
                 <PaymentModal 
                     booking={paymentBooking} 
                     onClose={() => setPaymentBooking(null)} 
                     onSuccess={handlePaymentSuccess} 
+                />
+            )}
+            
+            {reviewBooking && (
+                <ReviewModal
+                    booking={reviewBooking}
+                    onClose={() => setReviewBooking(null)}
+                    onSuccess={handleReviewSuccess}
                 />
             )}
         </div>

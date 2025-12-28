@@ -103,7 +103,7 @@ const PaymentModal = ({ booking, onClose, onSuccess }) => {
                 <div className={styles.summary}>
                     <p><strong>Ride:</strong> {booking.ride.source} → {booking.ride.destination}</p>
                     <p><strong>Seats:</strong> {booking.seatsBooked}</p>
-                    <p className={styles.total}>Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked}</p>
+                    <p className={styles.total}>Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked} + Taxes</p>
                 </div>
 
                 {status === 'error' && <p className={styles.error}>Payment Failed. Try again.</p>}

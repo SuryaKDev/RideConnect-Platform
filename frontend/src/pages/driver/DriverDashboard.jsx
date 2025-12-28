@@ -2,26 +2,33 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
-import { cancelPublishedRide, getRidePassengers, getMyRides, acceptBookingRequest, rejectBookingRequest } from '../../services/api';
+import {
+    cancelPublishedRide,
+    getRidePassengers,
+    getMyRides,
+    acceptBookingRequest,
+    rejectBookingRequest,
+    startRide,
+    completeRide
+} from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from './DriverDashboard.module.css';
-import { Plus, Calendar, Clock, MapPin, Users, XCircle, List, History, Check, X, Wallet } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Users, XCircle, List, History, Check, X, Wallet, Play, Flag } from 'lucide-react';
 
 const DriverDashboard = () => {
     const { user } = useAuth();
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('upcoming'); 
-    
+    const [activeTab, setActiveTab] = useState('upcoming');
+
     const [passengerModal, setPassengerModal] = useState({ show: false, passengers: [], rideId: null });
     const [loadingPassengers, setLoadingPassengers] = useState(false);
 
-    // Verify user status safely
     const isVerified = user?.isVerified === true;
 
     const fetchRides = async () => {
         try {
-            const data = await getMyRides(); 
+            const data = await getMyRides();
             setRides(data || []);
         } catch (error) {
             console.error('Failed to fetch rides', error);
@@ -34,15 +41,29 @@ const DriverDashboard = () => {
         fetchRides();
     }, []);
 
+    const handleStartRide = async (rideId) => {
+        if (!window.confirm("Start this ride? This will notify passengers.")) return;
+        try {
+            await startRide(rideId);
+            fetchRides();
+        } catch (err) { alert(err.message); }
+    };
+
+    const handleCompleteRide = async (rideId) => {
+        if (!window.confirm("Complete this ride? This allows passengers to leave reviews.")) return;
+        try {
+            await completeRide(rideId);
+            fetchRides();
+        } catch (err) { alert(err.message); }
+    };
+
     const handleCancelRide = async (rideId) => {
         if (!window.confirm("Are you sure? This will cancel bookings for all passengers.")) return;
         try {
             await cancelPublishedRide(rideId);
             alert("Ride Cancelled");
             fetchRides();
-        } catch (err) {
-            alert(err.message);
-        }
+        } catch (err) { alert(err.message); }
     };
 
     const openPassengerList = async (rideId) => {
@@ -63,18 +84,16 @@ const DriverDashboard = () => {
         try {
             await acceptBookingRequest(bookingId);
             alert("Booking Accepted!");
-            // Refresh passenger list to show updated status
             const list = await getRidePassengers(passengerModal.rideId);
             setPassengerModal(prev => ({ ...prev, passengers: list }));
         } catch (err) { alert(err.message); }
     };
 
     const handleReject = async (bookingId) => {
-        if(!window.confirm("Reject this passenger?")) return;
+        if (!window.confirm("Reject this passenger?")) return;
         try {
             await rejectBookingRequest(bookingId);
             alert("Booking Rejected");
-            // Refresh passenger list to show updated status
             const list = await getRidePassengers(passengerModal.rideId);
             setPassengerModal(prev => ({ ...prev, passengers: list }));
         } catch (err) { alert(err.message); }
@@ -90,7 +109,7 @@ const DriverDashboard = () => {
                     <div className={`${styles.statusBadge} ${styles[ride.status]}`}>
                         {ride.status ? ride.status.replace(/_/g, ' ') : 'AVAILABLE'}
                     </div>
-                    
+
                     <div className={styles.route}>
                         <div className={styles.location}>
                             <MapPin size={16} className={styles.icon} />
@@ -116,16 +135,28 @@ const DriverDashboard = () => {
                     </div>
 
                     <div className={styles.priceTag}>₹{ride.pricePerSeat} / seat</div>
-                    
+
                     <div className={styles.actions}>
                         <Button variant="outline" className={styles.viewBtn} onClick={() => openPassengerList(ride.id)}>
-                            <List size={16} style={{marginRight: '5px'}}/> Passengers
+                            <List size={16} style={{ marginRight: '5px' }} /> List
                         </Button>
 
                         {activeTab === 'upcoming' && (
-                            <Button variant="outline" onClick={() => handleCancelRide(ride.id)} className={styles.cancelBtn} style={{borderColor: '#dc3545', color: '#dc3545'}}>
-                                <XCircle size={16} style={{marginRight: '5px'}}/> Cancel
-                            </Button>
+                            <>
+                                {ride.status === 'AVAILABLE' || ride.status === 'FULL' ? (
+                                    <Button onClick={() => handleStartRide(ride.id)} style={{ backgroundColor: '#0f4c81', color: 'white' }}>
+                                        <Play size={16} style={{ marginRight: '5px' }} /> Start
+                                    </Button>
+                                ) : ride.status === 'IN_PROGRESS' ? (
+                                    <Button onClick={() => handleCompleteRide(ride.id)} style={{ backgroundColor: '#28a745', color: 'white' }}>
+                                        <Flag size={16} style={{ marginRight: '5px' }} /> Complete
+                                    </Button>
+                                ) : null}
+
+                                <Button variant="outline" onClick={() => handleCancelRide(ride.id)} className={styles.cancelBtn} style={{ borderColor: '#dc3545', color: '#dc3545' }}>
+                                    <XCircle size={16} />
+                                </Button>
+                            </>
                         )}
                     </div>
                 </div>
@@ -144,44 +175,38 @@ const DriverDashboard = () => {
                         <h1>Driver Dashboard</h1>
                         <p className={styles.subHeader}>Manage your rides and bookings</p>
                     </div>
-                    
-                    <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {isVerified && <div className={styles.verifiedBadge}>Verified</div>}
-                        
-                        {/* VIEW EARNINGS BUTTON */}
                         <Link to="/driver-history">
-                            <Button variant="outline" style={{borderColor: '#0f4c81', color: '#0f4c81', display: 'flex', alignItems: 'center', gap: '5px'}}>
+                            <Button variant="outline" style={{ borderColor: '#0f4c81', color: '#0f4c81', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <Wallet size={18} /> View Earnings
                             </Button>
                         </Link>
-
                         <Link to="/post-ride">
-                            <Button disabled={!isVerified}>
-                                <Plus size={18} style={{ marginRight: '8px' }} /> Post Ride
-                            </Button>
+                            <Button disabled={!isVerified}><Plus size={18} style={{ marginRight: '8px' }} /> Post Ride</Button>
                         </Link>
                     </div>
                 </div>
 
                 <div className={styles.tabs}>
                     <button className={`${styles.tabBtn} ${activeTab === 'upcoming' ? styles.active : ''}`} onClick={() => setActiveTab('upcoming')}>
-                        <Calendar size={18} style={{marginRight: '5px'}} /> Upcoming
+                        <Calendar size={18} style={{ marginRight: '5px' }} /> Upcoming
                     </button>
                     <button className={`${styles.tabBtn} ${activeTab === 'history' ? styles.active : ''}`} onClick={() => setActiveTab('history')}>
-                        <History size={18} style={{marginRight: '5px'}} /> History
+                        <History size={18} style={{ marginRight: '5px' }} /> History
                     </button>
                 </div>
 
                 <div className={styles.ridesSection}>
                     {loading ? <p>Loading...</p> : (
-                        activeTab === 'upcoming' ? 
-                            (upcomingRides.length === 0 ? <div className={styles.emptyState}>No upcoming rides.</div> : renderRideList(upcomingRides)) : 
+                        activeTab === 'upcoming' ?
+                            (upcomingRides.length === 0 ? <div className={styles.emptyState}>No upcoming rides.</div> : renderRideList(upcomingRides)) :
                             (historyRides.length === 0 ? <div className={styles.emptyState}>No past rides.</div> : renderRideList(historyRides))
                     )}
                 </div>
             </div>
-            
-            {/* Passenger List Modal */}
+
             {passengerModal.show && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
@@ -200,18 +225,27 @@ const DriverDashboard = () => {
                                         <div className={styles.pMeta}>
                                             <span className={styles.pSeats}>{p.seatsBooked} Seat(s)</span>
                                             <span className={`${styles.pStatus} ${styles[p.bookingStatus]}`}>{p.bookingStatus.replace('_', ' ')}</span>
-                                            
-                                            {/* Accept/Reject Buttons */}
+
                                             {p.bookingStatus === 'PENDING_APPROVAL' && (
-                                                <div style={{display:'flex', gap:'5px', marginTop:'8px'}}>
-                                                    <Button size="sm" onClick={() => handleAccept(p.bookingId)} style={{padding:'4px 8px', fontSize:'0.7rem', backgroundColor:'#28a745'}}>
-                                                       <Check size={14} style={{marginRight:'2px'}}/> Accept
+                                                <div style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
+                                                    <Button size="sm" onClick={() => handleAccept(p.bookingId)} style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: '#28a745', color: 'white', border: 'none' }}>
+                                                        <Check size={14} style={{ marginRight: '2px' }} /> Accept
                                                     </Button>
-                                                    <Button size="sm" onClick={() => handleReject(p.bookingId)} style={{padding:'4px 8px', fontSize:'0.7rem', backgroundColor:'#dc3545', borderColor:'#dc3545'}}>
-                                                       <X size={14} style={{marginRight:'2px'}}/> Reject
+                                                    <Button size="sm" onClick={() => handleReject(p.bookingId)} style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: '#dc3545', borderColor: '#dc3545', color: 'white' }}>
+                                                        <X size={14} style={{ marginRight: '2px' }} /> Reject
                                                     </Button>
                                                 </div>
                                             )}
+
+                                            {/* {rideStatus === 'COMPLETED' && p.bookingStatus === 'CONFIRMED' && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => openRateModal(p)} // We need to create this handler
+                                                    style={{ marginTop: '5px', backgroundColor: '#ffc107', color: '#333', borderColor: '#ffc107' }}
+                                                >
+                                                    <Star size={12} style={{ marginRight: '3px' }} /> Rate
+                                                </Button>
+                                            )} */}
                                         </div>
                                     </li>
                                 ))}

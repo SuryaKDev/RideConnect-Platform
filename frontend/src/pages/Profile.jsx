@@ -1,57 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProfile, updateProfile } from '../services/api';
+import { getProfile, updateProfile, getMyReviews } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/Navbar'; 
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import styles from './Profile.module.css';
+import styles from './Profile.module.css'; 
+import { Star } from 'lucide-react';
 
 const Profile = () => {
     const navigate = useNavigate();
-    const { user: authUser, updateUser } = useAuth();
+    const { user: authUser } = useAuth();
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [reviews, setReviews] = useState([]); // State for reviews
 
     // State for form fields
     const [formData, setFormData] = useState({
         name: '',
-        email: '',
+        email: '', 
         phone: '',
-        role: '',
+        role: '',  
         vehicleModel: '',
         licensePlate: '',
         vehicleCapacity: '',
         currentPassword: '',
-        newPassword: '',
-        retypeNewPassword: ''
+        newPassword: ''
     });
 
-    // Fetch User Data on Mount
+    // Fetch User Data & Reviews on Mount
     useEffect(() => {
-        const fetchUserData = async () => {
+        const fetchData = async () => {
             try {
-                const data = await getProfile();
+                // 1. Fetch Profile
+                const profileData = await getProfile();
                 setFormData({
-                    name: data.name || '',
-                    email: data.email || '',
-                    phone: data.phone || '',
-                    role: data.role || '',
-                    vehicleModel: data.vehicleModel || '',
-                    licensePlate: data.licensePlate || '',
-                    vehicleCapacity: data.vehicleCapacity || '',
-                    currentPassword: '',
-                    newPassword: '',
-                    retypeNewPassword: ''
+                    name: profileData.name || '',
+                    email: profileData.email || '',
+                    phone: profileData.phone || '',
+                    role: profileData.role || '',
+                    vehicleModel: profileData.vehicleModel || '',
+                    licensePlate: profileData.licensePlate || '',
+                    vehicleCapacity: profileData.vehicleCapacity || '',
+                    currentPassword: '', 
+                    newPassword: ''      
                 });
+
+                // 2. Fetch Reviews
+                const reviewData = await getMyReviews();
+                setReviews(reviewData || []);
+
             } catch (err) {
                 setMessage({ type: 'error', text: 'Failed to load profile data.' });
+                console.error(err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchUserData();
+        fetchData();
     }, []);
 
     const handleChange = (e) => {
@@ -63,26 +70,16 @@ const Profile = () => {
         setUpdating(true);
         setMessage({ type: '', text: '' });
 
-        // Validate password match if changing password
-        if (formData.newPassword && formData.newPassword !== formData.retypeNewPassword) {
-            setMessage({ type: 'error', text: 'Passwords do not match!' });
-            setUpdating(false);
-            return;
-        }
-
-        // Construct payload (only send necessary fields)
         const payload = {
             name: formData.name,
             phone: formData.phone,
         };
 
-        // Add password fields if changing
         if (formData.newPassword) {
             payload.currentPassword = formData.currentPassword;
             payload.newPassword = formData.newPassword;
         }
 
-        // Add vehicle fields only for drivers
         if (formData.role === 'DRIVER') {
             payload.vehicleModel = formData.vehicleModel;
             payload.licensePlate = formData.licensePlate;
@@ -91,11 +88,8 @@ const Profile = () => {
 
         try {
             await updateProfile(payload);
-            // Update local context
-            updateUser({ name: formData.name });
-
-            // Redirect to home with success message
-            navigate('/', { state: { message: 'Profile updated successfully!', type: 'success' } });
+            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
         } catch (err) {
             setMessage({ type: 'error', text: err.message || 'Update failed.' });
         } finally {
@@ -103,7 +97,7 @@ const Profile = () => {
         }
     };
 
-    if (loading) return <div className="container" style={{ padding: '2rem' }}>Loading profile...</div>;
+    if (loading) return <div className="container" style={{padding: '2rem'}}>Loading profile...</div>;
 
     return (
         <div className={styles.pageWrapper}>
@@ -111,7 +105,7 @@ const Profile = () => {
             <div className="container">
                 <div className={styles.profileCard}>
                     <h1>Edit Profile</h1>
-
+                    
                     {message.text && (
                         <div className={`${styles.alert} ${message.type === 'error' ? styles.error : styles.success}`}>
                             {message.text}
@@ -119,7 +113,6 @@ const Profile = () => {
                     )}
 
                     <form onSubmit={handleSubmit}>
-                        {/* Read-Only Identity Fields */}
                         <div className={styles.formGroup}>
                             <label>Email (Cannot be changed)</label>
                             <input type="text" value={formData.email} disabled className={styles.disabledInput} />
@@ -129,83 +122,23 @@ const Profile = () => {
                             <input type="text" value={formData.role} disabled className={styles.disabledInput} />
                         </div>
 
-                        {/* Editable Basic Info */}
-                        <Input
-                            label="Full Name"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                        />
-                        <Input
-                            label="Phone Number"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                        />
+                        <Input label="Full Name" name="name" value={formData.name} onChange={handleChange} />
+                        <Input label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} />
 
-                        {/* Driver Specific Fields */}
                         {formData.role === 'DRIVER' && (
                             <div className={styles.driverSection}>
                                 <h3>Vehicle Details</h3>
-                                <Input
-                                    label="Vehicle Model"
-                                    name="vehicleModel"
-                                    value={formData.vehicleModel}
-                                    onChange={handleChange}
-                                />
-                                <Input
-                                    label="License Plate"
-                                    name="licensePlate"
-                                    value={formData.licensePlate}
-                                    onChange={handleChange}
-                                />
-                                <Input
-                                    label="Vehicle Capacity"
-                                    name="vehicleCapacity"
-                                    type="number"
-                                    value={formData.vehicleCapacity}
-                                    onChange={handleChange}
-                                />
+                                <Input label="Vehicle Model" name="vehicleModel" value={formData.vehicleModel} onChange={handleChange} />
+                                <Input label="License Plate" name="licensePlate" value={formData.licensePlate} onChange={handleChange} />
+                                <Input label="Vehicle Capacity" name="vehicleCapacity" type="number" value={formData.vehicleCapacity} onChange={handleChange} />
                             </div>
                         )}
 
-                        {/* Password Change Section */}
                         <div className={styles.passwordSection}>
                             <h3>Change Password <span className={styles.optional}>(Optional)</span></h3>
-                            <Input
-                                label="New Password"
-                                name="newPassword"
-                                type="password"
-                                placeholder="Leave blank to keep current"
-                                value={formData.newPassword}
-                                onChange={handleChange}
-                            />
+                            <Input label="New Password" name="newPassword" type="password" placeholder="Leave blank to keep current" value={formData.newPassword} onChange={handleChange} />
                             {formData.newPassword && (
-                                <Input
-                                    label="Retype New Password"
-                                    name="retypeNewPassword"
-                                    type="password"
-                                    placeholder="Retype your new password"
-                                    value={formData.retypeNewPassword}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            )}
-                            {formData.newPassword && formData.retypeNewPassword && formData.newPassword !== formData.retypeNewPassword && (
-                                <div className={styles.passwordError}>
-                                    Passwords do not match!
-                                </div>
-                            )}
-                            {formData.newPassword && (
-                                <Input
-                                    label="Current Password (Required to save changes)"
-                                    name="currentPassword"
-                                    type="password"
-                                    placeholder="Enter current password"
-                                    value={formData.currentPassword}
-                                    onChange={handleChange}
-                                    required
-                                />
+                                <Input label="Current Password (Required)" name="currentPassword" type="password" placeholder="Enter current password" value={formData.currentPassword} onChange={handleChange} required />
                             )}
                         </div>
 
@@ -213,6 +146,29 @@ const Profile = () => {
                             {updating ? 'Saving...' : 'Update Profile'}
                         </Button>
                     </form>
+
+                    {/* REVIEWS SECTION */}
+                    <div className={styles.reviewsSection}>
+                        <h2>My Reviews ({reviews.length})</h2>
+                        <div className={styles.reviewList}>
+                            {reviews.length === 0 ? <p className={styles.noReviews}>No reviews yet.</p> : reviews.map(r => (
+                                <div key={r.id} className={styles.reviewItem}>
+                                    <div className={styles.reviewHeader}>
+                                        <strong>{r.reviewer?.name || 'Anonymous'}</strong>
+                                        <div className={styles.starRow}>
+                                            {Array(r.rating).fill().map((_, i) => (
+                                                <Star key={i} size={14} fill="#ffc107" color="#ffc107"/>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <p className={styles.comment}>"{r.comment}"</p>
+                                    <small className={styles.date}>
+                                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}
+                                    </small>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

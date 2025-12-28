@@ -21,7 +21,8 @@ export const generatePassengerInvoice = (payment) => {
 
   doc.setFontSize(10);
   doc.setTextColor(100);
-  doc.text("Passenger Invoice", 14, 26);
+  const invoiceTitle = payment.status === 'REFUNDED' ? 'Refund Receipt' : 'Passenger Invoice';
+  doc.text(invoiceTitle, 14, 26);
   doc.text("support@rideconnect.com", 14, 31);
 
   // Meta Data
@@ -78,23 +79,45 @@ export const generatePassengerInvoice = (payment) => {
   const gst = baseFare * 0.05;
   const platformFee = baseFare * 0.02;
 
+  const paymentRows = [
+    ["Base Ride Fare", `Rs. ${baseFare.toFixed(2)}`],
+    ["GST (5%)", `Rs. ${gst.toFixed(2)}`],
+    ["Platform Fee (2%)", `Rs. ${platformFee.toFixed(2)}`],
+    ["Total Paid", `Rs. ${totalAmount.toFixed(2)}`],
+  ];
+
+  // Add refund information if payment status is REFUNDED
+  if (payment.status === 'REFUNDED') {
+    paymentRows.push(
+      ["", ""],
+      ["Refund Amount (Base Fare Only)", `Rs. ${baseFare.toFixed(2)}`],
+      ["GST & Platform Fee (Non-refundable)", `Rs. ${(gst + platformFee).toFixed(2)}`],
+      ["Net Amount", `- Rs. ${(gst + platformFee).toFixed(2)}`]
+    );
+  }
+
   autoTable(doc, {
     startY: finalY + 5,
-    body: [
-      ["Base Ride Fare", `Rs. ${baseFare.toFixed(2)}`],
-      ["GST (5%)", `Rs. ${gst.toFixed(2)}`],
-      ["Platform Fee (2%)", `Rs. ${platformFee.toFixed(2)}`],
-      ["Total Paid", `Rs. ${totalAmount.toFixed(2)}`],
-    ],
+    body: paymentRows,
     theme: "plain",
     columnStyles: {
       0: { cellWidth: 100 },
       1: { cellWidth: 50, halign: "right" },
     },
     didParseCell: function (data) {
-      if (data.row.index === 3) {
+      const lastIndex = payment.status === 'REFUNDED' ? 7 : 3;
+      if (data.row.index === 3 || data.row.index === lastIndex) {
         data.cell.styles.fontStyle = "bold";
         data.cell.styles.textColor = [0, 0, 0];
+      }
+      // Style refund rows
+      if (payment.status === 'REFUNDED' && data.row.index >= 5) {
+        data.cell.styles.fontStyle = "bold";
+        if (data.row.index === 5) {
+          data.cell.styles.textColor = [39, 174, 96]; // Green for refund amount
+        } else {
+          data.cell.styles.textColor = [220, 53, 69]; // Red for non-refundable/net loss
+        }
       }
     },
   });
@@ -102,15 +125,21 @@ export const generatePassengerInvoice = (payment) => {
   // Footer
   doc.setFontSize(10);
   doc.setTextColor(150);
+  const footerMessage = payment.status === 'REFUNDED' 
+    ? 'Your refund has been processed. Sorry for the inconvenience.' 
+    : 'Thank you for riding with RideConnect!';
   doc.text(
-    "Thank you for riding with RideConnect!",
+    footerMessage,
     105,
     280,
     null,
     null,
     "center"
   );
-  doc.save(`Invoice_Passenger_${payment.id}.pdf`);
+  const fileName = payment.status === 'REFUNDED' 
+    ? `Refund_Receipt_${payment.id}.pdf` 
+    : `Invoice_Passenger_${payment.id}.pdf`;
+  doc.save(fileName);
 };
 
 // --- DRIVER INVOICE (Earnings Receipt) ---
@@ -124,7 +153,8 @@ export const generateDriverInvoice = (payment) => {
 
   doc.setFontSize(10);
   doc.setTextColor(100);
-  doc.text("Earnings Receipt", 14, 26);
+  const receiptTitle = payment.status === 'REFUNDED' ? 'Refund Notice' : 'Earnings Receipt';
+  doc.text(receiptTitle, 14, 26);
 
   // Meta Data
   const receiptNo = `ERN-${payment.id}`;
@@ -146,6 +176,12 @@ export const generateDriverInvoice = (payment) => {
 
   // Trip Summary
   const ride = payment.booking?.ride || {};
+  const seatsBooked = payment.booking?.seatsBooked || 1;
+  const totalCollected = payment.amount || 0;
+  const pricePerSeat = totalCollected / seatsBooked;
+  const baseFarePerSeat = pricePerSeat / 1.07; // Base fare without GST and platform fee
+  const totalBaseFare = baseFarePerSeat * seatsBooked;
+
   autoTable(doc, {
     startY: 65,
     head: [["Trip Details", "Value"]],
@@ -153,7 +189,9 @@ export const generateDriverInvoice = (payment) => {
       ["Route", `${ride.source} -> ${ride.destination}`],
       ["Date", ride.travelDate],
       ["Passenger", payment.booking?.passenger?.name],
-      ["Seats Booked", payment.booking?.seatsBooked?.toString()],
+      ["Seats Booked", seatsBooked.toString()],
+      ["Price per Seat", `Rs. ${pricePerSeat.toFixed(2)}`],
+      ["Base Fare per Seat", `Rs. ${baseFarePerSeat.toFixed(2)}`],
     ],
     theme: "grid",
     headStyles: { fillColor: [39, 174, 96] }, // Green header
@@ -165,33 +203,57 @@ export const generateDriverInvoice = (payment) => {
   doc.setTextColor(0);
   doc.text("Earnings Breakdown", 14, finalY);
 
-  const totalCollected = payment.amount || 0;
-  const baseEarnings = totalCollected / 1.07; // This is what the driver actually earns
-  const deductions = totalCollected - baseEarnings; // GST + Fee
+  const baseEarnings = totalBaseFare; // Driver earns only the base fare
+  const deductions = totalCollected - baseEarnings; // GST + Platform Fee
+
+  const earningsRows = [
+    ["Total Fare Collected", `Rs. ${totalCollected.toFixed(2)}`],
+    ["Less: Platform Fee & Tax (7%)", `- Rs. ${deductions.toFixed(2)}`],
+    ["NET EARNINGS", `Rs. ${baseEarnings.toFixed(2)}`],
+  ];
+
+  // Add refund information if status is REFUNDED
+  if (payment.status === 'REFUNDED') {
+    earningsRows.push(
+      ["", ""],
+      ["Refund to Passenger", `- Rs. ${totalBaseFare.toFixed(2)}`],
+      ["FINAL EARNINGS", `Rs. 0.00`]
+    );
+  }
 
   autoTable(doc, {
     startY: finalY + 5,
-    body: [
-      ["Total Fare Collected", `Rs. ${totalCollected.toFixed(2)}`],
-      ["Less: Platform Fee & Tax (7%)", `- Rs. ${deductions.toFixed(2)}`],
-      ["NET EARNINGS", `Rs. ${baseEarnings.toFixed(2)}`],
-    ],
+    body: earningsRows,
     theme: "plain",
     columnStyles: {
       0: { cellWidth: 100 },
       1: { cellWidth: 60, halign: "right" },
     },
     didParseCell: function (data) {
-      if (data.row.index === 2) {
+      const lastIndex = payment.status === 'REFUNDED' ? 5 : 2;
+      if (data.row.index === 2 || data.row.index === lastIndex) {
         data.cell.styles.fontStyle = "bold";
         data.cell.styles.fontSize = 12;
-        data.cell.styles.textColor = [39, 174, 96]; // Green text
+        data.cell.styles.textColor = payment.status === 'REFUNDED' && data.row.index === lastIndex 
+          ? [220, 53, 69] // Red for final zero earnings
+          : [39, 174, 96]; // Green for normal earnings
+      }
+      // Style refund row in red
+      if (payment.status === 'REFUNDED' && data.row.index === 4) {
+        data.cell.styles.textColor = [220, 53, 69];
+        data.cell.styles.fontStyle = "bold";
       }
     },
   });
 
   doc.setFontSize(10);
   doc.setTextColor(150);
-  doc.text("Keep driving, keep earning!", 105, 280, null, null, "center");
-  doc.save(`Receipt_Driver_${payment.id}.pdf`);
+  const footerMsg = payment.status === 'REFUNDED' 
+    ? 'This ride was cancelled and refunded. No earnings for this trip.' 
+    : 'Keep driving, keep earning!';
+  doc.text(footerMsg, 105, 280, null, null, "center");
+  const fileName = payment.status === 'REFUNDED'
+    ? `Refund_Notice_${payment.id}.pdf`
+    : `Receipt_Driver_${payment.id}.pdf`;
+  doc.save(fileName);
 };

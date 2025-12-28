@@ -27,11 +27,11 @@ const DriverHistory = () => {
                 // Net = Total / 1.07
                 setTotalEarnings(Math.round(earnings / 1.07)); 
 
-                // Calculate Total Refunded
+                // Calculate Total Refunded (only base fare, not GST/platform fee)
                 const refunded = (data || [])
                     .filter(p => p.status === 'REFUNDED')
-                    .reduce((sum, p) => sum + p.amount, 0);
-                setTotalRefunded(refunded);
+                    .reduce((sum, p) => sum + (p.amount / 1.07), 0);
+                setTotalRefunded(Math.round(refunded));
             } catch (err) {
                 console.error(err);
             } finally {
@@ -102,7 +102,7 @@ const DriverHistory = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            {p.status === 'SUCCESS' && (
+                                            {(p.status === 'SUCCESS' || p.status === 'REFUNDED') && (
                                                 <Button 
                                                     size="sm" 
                                                     variant="outline"
