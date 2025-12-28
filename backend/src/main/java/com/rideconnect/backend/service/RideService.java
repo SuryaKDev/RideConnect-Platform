@@ -175,6 +175,57 @@ public class RideService {
         }
     }
 
+    @Transactional
+    public void startRide(Long rideId, String driverEmail) {
+        Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
+
+        if (!ride.getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized to start this ride");
+        }
+
+        // Only allow starting if status is valid
+        if (!"AVAILABLE".equals(ride.getStatus()) && !"FULL".equals(ride.getStatus())) {
+            throw new RuntimeException("Ride cannot be started. Current status: " + ride.getStatus());
+        }
+
+        ride.setStatus("IN_PROGRESS");
+        rideRepository.save(ride);
+
+        // Notify Passengers
+        List<Booking> bookings = bookingRepository.findByRideId(rideId);
+        for (Booking b : bookings) {
+            if ("CONFIRMED".equals(b.getStatus())) {
+                notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Started",
+                        "Your driver has started the trip!", "INFO");
+            }
+        }
+    }
+
+    @Transactional
+    public void completeRide(Long rideId, String driverEmail) {
+        Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
+
+        if (!ride.getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized to complete this ride");
+        }
+
+        if ("COMPLETED".equals(ride.getStatus())) {
+            throw new RuntimeException("Ride is already completed");
+        }
+
+        ride.setStatus("COMPLETED");
+        rideRepository.save(ride);
+
+        // Notify Passengers
+        List<Booking> bookings = bookingRepository.findByRideId(rideId);
+        for (Booking b : bookings) {
+            if ("CONFIRMED".equals(b.getStatus())) {
+                notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Completed",
+                        "You have reached your destination. Please rate your driver!", "SUCCESS");
+            }
+        }
+    }
+
     public List<PassengerDto> getPassengersForRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
         if (!ride.getDriver().getEmail().equals(driverEmail)) throw new RuntimeException("Not authorized");

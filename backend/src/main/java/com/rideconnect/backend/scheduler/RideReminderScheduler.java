@@ -25,7 +25,7 @@ public class RideReminderScheduler {
     private EmailService emailService;
 
     // Run every 30 minutes
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRate = 1800000)
     public void sendRideReminders() {
         System.out.println("⏰ Checking for upcoming rides...");
 
@@ -37,7 +37,7 @@ public class RideReminderScheduler {
 
         for (Booking b : upcomingBookings) {
             String passengerEmail = b.getPassenger().getEmail();
-            String message = "Your ride from " + b.getRide().getSource() + "to " + b.getRide().getDestination() + " starts soon at " + b.getRide().getTravelTime();
+            String message = "Your ride from " + b.getRide().getSource() + " to " + b.getRide().getDestination() + " starts soon at " + b.getRide().getTravelTime();
 
             // 1. Send In-App Notification
             notificationService.notifyUser(passengerEmail, "Ride Reminder", message, "INFO");

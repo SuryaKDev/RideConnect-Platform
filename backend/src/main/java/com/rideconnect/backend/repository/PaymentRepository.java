@@ -18,7 +18,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByBooking_Ride_Driver_Email(String email);
 
     // Find payments where the Booking -> Ride -> Driver -> Email matches
-    @Query("SELECT p FROM Payment p WHERE p.booking.ride.driver.email = :driverEmail AND p.status = 'SUCCESS'")
+    @Query("SELECT p FROM Payment p WHERE p.booking.ride.driver.email = :driverEmail")
     List<Payment> findDriverEarnings(@Param("driverEmail") String driverEmail);
 
     Optional<Payment> findByBookingId(Long bookingId);

@@ -66,6 +66,18 @@ public class RideController {
         );
     }
 
+    @PutMapping("/{id}/start")
+    public ResponseEntity<?> startRide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        rideService.startRide(id, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Ride started successfully"));
+    }
+
+    @PutMapping("/{id}/complete")
+    public ResponseEntity<?> completeRide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        rideService.completeRide(id, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Ride completed successfully"));
+    }
+
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelRide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         rideService.cancelRide(id, userDetails.getUsername());
