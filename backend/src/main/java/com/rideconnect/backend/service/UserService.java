@@ -101,39 +101,37 @@ public class UserService {
     public User updateProfile(String email, UpdateProfileRequest request) {
         User user = findByEmail(email);
 
-        // 1. Update Basic Details (Only if provided)
-        if (request.getName() != null && !request.getName().isEmpty()) {
-            user.setName(request.getName());
-        }
-        if (request.getPhone() != null && !request.getPhone().isEmpty()) {
-            user.setPhone(request.getPhone());
-        }
+        // 1. Basic Details
+        if (request.getName() != null && !request.getName().isEmpty()) user.setName(request.getName());
+        if (request.getPhone() != null && !request.getPhone().isEmpty()) user.setPhone(request.getPhone());
 
-        // 2. Update Password (Secure Flow)
+        // 2. New Profile Fields
+        if (request.getProfilePictureUrl() != null) user.setProfilePictureUrl(request.getProfilePictureUrl());
+        if (request.getBio() != null) user.setBio(request.getBio());
+
+        // 3. Password
         if (request.getNewPassword() != null && !request.getNewPassword().isEmpty()) {
-            // Require old password
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isEmpty()) {
                 throw new RuntimeException("Current password is required to set a new password.");
             }
-            // Check if old password matches DB hash
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
                 throw new RuntimeException("Incorrect current password.");
             }
-            // Encrypt and set new password
             user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         }
 
-        // 3. Update Vehicle Details (Only if Driver)
+        // 4. Driver Details
         if (user.getRole() == Role.DRIVER) {
-            if (request.getVehicleModel() != null && !request.getVehicleModel().isEmpty()) {
+            if (request.getVehicleModel() != null && !request.getVehicleModel().isEmpty())
                 user.setVehicleModel(request.getVehicleModel());
-            }
-            if (request.getLicensePlate() != null && !request.getLicensePlate().isEmpty()) {
+            if (request.getLicensePlate() != null && !request.getLicensePlate().isEmpty())
                 user.setLicensePlate(request.getLicensePlate());
-            }
-            if (request.getVehicleCapacity() != null) {
+            if (request.getVehicleCapacity() != null)
                 user.setVehicleCapacity(request.getVehicleCapacity());
-            }
+
+            // New Driver Fields
+            if (request.getCarImageUrl() != null) user.setCarImageUrl(request.getCarImageUrl());
+            if (request.getCarFeatures() != null) user.setCarFeatures(request.getCarFeatures());
         }
 
         return userRepository.save(user);

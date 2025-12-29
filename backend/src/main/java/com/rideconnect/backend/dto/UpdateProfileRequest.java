@@ -16,4 +16,9 @@ public class UpdateProfileRequest {
     private String vehicleModel;
     private String licensePlate;
     private Integer vehicleCapacity;
+
+    private String profilePictureUrl;
+    private String bio;
+    private String carImageUrl;
+    private String carFeatures;
 }
