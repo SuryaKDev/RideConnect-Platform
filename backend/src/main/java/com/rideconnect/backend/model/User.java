@@ -30,6 +30,12 @@ public class User {
 
     @Column(nullable = false)
     private String phone;
+
+    // --- NEW FIELDS FOR PROFILE ---
+    private String profilePictureUrl; // URL for Driver/Passenger photo
+
+    @Column(length = 500)
+    private String bio; // e.g., "Hi, I am a software engineer..."
     
     // Role: Defines if they are a Driver or Passenger
     @Enumerated(EnumType.STRING)
@@ -37,6 +43,11 @@ public class User {
     private Role role;
 
     // --- Driver Specific Details (Nullable for Passengers) ---
+
+    private String carImageUrl; // Photo of the car
+
+    private String carFeatures; // e.g., "AC, Music, Pet Friendly"
+
     private String vehicleModel;
 
     private String licensePlate;

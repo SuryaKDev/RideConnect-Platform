@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import { getAllUsers, getAllRides, verifyDriver, blockUser, cancelRideAdmin } from '../../services/api';
+import UserProfileModal from '../../components/UserProfileModal';
 import styles from './AdminDashboard.module.css';
 
 const AdminDashboard = () => {
@@ -12,6 +13,9 @@ const AdminDashboard = () => {
 
     // Cancel Modal State
     const [cancelModal, setCancelModal] = useState({ show: false, rideId: null, reason: '' });
+    
+    // Profile Modal State
+    const [viewProfileId, setViewProfileId] = useState(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -119,8 +123,24 @@ const AdminDashboard = () => {
                                             <tr key={u.id}>
                                                 <td>#{u.id}</td>
                                                 <td>
-                                                    <div className={styles.userName}>{u.name}</div>
-                                                    <small className={styles.userEmail}>{u.email}</small>
+                                                    {u.role === 'ADMIN' ? (
+                                                        <>
+                                                            <div className={styles.userName}>{u.name}</div>
+                                                            <small className={styles.userEmail}>{u.email}</small>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div 
+                                                                className={styles.userName} 
+                                                                onClick={() => setViewProfileId(u.id)}
+                                                                style={{cursor: 'pointer', color: '#0f4c81'}}
+                                                                title="View User Profile"
+                                                            >
+                                                                {u.name}
+                                                            </div>
+                                                            <small className={styles.userEmail}>{u.email}</small>
+                                                        </>
+                                                    )}
                                                 </td>
                                                 <td><span className={styles.roleBadge}>{u.role}</span></td>
                                                 <td>
@@ -211,6 +231,9 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {/* Profile Modal */}
+            {viewProfileId && <UserProfileModal userId={viewProfileId} onClose={() => setViewProfileId(null)} />}
         </div>
     );
 };

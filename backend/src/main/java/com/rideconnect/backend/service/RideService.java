@@ -242,6 +242,9 @@ public class RideService {
                         .email(p.getEmail())
                         .seatsBooked(b.getSeatsBooked())
                         .bookingStatus(b.getStatus())
+                        .userId(p.getId())
+                        .profilePictureUrl(p.getProfilePictureUrl())
+                        .bio(p.getBio())
                         .build());
             }
         }

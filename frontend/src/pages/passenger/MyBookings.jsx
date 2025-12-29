@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import PaymentModal from '../../components/PaymentModal'; 
-import ReviewModal from '../../components/ReviewModal'; 
+import ReviewModal from '../../components/ReviewModal';
+import UserProfileModal from '../../components/UserProfileModal'; 
 import { getMyBookings, cancelBooking } from '../../services/api';
 import styles from './MyBookings.module.css';
 import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3, Star, Receipt } from 'lucide-react';
@@ -12,7 +13,8 @@ const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [paymentBooking, setPaymentBooking] = useState(null); 
-    const [reviewBooking, setReviewBooking] = useState(null); 
+    const [reviewBooking, setReviewBooking] = useState(null);
+    const [viewProfileId, setViewProfileId] = useState(null); 
     const [activeTab, setActiveTab] = useState('upcoming');
 
     const fetchBookings = async () => {
@@ -113,7 +115,12 @@ const MyBookings = () => {
                         <div className={styles.detailItem}>
                             <Clock size={16} /> {booking.ride.travelTime}
                         </div>
-                        <div className={styles.detailItem}>
+                        <div 
+                            className={styles.detailItem} 
+                            onClick={() => setViewProfileId(booking.ride.driver?.id)}
+                            style={{cursor: 'pointer', color: '#0f4c81', fontWeight: '500'}}
+                            title="View Driver Profile"
+                        >
                             Driver: {booking.ride.driver?.name || 'Unknown'}
                         </div>
                     </div>
@@ -221,6 +228,13 @@ const MyBookings = () => {
                     booking={reviewBooking}
                     onClose={() => setReviewBooking(null)}
                     onSuccess={handleReviewSuccess}
+                />
+            )}
+
+            {viewProfileId && (
+                <UserProfileModal 
+                    userId={viewProfileId} 
+                    onClose={() => setViewProfileId(null)} 
                 />
             )}
         </div>

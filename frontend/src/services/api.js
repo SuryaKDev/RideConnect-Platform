@@ -376,3 +376,37 @@ export const getMyReviews = async () => {
     if (!response.ok) throw new Error(data.message || "Failed to fetch reviews");
     return data;
 };
+
+// --- PUBLIC PROFILE SERVICE ---
+export const getUserPublicProfile = async (userId) => {
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch user profile");
+    return data;
+};
+
+// --- FILE UPLOAD SERVICE ---
+export const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Note: Do NOT set Content-Type header manually for FormData. 
+    // The browser sets it automatically with the correct boundary.
+    const token = localStorage.getItem("token");
+    
+    const response = await fetch(`${API_URL}/upload`, {
+        method: "POST",
+        headers: {
+            // "Content-Type": "multipart/form-data", // <--- DO NOT ADD THIS
+            "Authorization": `Bearer ${token}`
+        },
+        body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Image upload failed");
+    return data.url; // Returns the Cloudinary URL
+};
