@@ -3,19 +3,32 @@ import Button from './ui/Button';
 import styles from './ReviewModal.module.css';
 import { Star, X } from 'lucide-react';
 import { submitReview } from '../services/api';
+import { useAuth } from '../context/AuthContext'; // Import Auth
 
 const ReviewModal = ({ booking, onClose, onSuccess }) => {
+    const { user } = useAuth(); // Get current user to determine role
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [hover, setHover] = useState(0);
     const [loading, setLoading] = useState(false);
+
+    // Determine who is being reviewed
+    const isDriver = user?.role === 'DRIVER';
+    // If driver is reviewing, target is passenger. If passenger is reviewing, target is driver.
+    // We check booking structure to handle different DTO shapes from different pages.
+    const revieweeName = isDriver 
+        ? (booking.passengerName || booking.passenger?.name || "Passenger")
+        : (booking.ride?.driver?.name || "Driver");
+    
+    // Safety check for booking ID. 
+    const bookingId = booking.bookingId || booking.id;
 
     const handleSubmit = async () => {
         if (rating === 0) return alert("Please select a star rating.");
         
         setLoading(true);
         try {
-            await submitReview(booking.id, rating, comment);
+            await submitReview(bookingId, rating, comment);
             onSuccess();
         } catch (err) {
             alert(err.message);
@@ -28,13 +41,13 @@ const ReviewModal = ({ booking, onClose, onSuccess }) => {
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 <div className={styles.header}>
-                    <h3>Rate your Trip</h3>
+                    <h3>{isDriver ? 'Rate Passenger' : 'Rate Driver'}</h3>
                     <button onClick={onClose} className={styles.closeBtn}><X size={20}/></button>
                 </div>
                 
                 <div className={styles.content}>
                     <p className={styles.subtitle}>
-                        How was your ride with <strong>{booking.ride.driver?.name}</strong>?
+                        How was your experience with <strong>{revieweeName}</strong>?
                     </p>
 
                     <div className={styles.stars}>
