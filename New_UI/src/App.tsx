@@ -9,7 +9,9 @@ import Register from "./pages/Register";
 import PassengerDashboard from "./pages/PassengerDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import Profile from "./pages/Profile";
+import PostRide from "./pages/PostRide";
+import MyBookings from "./pages/MyBookings";
+import TransactionHistory from "./pages/TransactionHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +29,10 @@ const App = () => (
           <Route path="/passenger-dashboard" element={<PassengerDashboard />} />
           <Route path="/driver-dashboard" element={<DriverDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/post-ride" element={<PostRide />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
+          <Route path="/transactions" element={<TransactionHistory />} />
+          <Route path="/history" element={<TransactionHistory />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

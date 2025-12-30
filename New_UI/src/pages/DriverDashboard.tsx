@@ -14,17 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
@@ -50,17 +39,16 @@ const DriverDashboard = () => {
     loadRides();
   }, [user, navigate]);
 
-  const loadRides = async () => {
-    const allRides = await getRides();
-    const myRides = allRides.filter(r => r.driverId === user?.id);
+  const loadRides = () => {
+    const myRides = getRides().filter(r => r.driverId === user?.id);
     setRides(myRides);
   };
 
-  const handleCreateRide = async (e: React.FormEvent) => {
+  const handleCreateRide = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    await createRide({
+    createRide({
       ...newRide,
       driverId: user.id,
       driverName: user.name,
@@ -86,8 +74,8 @@ const DriverDashboard = () => {
     loadRides();
   };
 
-  const handleSignOut = async () => {
-    await signOut();
+  const handleSignOut = () => {
+    signOut();
     navigate('/');
   };
 
@@ -102,39 +90,27 @@ const DriverDashboard = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden hover:scale-110 transition-transform duration-300">
-              <img src="/logo.png" alt="RideConnect Logo" className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <Car className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display font-bold text-xl">RideConnect</span>
           </Link>
-
+          
           <div className="flex items-center gap-4">
-            <Link to="/profile">
-              <Button variant="outline" size="sm" className="rounded-full">
-                Profile
+            <Link to="/post-ride">
+              <Button variant="default" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Post a Ride
               </Button>
             </Link>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You will be redirected to the home page.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSignOut}>Yes, Log Out</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <User className="w-5 h-5" />
+              <span>{user.name}</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
@@ -152,7 +128,7 @@ const DriverDashboard = () => {
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button>
                   <Plus className="w-4 h-4 mr-2" />
                   Host New Ride
                 </Button>
@@ -264,7 +240,7 @@ const DriverDashboard = () => {
               <div className="text-muted-foreground">Completed Rides</div>
             </div>
             <div className="glass-card p-6 rounded-xl">
-              <div className="text-3xl font-bold text-accent">
+              <div className="text-3xl font-bold text-accent-foreground">
                 {rides.reduce((sum, r) => sum + r.passengers.length, 0)}
               </div>
               <div className="text-muted-foreground">Total Passengers</div>
@@ -314,13 +290,14 @@ const DriverDashboard = () => {
                   className="glass-card p-6 rounded-xl"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${ride.status === 'active'
-                      ? 'bg-green-500/20 text-green-500'
-                      : 'bg-muted text-muted-foreground'
-                      }`}>
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      ride.status === 'active' 
+                        ? 'bg-green-500/20 text-green-500' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
                       {ride.status}
                     </div>
-                    <div className="text-xl font-bold text-accent">₹{ride.price}</div>
+                    <div className="text-xl font-bold text-primary">₹{ride.price}</div>
                   </div>
 
                   <div className="mb-4">

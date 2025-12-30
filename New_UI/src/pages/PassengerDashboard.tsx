@@ -5,79 +5,114 @@ import { Car, Search, MapPin, Calendar, Clock, Users, LogOut, User } from "lucid
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUser, signOut, getRides, bookRide, Ride } from "@/lib/auth";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { searchRides, bookRide as apiBookRide } from "@/lib/api";
+
+interface Ride {
+  id: number;
+  source: string;
+  destination: string;
+  date: string;
+  time: string;
+  duration?: string;
+  pricePerSeat: number;
+  availableSeats: number;
+  driverName: string;
+  vehicleModel?: string;
+}
+
+interface CurrentUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  token: string;
+}
 
 const PassengerDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState(getCurrentUser());
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [rides, setRides] = useState<Ride[]>([]);
   const [searchFrom, setSearchFrom] = useState("");
   const [searchTo, setSearchTo] = useState("");
-  const [filteredRides, setFilteredRides] = useState<Ride[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isBooking, setIsBooking] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!user || user.role !== 'passenger') {
+    const userData = localStorage.getItem('rideconnect_current_user');
+    if (!userData) {
       navigate('/signin');
       return;
     }
-    loadRides();
-  }, [user, navigate]);
+    try {
+      const parsed = JSON.parse(userData);
+      if (parsed.role !== 'PASSENGER') {
+        navigate('/signin');
+        return;
+      }
+      setUser(parsed);
+    } catch {
+      navigate('/signin');
+    }
+  }, [navigate]);
 
-  const loadRides = async () => {
-    const ridesData = await getRides();
-    const allRides = ridesData.filter(r => r.status === 'active' && r.availableSeats > 0);
-    setRides(allRides);
-    setFilteredRides(allRides);
+  const handleSearch = async () => {
+    if (!searchFrom || !searchTo) {
+      toast({
+        title: "Please enter locations",
+        description: "Both source and destination are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const results = await searchRides({ source: searchFrom, destination: searchTo });
+      setRides(results);
+    } catch (error: any) {
+      toast({
+        title: "Search failed",
+        description: error.response?.data?.message || "Could not fetch rides",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSearch = () => {
-    const filtered = rides.filter(ride => {
-      const fromMatch = !searchFrom || ride.from.toLowerCase().includes(searchFrom.toLowerCase());
-      const toMatch = !searchTo || ride.to.toLowerCase().includes(searchTo.toLowerCase());
-      return fromMatch && toMatch;
-    });
-    setFilteredRides(filtered);
-  };
-
-  const handleBookRide = async (rideId: string) => {
-    if (!user) return;
-
-    const result = await bookRide(rideId, user.id);
-    if (result.success) {
+  const handleBookRide = async (rideId: number) => {
+    setIsBooking(rideId);
+    try {
+      await apiBookRide(rideId, 1);
       toast({
         title: "Ride booked!",
         description: "Your ride has been successfully booked.",
       });
-      loadRides();
-    } else {
+      // Refresh search results
+      if (searchFrom && searchTo) {
+        const results = await searchRides({ source: searchFrom, destination: searchTo });
+        setRides(results);
+      }
+    } catch (error: any) {
       toast({
         title: "Booking failed",
-        description: result.error,
+        description: error.response?.data?.message || "Could not book ride",
         variant: "destructive",
       });
+    } finally {
+      setIsBooking(null);
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
+  const handleSignOut = () => {
+    localStorage.removeItem('rideconnect_current_user');
     navigate('/');
   };
 
-  const myBookings = rides.filter(r => r.passengers.includes(user?.id || ''));
-
   if (!user) return null;
+
+  // Note: My Bookings section removed - use /my-bookings page instead
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,39 +120,26 @@ const PassengerDashboard = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden hover:scale-110 transition-transform duration-300">
-              <img src="/logo.png" alt="RideConnect Logo" className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <Car className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display font-bold text-xl">RideConnect</span>
           </Link>
-
+          
           <div className="flex items-center gap-4">
-            <Link to="/profile">
-              <Button variant="outline" size="sm" className="rounded-full">
-                Profile
+            <Link to="/my-bookings">
+              <Button variant="outline" size="sm">
+                My Bookings
               </Button>
             </Link>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You will be redirected to the home page.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSignOut}>Yes, Log Out</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <User className="w-5 h-5" />
+              <span>{user.name}</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
@@ -143,7 +165,7 @@ const PassengerDashboard = () => {
                 />
               </div>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                 <Input
                   placeholder="To (e.g., Bangalore)"
                   value={searchTo}
@@ -151,58 +173,25 @@ const PassengerDashboard = () => {
                   className="pl-10"
                 />
               </div>
-              <Button onClick={handleSearch} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button onClick={handleSearch} className="w-full" disabled={isLoading}>
                 <Search className="w-4 h-4 mr-2" />
-                Search Rides
+                {isLoading ? "Searching..." : "Search Rides"}
               </Button>
             </div>
           </div>
 
-          {/* My Bookings */}
-          {myBookings.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">My Bookings</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myBookings.map((ride) => (
-                  <motion.div
-                    key={ride.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="glass-card p-4 rounded-xl border-2 border-primary/30"
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <span className="text-sm text-green-500 font-medium">Booked</span>
-                    </div>
-                    <div className="font-semibold">{ride.from} → {ride.to}</div>
-                    <div className="text-sm text-muted-foreground mt-2 flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {ride.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {ride.time}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-primary font-bold">₹{ride.price}</div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* Available Rides */}
+          {/* Search Results */}
           <h2 className="text-xl font-semibold mb-4">Available Rides</h2>
-          {filteredRides.length === 0 ? (
+          {rides.length === 0 ? (
             <div className="text-center py-12 glass-card rounded-2xl">
               <Car className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No rides available at the moment</p>
-              <p className="text-sm text-muted-foreground mt-2">Check back later or try different search criteria</p>
+              <p className="text-muted-foreground">No rides found</p>
+              <p className="text-sm text-muted-foreground mt-2">Enter source and destination to search for rides</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredRides.map((ride, index) => (
+              {rides.map((ride, index) => (
                 <motion.div
                   key={ride.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -212,14 +201,14 @@ const PassengerDashboard = () => {
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="font-semibold text-lg">{ride.from}</h3>
+                      <h3 className="font-semibold text-lg">{ride.source}</h3>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <span>→</span>
-                        <span>{ride.to}</span>
+                        <span>{ride.destination}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-accent">₹{ride.price}</div>
+                      <div className="text-2xl font-bold text-primary">₹{ride.pricePerSeat}</div>
                     </div>
                   </div>
 
@@ -230,7 +219,7 @@ const PassengerDashboard = () => {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="w-4 h-4" />
-                      <span>{ride.duration}</span>
+                      <span>{ride.time}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="w-4 h-4" />
@@ -239,15 +228,15 @@ const PassengerDashboard = () => {
                   </div>
 
                   <div className="text-sm text-muted-foreground mb-4">
-                    Driver: {ride.driverName}
+                    Driver: {ride.driverName} {ride.vehicleModel && `• ${ride.vehicleModel}`}
                   </div>
 
-                  <Button
-                    className="w-full"
+                  <Button 
+                    className="w-full" 
                     onClick={() => handleBookRide(ride.id)}
-                    disabled={ride.passengers.includes(user.id)}
+                    disabled={isBooking === ride.id}
                   >
-                    {ride.passengers.includes(user.id) ? 'Already Booked' : 'Book This Ride'}
+                    {isBooking === ride.id ? 'Booking...' : 'Book This Ride'}
                   </Button>
                 </motion.div>
               ))}

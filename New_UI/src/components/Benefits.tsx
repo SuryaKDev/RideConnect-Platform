@@ -61,7 +61,7 @@ const Benefits = () => {
           className="text-center mb-16"
         >
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            Why Choose <span className="gradient-text">RideConnect</span>?
+            Why Choose <span className="gradient-text">RideShare</span>?
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Experience the future of travel with benefits that matter to you and the planet.

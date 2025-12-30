@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { MapPin, Calendar, Users, ArrowRight, Sparkles, Navigation, Route } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import carSilhouette from "@/assets/car-silhouette.png";
@@ -11,7 +10,7 @@ const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-16 px-4">
       {/* Hero Background Image */}
-      <div
+      <div 
         className="absolute inset-0 z-0"
         style={{
           backgroundImage: `url(${heroBg})`,
@@ -28,10 +27,10 @@ const Hero = () => {
 
       {/* Animated Road Lines */}
       <AnimatedRoad />
-
+      
       {/* Floating Orbs */}
       <motion.div
-        animate={{
+        animate={{ 
           y: [0, -30, 0],
           scale: [1, 1.1, 1],
         }}
@@ -39,7 +38,7 @@ const Hero = () => {
         className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl"
       />
       <motion.div
-        animate={{
+        animate={{ 
           y: [0, 30, 0],
           scale: [1, 0.9, 1],
         }}
@@ -47,7 +46,7 @@ const Hero = () => {
         className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/15 rounded-full blur-3xl"
       />
       <motion.div
-        animate={{
+        animate={{ 
           x: [0, 20, 0],
           y: [0, -20, 0],
         }}
@@ -65,7 +64,7 @@ const Hero = () => {
             className="text-center lg:text-left"
           >
 
-            <motion.h1
+            <motion.h1 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.8 }}
@@ -84,7 +83,7 @@ const Hero = () => {
               <span className="text-foreground/90">Save the Planet</span>
             </motion.h1>
 
-            <motion.p
+            <motion.p 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
@@ -93,32 +92,28 @@ const Hero = () => {
               Connect with fellow travelers heading your way. Split costs, reduce emissions, and make every ride count.
             </motion.p>
 
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
             >
-              <Link to="/register?role=passenger">
-                <Button variant="hero" size="xl" className="group relative overflow-hidden w-full sm:w-auto">
-                  <span className="relative z-10 flex items-center gap-2">
-                    Find a Ride
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-primary via-cyan-400 to-primary"
-                    animate={{ x: ["-100%", "100%"] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                    style={{ opacity: 0.3 }}
-                  />
-                </Button>
-              </Link>
-              <Link to="/register?role=driver">
-                <Button variant="glass" size="xl" className="group w-full sm:w-auto">
-                  <Route className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                  Offer a Ride
-                </Button>
-              </Link>
+              <Button variant="hero" size="xl" className="group relative overflow-hidden">
+                <span className="relative z-10 flex items-center gap-2">
+                  Find a Ride
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-primary via-cyan-400 to-primary"
+                  animate={{ x: ["-100%", "100%"] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  style={{ opacity: 0.3 }}
+                />
+              </Button>
+              <Button variant="glass" size="xl" className="group">
+                <Route className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                Offer a Ride
+              </Button>
             </motion.div>
 
           </motion.div>
@@ -133,15 +128,15 @@ const Hero = () => {
 
             <div className="glass-card p-8 relative group">
               {/* Animated border glow */}
-              <motion.div
+              <motion.div 
                 className="absolute -inset-[1px] bg-gradient-to-r from-primary via-accent to-primary rounded-2xl opacity-50 blur-sm"
-                animate={{
+                animate={{ 
                   backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                 }}
                 transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
                 style={{ backgroundSize: "200% 200%" }}
               />
-
+              
               <div className="relative bg-card rounded-2xl p-8 space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="font-display text-2xl font-semibold">Find Your Perfect Ride</h3>
@@ -157,7 +152,7 @@ const Hero = () => {
                 {/* From */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">From</label>
-                  <motion.div
+                  <motion.div 
                     className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50 border border-border/50 focus-within:border-primary/50 transition-all duration-300"
                     whileHover={{ scale: 1.02 }}
                   >
@@ -189,7 +184,7 @@ const Hero = () => {
                 {/* To */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">To</label>
-                  <motion.div
+                  <motion.div 
                     className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50 border border-border/50 focus-within:border-accent/50 transition-all duration-300"
                     whileHover={{ scale: 1.02 }}
                   >

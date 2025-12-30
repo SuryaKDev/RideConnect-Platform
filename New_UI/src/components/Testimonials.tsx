@@ -7,7 +7,7 @@ const testimonials = [
     role: "Regular Commuter",
     avatar: "SM",
     rating: 5,
-    text: "RideConnect has transformed my daily commute. I've saved over $300 a month and made amazing friends along the way!",
+    text: "RideShare has transformed my daily commute. I've saved over $300 a month and made amazing friends along the way!",
   },
   {
     name: "James Chen",
@@ -21,14 +21,14 @@ const testimonials = [
     role: "Weekend Traveler",
     avatar: "ER",
     rating: 5,
-    text: "I travel between cities every weekend. RideConnect makes it affordable and actually enjoyable. Love the verified profiles feature!",
+    text: "I travel between cities every weekend. RideShare makes it affordable and actually enjoyable. Love the verified profiles feature!",
   },
   {
     name: "Michael Park",
     role: "Student",
     avatar: "MP",
     rating: 5,
-    text: "As a student, every penny counts. RideConnect helps me get home for holidays at a fraction of the cost. Highly recommend!",
+    text: "As a student, every penny counts. RideShare helps me get home for holidays at a fraction of the cost. Highly recommend!",
   },
 ];
 
