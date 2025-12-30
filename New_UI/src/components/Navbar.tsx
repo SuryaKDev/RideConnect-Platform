@@ -25,9 +25,8 @@ const Navbar = () => {
           {/* Logo */}
           <a href="#" className="flex items-center gap-3 group">
             {/* Logo placeholder - replace src with your logo image */}
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 overflow-hidden">
-              {/* Replace this div with: <img src="/your-logo.png" alt="RideConnect Logo" className="w-full h-full object-cover" /> */}
-              <Car className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden group-hover:scale-110 transition-transform duration-300">
+              <img src="/logo.png" alt="RideConnect Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-display font-bold text-xl text-foreground">
               Ride<span className="gradient-text">Connect</span>

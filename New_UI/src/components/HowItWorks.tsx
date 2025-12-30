@@ -43,7 +43,7 @@ const HowItWorks = () => {
           className="text-center mb-16"
         >
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            How <span className="gradient-text">RideShare</span> Works
+            How <span className="gradient-text">RideConnect</span> Works
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Get on the road in four simple steps. It's fast, easy, and eco-friendly.
@@ -72,14 +72,12 @@ const HowItWorks = () => {
                 </div>
 
                 {/* Icon */}
-                <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center ${
-                  step.color === "primary" 
-                    ? "bg-primary/10 group-hover:bg-primary/20" 
+                <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center ${step.color === "primary"
+                    ? "bg-primary/10 group-hover:bg-primary/20"
                     : "bg-accent/10 group-hover:bg-accent/20"
-                } transition-colors duration-300`}>
-                  <step.icon className={`w-8 h-8 ${
-                    step.color === "primary" ? "text-primary" : "text-accent"
-                  }`} />
+                  } transition-colors duration-300`}>
+                  <step.icon className={`w-8 h-8 ${step.color === "primary" ? "text-primary" : "text-accent"
+                    }`} />
                 </div>
 
                 <h3 className="font-display text-xl font-semibold mb-3">{step.title}</h3>

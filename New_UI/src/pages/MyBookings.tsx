@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, User, Clock, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Clock, User, Ban, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getMyBookings, cancelBooking } from "@/lib/api";
+import { motion } from "framer-motion";
 
 interface Booking {
   id: number;
@@ -15,7 +14,7 @@ interface Booking {
   destination: string;
   date: string;
   time: string;
-  status: "CONFIRMED" | "CANCELLED" | "PENDING" | "COMPLETED";
+  status: string;
   price: number;
   seats: number;
 }
@@ -37,8 +36,8 @@ const MyBookings = () => {
       setBookings(data);
     } catch (error: any) {
       toast({
-        title: "Failed to Load Bookings",
-        description: error.response?.data?.message || "Please try again later.",
+        title: "Error Loading Bookings",
+        description: error.response?.data?.message || "Could not fetch your bookings.",
         variant: "destructive",
       });
     } finally {
@@ -52,18 +51,15 @@ const MyBookings = () => {
       await cancelBooking(id);
       toast({
         title: "Booking Cancelled",
-        description: "Your booking has been successfully cancelled.",
+        description: "Your booking has been cancelled successfully.",
       });
-      // Update local state
       setBookings((prev) =>
-        prev.map((booking) =>
-          booking.id === id ? { ...booking, status: "CANCELLED" as const } : booking
-        )
+        prev.map((b) => (b.id === id ? { ...b, status: "CANCELLED" } : b))
       );
     } catch (error: any) {
       toast({
-        title: "Failed to Cancel",
-        description: error.response?.data?.message || "Something went wrong.",
+        title: "Cancellation Failed",
+        description: error.response?.data?.message || "Could not cancel your booking.",
         variant: "destructive",
       });
     } finally {
@@ -71,34 +67,24 @@ const MyBookings = () => {
     }
   };
 
-  const getStatusBadge = (status: Booking["status"]) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "CONFIRMED":
         return (
-          <Badge className="bg-primary/20 text-primary border-primary/30">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Confirmed
+          <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-none">
+            <CheckCircle className="w-3 h-3 mr-1" /> Confirmed
           </Badge>
         );
       case "CANCELLED":
         return (
-          <Badge variant="destructive" className="bg-destructive/20 text-destructive border-destructive/30">
-            <XCircle className="h-3 w-3 mr-1" />
-            Cancelled
+          <Badge variant="destructive" className="bg-red-500/20 text-red-500 hover:bg-red-500/30 border-none">
+            <Ban className="w-3 h-3 mr-1" /> Cancelled
           </Badge>
         );
       case "PENDING":
         return (
-          <Badge className="bg-accent/20 text-accent border-accent/30">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      case "COMPLETED":
-        return (
-          <Badge className="bg-muted text-muted-foreground border-border">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Completed
+          <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border-none">
+            <Clock className="w-3 h-3 mr-1" /> Pending
           </Badge>
         );
       default:
@@ -106,128 +92,128 @@ const MyBookings = () => {
     }
   };
 
-  const isActiveBooking = (status: Booking["status"]) => {
+  const isActiveBooking = (status: string) => {
     return status === "CONFIRMED" || status === "PENDING";
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/passenger-dashboard")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Calendar className="h-5 w-5 text-primary" />
-            </div>
-            <h1 className="text-xl font-bold">My Bookings</h1>
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <span className="font-display font-bold text-xl">RideConnect</span>
           </div>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/passenger-dashboard')}>
+            Back to Dashboard
+          </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="glass-card">
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2 mt-2" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : bookings.length === 0 ? (
-          <Card className="glass-card max-w-md mx-auto text-center">
-            <CardContent className="py-12">
-              <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Bookings Yet</h3>
-              <p className="text-muted-foreground mb-6">
-                You haven't booked any rides yet. Start exploring available rides!
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="mb-6 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">My Bookings</h1>
+              <p className="text-muted-foreground">
+                View and manage all your ride bookings
               </p>
-              <Button
-                onClick={() => navigate("/passenger-dashboard")}
-                className="bg-primary hover:bg-primary/90"
-              >
-                Find Rides
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {bookings.map((booking) => (
-              <Card
-                key={booking.id}
-                className="glass-card border-border/50 hover:border-primary/30 transition-colors"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
-                        {booking.source} → {booking.destination}
-                      </CardTitle>
-                      <CardDescription className="mt-1 flex items-center gap-2">
-                        <User className="h-3 w-3" />
-                        Driver: {booking.driverName}
-                      </CardDescription>
-                    </div>
-                    {getStatusBadge(booking.status)}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>{booking.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span>{booking.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total Price</p>
-                      <p className="text-xl font-bold text-primary">
-                        ₹{booking.price.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Seats</p>
-                      <p className="text-lg font-semibold">{booking.seats}</p>
-                    </div>
-                  </div>
-
-                  {isActiveBooking(booking.status) && (
-                    <Button
-                      variant="destructive"
-                      className="w-full bg-destructive/20 text-destructive hover:bg-destructive/30 border border-destructive/30"
-                      onClick={() => handleCancelBooking(booking.id)}
-                      disabled={cancellingId === booking.id}
-                    >
-                      {cancellingId === booking.id ? "Cancelling..." : "Cancel Booking"}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            </div>
           </div>
-        )}
-      </main>
+
+          <div className="grid gap-6">
+            {isLoading ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="glass-card h-48 animate-pulse p-6 rounded-xl">
+                    <div className="h-6 w-3/4 bg-muted/50 rounded mb-4"></div>
+                    <div className="h-4 w-1/2 bg-muted/30 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            ) : bookings.length === 0 ? (
+              <div className="glass-card text-center py-12 rounded-xl">
+                <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Bookings Yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  You haven't booked any rides yet. Start exploring available rides!
+                </p>
+                <Button onClick={() => navigate("/passenger-dashboard")}>
+                  Find Rides
+                </Button>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {bookings.map((booking, index) => (
+                  <motion.div
+                    key={booking.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="glass-card hover:border-primary/50 transition-all rounded-xl p-6"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        {booking.source} → {booking.destination}
+                      </h3>
+                    </div>
+                    <div className="mb-4">
+                      {getStatusBadge(booking.status)}
+                    </div>
+
+                    <div className="space-y-4 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <User className="w-4 h-4" />
+                        <span>Driver: {booking.driverName}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="w-4 h-4" />
+                          <span>{booking.date}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>{booking.time}</span>
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-border flex items-center justify-between">
+                        <div>
+                          <span className="text-lg font-bold text-accent">₹{booking.price}</span>
+                          <span className="text-muted-foreground ml-1 text-xs">
+                            ({booking.seats} seats)
+                          </span>
+                        </div>
+                        {isActiveBooking(booking.status) && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleCancelBooking(booking.id)}
+                            disabled={cancellingId === booking.id}
+                          >
+                            {cancellingId === booking.id ? "..." : "Cancel"}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

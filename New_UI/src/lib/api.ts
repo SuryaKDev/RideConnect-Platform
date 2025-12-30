@@ -34,16 +34,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized - clear user data and redirect to login
       localStorage.removeItem('rideconnect_current_user');
-      window.location.href = '/sign-in';
+      window.location.href = '/signin';
     }
     return Promise.reject(error);
   }
 );
 
 // ============ AUTH API ============
-
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -60,7 +58,6 @@ export const register = async (userData: any) => {
 };
 
 // ============ RIDES API ============
-
 export interface RideFilters {
   source: string;
   destination: string;
@@ -79,7 +76,7 @@ export const searchRides = async (filters: RideFilters) => {
   params.append('destination', filters.destination);
   if (filters.date) params.append('date', filters.date);
   if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
-  
+
   const response = await api.get(`/rides/search?${params.toString()}`);
   return response.data;
 };
@@ -100,7 +97,6 @@ export const cancelRide = async (id: number) => {
 };
 
 // ============ BOOKINGS API ============
-
 export const bookRide = async (rideId: number, seats: number) => {
   const response = await api.post(`/bookings/book?rideId=${rideId}&seats=${seats}`);
   return response.data;
@@ -117,7 +113,6 @@ export const cancelBooking = async (id: number) => {
 };
 
 // ============ PAYMENTS API ============
-
 export const createOrder = async (bookingId: number) => {
   const response = await api.post('/payments/create-order', { bookingId });
   return response.data;
@@ -134,7 +129,6 @@ export const getTransactionHistory = async () => {
 };
 
 // ============ USER API ============
-
 export const getProfile = async () => {
   const response = await api.get('/users/profile');
   return response.data;
@@ -145,5 +139,4 @@ export const updateProfile = async (data: any) => {
   return response.data;
 };
 
-// Export the axios instance for custom requests
 export default api;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Car } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,16 +21,18 @@ const SignIn = () => {
     setIsLoading(true);
 
     try {
+      // Use the API login function
       const user = await login({ email, password });
-      
-      // Save the entire user object (including token) to localStorage
+
+      // Save user to localStorage
+      // Ensure we store exactly what the app expects
       localStorage.setItem('rideconnect_current_user', JSON.stringify(user));
-      
+
       toast({
         title: "Welcome back!",
         description: `Signed in as ${user.name || user.email}`,
       });
-      
+
       // Redirect based on role
       if (user.role === 'ADMIN') {
         navigate('/admin');
@@ -52,19 +54,27 @@ const SignIn = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-      
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10" />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
       >
-        <div className="glass-card p-8 rounded-2xl">
-          {/* Logo */}
+        {/* Animated border glow - Restored from Surya Code */}
+        <motion.div
+          className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-primary rounded-2xl opacity-75 blur-md"
+          animate={{
+            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+          style={{ backgroundSize: "200% 200%" }}
+        />
+        <div className="glass-card p-8 rounded-2xl relative bg-card border-none">
+          {/* Logo - Restored from Surya Code */}
           <Link to="/" className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-              {/* Logo placeholder */}
-              <Car className="w-6 h-6 text-primary-foreground" />
+            <div className="w-12 h-12 rounded-xl overflow-hidden group-hover:scale-110 transition-transform duration-300">
+              <img src="/logo.png" alt="RideConnect Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-display font-bold text-2xl">RideConnect</span>
           </Link>
@@ -121,14 +131,15 @@ const SignIn = () => {
 
           <p className="text-center mt-6 text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline font-medium">
+            <Link to="/register" className="text-accent hover:underline font-medium">
               Get Started
             </Link>
           </p>
 
           <div className="mt-6 p-4 rounded-lg bg-muted/50 text-sm">
             <p className="font-medium mb-2">Demo Credentials:</p>
-            <p className="text-muted-foreground">Admin: admin@rideconnect.com / admin123</p>
+            <p className="text-muted-foreground">Passenger: passenger@test.com / pass123</p>
+            <p className="text-muted-foreground">Driver: driver@test.com / driver123</p>
           </div>
         </div>
       </motion.div>
