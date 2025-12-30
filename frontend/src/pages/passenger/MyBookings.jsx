@@ -4,7 +4,10 @@ import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import PaymentModal from '../../components/PaymentModal'; 
 import ReviewModal from '../../components/ReviewModal';
-import UserProfileModal from '../../components/UserProfileModal'; 
+import UserProfileModal from '../../components/UserProfileModal';
+import LocalToast from '../../components/LocalToast';
+import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../utils/useToast';
 import { getMyBookings, cancelBooking } from '../../services/api';
 import styles from './MyBookings.module.css';
 import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3, Star, Receipt } from 'lucide-react';
@@ -16,6 +19,14 @@ const MyBookings = () => {
     const [reviewBooking, setReviewBooking] = useState(null);
     const [viewProfileId, setViewProfileId] = useState(null); 
     const [activeTab, setActiveTab] = useState('upcoming');
+    const { toasts, showToast, removeToast } = useToast();
+    const [confirmModal, setConfirmModal] = useState({ 
+        show: false, 
+        type: 'warning',
+        title: '',
+        message: '', 
+        onConfirm: null 
+    });
 
     const fetchBookings = async () => {
         try {
@@ -40,23 +51,31 @@ const MyBookings = () => {
 
     const handleReviewSuccess = () => {
         setReviewBooking(null);
-        alert("Review Submitted! Thank you.");
+        showToast("Review Submitted! Thank you.", "SUCCESS");
         fetchBookings();
     };
 
-    const handleCancel = async (id) => {
-        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-        try {
-            await cancelBooking(id);
-            alert("Booking Cancelled");
-            fetchBookings();
-        } catch (err) {
-            alert(err.message);
-        }
+    const handleCancel = (id) => {
+        setConfirmModal({
+            show: true,
+            type: 'warning',
+            title: 'Cancel Booking',
+            message: 'Are you sure you want to cancel this booking?',
+            confirmText: 'Cancel Booking',
+            onConfirm: async () => {
+                try {
+                    await cancelBooking(id);
+                    showToast("Booking Cancelled", "SUCCESS");
+                    fetchBookings();
+                } catch (err) {
+                    showToast(err.message, "ERROR");
+                }
+            }
+        });
     };
 
     const handleRefundRequest = () => {
-        alert("Refund request submitted. Refund will be credited within 5-7 working days.");
+        showToast("Refund request submitted. Refund will be credited within 5-7 working days.", "SUCCESS");
     };
 
     // Filter Logic
@@ -178,6 +197,7 @@ const MyBookings = () => {
     return (
         <div className={styles.pageWrapper}>
             <Navbar />
+            <LocalToast toasts={toasts} onRemove={removeToast} />
             <div className="container">
                 <div className={styles.header}>
                     <h1>My Bookings</h1>
@@ -237,6 +257,16 @@ const MyBookings = () => {
                     onClose={() => setViewProfileId(null)} 
                 />
             )}
+            
+            <ConfirmModal
+                isOpen={confirmModal.show}
+                onClose={() => setConfirmModal({ ...confirmModal, show: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.confirmText}
+            />
         </div>
     );
 };

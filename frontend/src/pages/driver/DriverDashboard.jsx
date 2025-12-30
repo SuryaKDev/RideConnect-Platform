@@ -14,6 +14,9 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import UserProfileModal from '../../components/UserProfileModal'; 
 import ReviewModal from '../../components/ReviewModal'; // Import Review Modal
+import LocalToast from '../../components/LocalToast';
+import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../utils/useToast';
 import styles from './DriverDashboard.module.css';
 import { Plus, Calendar, Clock, MapPin, Users, XCircle, List, History, Check, X, Wallet, Play, Flag, Star } from 'lucide-react';
 
@@ -22,12 +25,20 @@ const DriverDashboard = () => {
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('upcoming'); 
+    const { toasts, showToast, removeToast } = useToast();
     
     // Modal States
     const [passengerModal, setPassengerModal] = useState({ show: false, passengers: [], rideId: null, rideStatus: null });
     const [loadingPassengers, setLoadingPassengers] = useState(false);
     const [viewProfileId, setViewProfileId] = useState(null);
     const [reviewTarget, setReviewTarget] = useState(null); // For reviewing a passenger
+    const [confirmModal, setConfirmModal] = useState({ 
+        show: false, 
+        type: 'warning',
+        title: '',
+        message: '', 
+        onConfirm: null 
+    });
 
     const isVerified = user?.isVerified === true;
 
@@ -46,29 +57,55 @@ const DriverDashboard = () => {
         fetchRides();
     }, []);
 
-    const handleStartRide = async (rideId) => {
-        if (!window.confirm("Start this ride? This will notify passengers.")) return;
-        try {
-            await startRide(rideId);
-            fetchRides();
-        } catch (err) { alert(err.message); }
+    const handleStartRide = (rideId) => {
+        setConfirmModal({
+            show: true,
+            type: 'info',
+            title: 'Start Ride',
+            message: 'Start this ride? This will notify passengers.',
+            confirmText: 'Start Ride',
+            onConfirm: async () => {
+                try {
+                    await startRide(rideId);
+                    fetchRides();
+                    showToast("Ride started successfully!", "SUCCESS");
+                } catch (err) { showToast(err.message, "ERROR"); }
+            }
+        });
     };
 
-    const handleCompleteRide = async (rideId) => {
-        if (!window.confirm("Complete this ride? This allows passengers to leave reviews.")) return;
-        try {
-            await completeRide(rideId);
-            fetchRides();
-        } catch (err) { alert(err.message); }
+    const handleCompleteRide = (rideId) => {
+        setConfirmModal({
+            show: true,
+            type: 'info',
+            title: 'Complete Ride',
+            message: 'Complete this ride? This allows passengers to leave reviews.',
+            confirmText: 'Complete Ride',
+            onConfirm: async () => {
+                try {
+                    await completeRide(rideId);
+                    fetchRides();
+                    showToast("Ride completed successfully!", "SUCCESS");
+                } catch (err) { showToast(err.message, "ERROR"); }
+            }
+        });
     };
 
-    const handleCancelRide = async (rideId) => {
-        if (!window.confirm("Are you sure? This will cancel bookings for all passengers.")) return;
-        try {
-            await cancelPublishedRide(rideId);
-            alert("Ride Cancelled");
-            fetchRides();
-        } catch (err) { alert(err.message); }
+    const handleCancelRide = (rideId) => {
+        setConfirmModal({
+            show: true,
+            type: 'danger',
+            title: 'Cancel Ride',
+            message: 'Are you sure? This will cancel bookings for all passengers.',
+            confirmText: 'Cancel Ride',
+            onConfirm: async () => {
+                try {
+                    await cancelPublishedRide(rideId);
+                    showToast("Ride Cancelled", "SUCCESS");
+                    fetchRides();
+                } catch (err) { showToast(err.message, "ERROR"); }
+            }
+        });
     };
 
     const openPassengerList = async (ride) => {
@@ -78,7 +115,7 @@ const DriverDashboard = () => {
             const list = await getRidePassengers(ride.id);
             setPassengerModal({ show: true, passengers: list, rideId: ride.id, rideStatus: ride.status });
         } catch (err) {
-            alert("Failed to load passengers: " + err.message);
+            showToast("Failed to load passengers: " + err.message, "ERROR");
             setPassengerModal({ show: false, passengers: [], rideId: null, rideStatus: null });
         } finally {
             setLoadingPassengers(false);
@@ -88,25 +125,33 @@ const DriverDashboard = () => {
     const handleAccept = async (bookingId) => {
         try {
             await acceptBookingRequest(bookingId);
-            alert("Booking Accepted!");
+            showToast("Booking Accepted!", "SUCCESS");
             const list = await getRidePassengers(passengerModal.rideId);
             setPassengerModal(prev => ({ ...prev, passengers: list }));
-        } catch (err) { alert(err.message); }
+        } catch (err) { showToast(err.message, "ERROR"); }
     };
 
-    const handleReject = async (bookingId) => {
-        if(!window.confirm("Reject this passenger?")) return;
-        try {
-            await rejectBookingRequest(bookingId);
-            alert("Booking Rejected");
-            const list = await getRidePassengers(passengerModal.rideId);
-            setPassengerModal(prev => ({ ...prev, passengers: list }));
-        } catch (err) { alert(err.message); }
+    const handleReject = (bookingId) => {
+        setConfirmModal({
+            show: true,
+            type: 'warning',
+            title: 'Reject Passenger',
+            message: 'Are you sure you want to reject this passenger?',
+            confirmText: 'Reject',
+            onConfirm: async () => {
+                try {
+                    await rejectBookingRequest(bookingId);
+                    showToast("Booking Rejected", "SUCCESS");
+                    const list = await getRidePassengers(passengerModal.rideId);
+                    setPassengerModal(prev => ({ ...prev, passengers: list }));
+                } catch (err) { showToast(err.message, "ERROR"); }
+            }
+        });
     };
 
     const handleReviewSuccess = () => {
         setReviewTarget(null);
-        alert("Review Submitted Successfully!");
+        showToast("Review Submitted Successfully!", "SUCCESS");
     };
 
     const upcomingRides = rides.filter(r => ['AVAILABLE', 'IN_PROGRESS', 'FULL'].includes(r.status));
@@ -286,6 +331,18 @@ const DriverDashboard = () => {
                     onSuccess={handleReviewSuccess}
                 />
             )}
+            
+            <ConfirmModal
+                isOpen={confirmModal.show}
+                onClose={() => setConfirmModal({ ...confirmModal, show: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.confirmText}
+            />
+            
+            <LocalToast toasts={toasts} onRemove={removeToast} />
         </div>
     );
 };

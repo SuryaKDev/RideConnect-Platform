@@ -3,6 +3,9 @@ import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import { getAllUsers, getAllRides, verifyDriver, blockUser, cancelRideAdmin } from '../../services/api';
 import UserProfileModal from '../../components/UserProfileModal';
+import LocalToast from '../../components/LocalToast';
+import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../utils/useToast';
 import styles from './AdminDashboard.module.css';
 
 const AdminDashboard = () => {
@@ -10,6 +13,16 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { toasts, showToast, removeToast } = useToast();
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState({ 
+        show: false, 
+        type: 'warning',
+        title: '',
+        message: '', 
+        onConfirm: null 
+    });
 
     // Cancel Modal State
     const [cancelModal, setCancelModal] = useState({ show: false, rideId: null, reason: '' });
@@ -39,31 +52,46 @@ const AdminDashboard = () => {
     }, [activeTab]);
 
     const handleVerify = async (id) => {
-        if (!window.confirm("Verify this driver?")) return;
-        try {
-            await verifyDriver(id);
-            // Optimistic Update: Update list immediately to show "Verified"
-            setUsers(users.map(u => {
-                if (u.id === id) {
-                    return { ...u, isVerified: true, verified: true }; // Set both to be safe
-                }
-                return u;
-            }));
-        } catch (err) { alert(err.message); }
+        setConfirmModal({
+            show: true,
+            type: 'info',
+            title: 'Verify Driver',
+            message: 'Are you sure you want to verify this driver? They will be able to publish rides after verification.',
+            onConfirm: async () => {
+                try {
+                    await verifyDriver(id);
+                    setUsers(users.map(u => {
+                        if (u.id === id) {
+                            return { ...u, isVerified: true, verified: true };
+                        }
+                        return u;
+                    }));
+                    showToast("Driver verified successfully!", "SUCCESS");
+                } catch (err) { showToast(err.message, "ERROR"); }
+            }
+        });
     };
 
     const handleBlock = async (id) => {
-        if (!window.confirm("Block this user? They won't be able to login.")) return;
-        try {
-            await blockUser(id);
-            // Optimistic Update: Update list immediately to show "Blocked"
-            setUsers(users.map(u => {
-                if (u.id === id) {
-                    return { ...u, isActive: false, active: false }; // Set both to be safe
-                }
-                return u;
-            }));
-        } catch (err) { alert(err.message); }
+        setConfirmModal({
+            show: true,
+            type: 'danger',
+            title: 'Block User',
+            message: "Are you sure you want to block this user? They won't be able to login anymore.",
+            confirmText: 'Block User',
+            onConfirm: async () => {
+                try {
+                    await blockUser(id);
+                    setUsers(users.map(u => {
+                        if (u.id === id) {
+                            return { ...u, isActive: false, active: false };
+                        }
+                        return u;
+                    }));
+                    showToast("User blocked successfully!", "SUCCESS");
+                } catch (err) { showToast(err.message, "ERROR"); }
+            }
+        });
     };
 
     const openCancelModal = (rideId) => {
@@ -71,14 +99,17 @@ const AdminDashboard = () => {
     };
 
     const submitCancel = async () => {
-        if (!cancelModal.reason.trim()) return alert("Please provide a reason.");
+        if (!cancelModal.reason.trim()) {
+            showToast("Please provide a reason.", "WARNING");
+            return;
+        }
         try {
             await cancelRideAdmin(cancelModal.rideId, cancelModal.reason);
-            alert("Ride Cancelled Successfully");
+            showToast("Ride Cancelled Successfully", "SUCCESS");
             setCancelModal({ show: false, rideId: null, reason: '' });
             fetchData();
         } catch (err) {
-            alert(err.message);
+            showToast(err.message, "ERROR");
         }
     };
 
@@ -234,6 +265,19 @@ const AdminDashboard = () => {
 
             {/* Profile Modal */}
             {viewProfileId && <UserProfileModal userId={viewProfileId} onClose={() => setViewProfileId(null)} />}
+            
+            {/* Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.show}
+                onClose={() => setConfirmModal({ ...confirmModal, show: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.confirmText}
+            />
+            
+            <LocalToast toasts={toasts} onRemove={removeToast} />
         </div>
     );
 };

@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import LocalToast from '../components/LocalToast';
+import { useToast } from '../utils/useToast';
 import styles from './Profile.module.css';
 import { Star, Camera, Car, User } from 'lucide-react';
 
@@ -16,6 +18,7 @@ const Profile = () => {
     const [uploading, setUploading] = useState(false); // Shared loading state for uploads
     const [message, setMessage] = useState({ type: '', text: '' });
     const [reviews, setReviews] = useState([]);
+    const { toasts, showToast, removeToast } = useToast();
 
     const [formData, setFormData] = useState({
         name: '', email: '', phone: '', role: '',
@@ -58,8 +61,9 @@ const Profile = () => {
         try {
             const url = await uploadImage(file);
             setFormData(prev => ({ ...prev, profilePictureUrl: url }));
+            showToast("Avatar uploaded successfully", "SUCCESS");
         } catch (err) {
-            alert("Avatar upload failed: " + err.message);
+            showToast("Avatar upload failed: " + err.message, "ERROR");
         } finally {
             setUploading(false);
         }
@@ -73,8 +77,9 @@ const Profile = () => {
         try {
             const url = await uploadImage(file);
             setFormData(prev => ({ ...prev, carImageUrl: url }));
+            showToast("Car image uploaded successfully", "SUCCESS");
         } catch (err) {
-            alert("Car image upload failed: " + err.message);
+            showToast("Car image upload failed: " + err.message, "ERROR");
         } finally {
             setUploading(false);
         }
@@ -99,6 +104,7 @@ const Profile = () => {
     return (
         <div className={styles.pageWrapper}>
             <Navbar />
+            <LocalToast toasts={toasts} onRemove={removeToast} />
             <div className="container">
                 <h1 className={styles.pageTitle}>Profile Settings</h1>
                 {message.text && <div className={`${styles.alert} ${styles[message.type]}`}>{message.text}</div>}

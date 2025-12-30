@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from './ui/Button';
+import LocalToast from './LocalToast';
+import { useToast } from '../utils/useToast';
 import { User, LogOut, LayoutDashboard, Ticket } from 'lucide-react';
 import styles from './Navbar.module.css';
 
@@ -10,6 +12,7 @@ const Navbar = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const { toasts, showToast, removeToast } = useToast();
 
     const handleLogout = () => {
         logout();
@@ -17,6 +20,17 @@ const Navbar = () => {
     };
 
     const isVerified = user?.isVerified === true;
+
+    const handlePublishRideClick = (e) => {
+        if (!isVerified) {
+            e.preventDefault();
+            showToast(
+                "Your account needs to be verified by an admin before you can publish rides. If you were recently verified, please logout and login again to refresh your status.",
+                "WARNING",
+                "Verification Required"
+            );
+        }
+    };
 
     const handleAboutClick = (e) => {
         e.preventDefault();
@@ -32,6 +46,7 @@ const Navbar = () => {
 
     return (
         <nav className={styles.navbar}>
+            <LocalToast toasts={toasts} onRemove={removeToast} />
             <div className={`container ${styles.navContainer}`}>
                 <Link to="/" className={styles.logo}>
                     RideConnect
@@ -49,9 +64,23 @@ const Navbar = () => {
                             )}
 
                             {user?.role === 'DRIVER' && (
-                                <Link to="/post-ride">
-                                    <Button size="sm" variant="outline" disabled={!isVerified}>Publish a Ride</Button>
-                                </Link>
+                                <>
+                                    {isVerified ? (
+                                        <Link to="/post-ride">
+                                            <Button size="sm" variant="outline">Publish a Ride</Button>
+                                        </Link>
+                                    ) : (
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            disabled 
+                                            onClick={handlePublishRideClick}
+                                            style={{ cursor: 'not-allowed' }}
+                                        >
+                                            Publish a Ride
+                                        </Button>
+                                    )}
+                                </>
                             )}
 
                             {user?.role === 'ADMIN' && (

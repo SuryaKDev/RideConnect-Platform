@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { registerUser } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import LocalToast from '../components/LocalToast';
+import { useToast } from '../utils/useToast';
 import styles from './Register.module.css';
 
 const Register = () => {
@@ -10,6 +12,7 @@ const Register = () => {
     const [role, setRole] = useState('PASSENGER');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const { toasts, showToast, removeToast } = useToast();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -41,8 +44,8 @@ const Register = () => {
 
         try {
             await registerUser(payload);
-            alert('Registration Successful! Please Login.');
-            navigate('/login');
+            showToast('Registration Successful! Please Login.', 'SUCCESS');
+            setTimeout(() => navigate('/login'), 1500); // Delay navigation to show toast
         } catch (err) {
             if (err.message) {
                 setError(err.message);
@@ -56,6 +59,7 @@ const Register = () => {
 
     return (
         <div className={styles.pageWrapper}>
+            <LocalToast toasts={toasts} onRemove={removeToast} />
             <div className={styles.container}>
                 <div className={styles.formCard}>
                     <div className={styles.formHeader}>

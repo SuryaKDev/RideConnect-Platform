@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { createOrder, verifyPayment } from '../services/api';
 import Button from './ui/Button';
+import LocalToast from './LocalToast';
+import { useToast } from '../utils/useToast';
 import styles from './PaymentModal.module.css';
 
 const PaymentModal = ({ booking, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState('idle'); 
+    const [status, setStatus] = useState('idle');
+    const { toasts, showToast, removeToast } = useToast(); 
 
     const handlePayment = async () => {
         setLoading(true);
@@ -37,7 +40,7 @@ const PaymentModal = ({ booking, onClose, onSuccess }) => {
                             setTimeout(onSuccess, 1500); 
                         } catch (err) {
                             console.error(err);
-                            alert("Verification Failed: " + err.message);
+                            showToast("Verification Failed: " + err.message, "ERROR");
                             setStatus('error');
                         }
                     },
@@ -116,6 +119,7 @@ const PaymentModal = ({ booking, onClose, onSuccess }) => {
                     </Button>
                 </div>
             </div>
+            <LocalToast toasts={toasts} onRemove={removeToast} />
         </div>
     );
 };
