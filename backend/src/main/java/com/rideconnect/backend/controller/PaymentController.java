@@ -52,4 +52,14 @@ public class PaymentController {
         if (data.containsKey(key2) && data.get(key2) != null) return data.get(key2).toString();
         return null;
     }
+
+    @GetMapping("/driver-stats")
+    public ResponseEntity<?> getDriverStats(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<Map<String, Object>> stats = paymentService.getDriverWeeklyEarnings(userDetails.getUsername());
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }

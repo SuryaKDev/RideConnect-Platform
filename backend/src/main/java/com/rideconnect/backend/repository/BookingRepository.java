@@ -31,4 +31,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByRideIdAndPassengerEmailAndStatusNot(Long rideId, String email, String status);
 
+    // --- DASHBOARD: Recent Routes (Top 3) ---
+    @Query("SELECT r.source, r.destination, COUNT(b) as freq " +
+            "FROM Booking b JOIN b.ride r " +
+            "WHERE b.passenger.email = :email " +
+            "GROUP BY r.source, r.destination " +
+            "ORDER BY freq DESC LIMIT 3")
+    List<Object[]> findTopRoutesByPassenger(@Param("email") String email);
+
+    // --- DASHBOARD: Active Ride for Today ---
+    @Query("SELECT b FROM Booking b WHERE b.passenger.email = :email " +
+            "AND b.status = 'CONFIRMED' " +
+            "AND b.ride.travelDate = :today " +
+            "AND b.ride.status IN ('AVAILABLE', 'IN_PROGRESS')")
+    List<Booking> findActiveBookingsForToday(@Param("email") String email, @Param("today") LocalDate today);
+
 }

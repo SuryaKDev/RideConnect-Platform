@@ -1,5 +1,6 @@
 package com.rideconnect.backend.service;
 
+import com.rideconnect.backend.dto.RoutePresetDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.model.User;
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
@@ -149,5 +151,25 @@ public class BookingService {
 
     public List<Booking> getMyBookings(String email) {
         return bookingRepository.findByPassengerEmail(email);
+    }
+
+    // --- NEW: Get Frequent Routes ---
+    public List<RoutePresetDto> getRecentRoutes(String email) {
+        List<Object[]> results = bookingRepository.findTopRoutesByPassenger(email);
+        return results.stream()
+                .map(row -> new RoutePresetDto(
+                        (String) row[0], // source
+                        (String) row[1], // destination
+                        (Long) row[2]    // count
+                ))
+                .collect(Collectors.toList());
+    }
+
+    // --- NEW: Get Active Ride for Dashboard ---
+    public Booking getActiveRideForToday(String email) {
+        List<Booking> active = bookingRepository.findActiveBookingsForToday(email, LocalDate.now());
+        if (active.isEmpty()) return null;
+        // Return the first one found (assuming users don't double book same time slots usually)
+        return active.get(0);
     }
 }

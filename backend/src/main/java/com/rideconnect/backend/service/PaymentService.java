@@ -9,10 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.time.format.TextStyle;
+import java.util.stream.Collectors;
 
 @Service
 public class PaymentService {
@@ -112,6 +113,38 @@ public class PaymentService {
         } else {
             throw new RuntimeException("Invalid Signature");
         }
+    }
+
+    public List<Map<String, Object>> getDriverWeeklyEarnings(String driverEmail) {
+        // 1. Get all successful payments for this driver
+        List<Payment> payments = paymentRepository.findDriverEarnings(driverEmail);
+
+        // 2. Initialize last 7 days with 0.0
+        Map<LocalDate, Double> dailyMap = new LinkedHashMap<>();
+        LocalDate today = LocalDate.now();
+        for (int i = 6; i >= 0; i--) {
+            dailyMap.put(today.minusDays(i), 0.0);
+        }
+
+        // 3. Aggregate actual earnings
+        // Note: In real app, filter query by date range for performance.
+        // Here we filter the list for simplicity.
+        for (Payment p : payments) {
+            LocalDate pDate = p.getPaymentTime().toLocalDate();
+            if (dailyMap.containsKey(pDate)) {
+                // Determine Net Income (after 7% deduction)
+                double netAmount = p.getAmount() / 1.07;
+                dailyMap.put(pDate, dailyMap.get(pDate) + netAmount);
+            }
+        }
+
+        // 4. Convert to List for JSON (e.g., [{name: "Mon", amount: 500}])
+        return dailyMap.entrySet().stream().map(entry -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", entry.getKey().getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
+            map.put("amount", Math.round(entry.getValue())); // Round to nearest integer
+            return map;
+        }).collect(Collectors.toList());
     }
 
     public List<Payment> getMyPaymentHistory(String email) {

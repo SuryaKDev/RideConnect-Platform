@@ -1,5 +1,6 @@
 package com.rideconnect.backend.controller;
 
+import com.rideconnect.backend.dto.RoutePresetDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,5 +50,21 @@ public class BookingController {
     public ResponseEntity<?> rejectBooking(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         bookingService.rejectBooking(id, userDetails.getUsername());
         return ResponseEntity.ok(Map.of("message", "Booking rejected"));
+    }
+
+    // --- NEW: Recent Routes Endpoint ---
+    @GetMapping("/recent-routes")
+    public ResponseEntity<List<RoutePresetDto>> getRecentRoutes(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(bookingService.getRecentRoutes(userDetails.getUsername()));
+    }
+
+    // --- NEW: Active Ride Endpoint ---
+    @GetMapping("/active-ride")
+    public ResponseEntity<?> getActiveRide(@AuthenticationPrincipal UserDetails userDetails) {
+        Booking active = bookingService.getActiveRideForToday(userDetails.getUsername());
+        if (active == null) {
+            return ResponseEntity.noContent().build(); // 204 No Content if no ride today
+        }
+        return ResponseEntity.ok(active);
     }
 }

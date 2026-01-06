@@ -3,6 +3,7 @@ package com.rideconnect.backend.controller;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.BookingRepository;
+import com.rideconnect.backend.repository.PaymentRepository;
 import com.rideconnect.backend.repository.RideRepository;
 import com.rideconnect.backend.repository.UserRepository;
 import com.rideconnect.backend.service.NotificationService;
@@ -28,6 +29,9 @@ public class AdminController {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @GetMapping("/users")
     public List<User> getAllUsers() {
@@ -71,5 +75,20 @@ public class AdminController {
             rideRepository.save(ride);
             return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully. Reason logged."));
         }).orElseThrow(() -> new RuntimeException("Ride not found"));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getDashboardStats() {
+        long totalUsers = userRepository.count();
+        long activeRides = rideRepository.countByStatus("AVAILABLE");
+        long completedRides = rideRepository.countByStatus("COMPLETED");
+        Double totalRevenue = paymentRepository.calculateTotalRevenue();
+
+        return ResponseEntity.ok(Map.of(
+                "totalUsers", totalUsers,
+                "activeRides", activeRides,
+                "completedRides", completedRides,
+                "totalRevenue", totalRevenue
+        ));
     }
 }

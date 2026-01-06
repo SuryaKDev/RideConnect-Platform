@@ -1,11 +1,13 @@
 package com.rideconnect.backend.repository;
 
+import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,4 +24,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findDriverEarnings(@Param("driverEmail") String driverEmail);
 
     Optional<Payment> findByBookingId(Long bookingId);
+
+    // Calculate Total Revenue (Sum of 'amount' where status is SUCCESS)
+    // COALESCE ensures we return 0.0 instead of NULL if table is empty
+    @Query("SELECT COALESCE(SUM(p.amount), 0.0) FROM Payment p WHERE p.status = 'SUCCESS'")
+    Double calculateTotalRevenue();
+
 }

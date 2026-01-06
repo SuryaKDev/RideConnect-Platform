@@ -15,6 +15,8 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
 
     List<Ride> findByDriverEmail(String email);
 
+    long countByStatus(String status);
+
     // --- LEVEL 3.5: DYNAMIC SMART ROUTE MATCHING ---
     // LOGIC:
     // 1. Calculate Dynamic Buffer: 10% of total distance.
