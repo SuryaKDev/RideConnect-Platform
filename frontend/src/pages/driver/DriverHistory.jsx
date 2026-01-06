@@ -1,44 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
-import { getTransactionHistory } from '../../services/api';
+import { getTransactionHistory, getDriverStats } from '../../services/api'; // Added getDriverStats
 import { generateDriverInvoice } from '../../utils/invoiceGenerator';
 import styles from './DriverHistory.module.css';
 import { Download, Wallet, ArrowDownLeft } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'; // Added Recharts
 
 const DriverHistory = () => {
     const [payments, setPayments] = useState([]);
+    const [stats, setStats] = useState([]); // State for chart
     const [totalEarnings, setTotalEarnings] = useState(0);
     const [totalRefunded, setTotalRefunded] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchHistory = async () => {
+        const fetchData = async () => {
             try {
-                const data = await getTransactionHistory();
-                setPayments(data || []);
+                // 1. Fetch History List
+                const historyData = await getTransactionHistory();
+                setPayments(historyData || []);
                 
-                // Calculate Total Earnings (Only SUCCESS)
-                const earnings = (data || [])
+                // Calculate Totals
+                const earnings = (historyData || [])
                     .filter(p => p.status === 'SUCCESS')
                     .reduce((sum, p) => sum + p.amount, 0);
-                
-                // Calculate reverse math for Net Income (removing 7% tax/fee)
-                // Net = Total / 1.07
-                setTotalEarnings(Math.round(earnings / 1.07)); 
+                setTotalEarnings(Math.round(earnings / 1.07)); // Net Income
 
-                // Calculate Total Refunded (only base fare, not GST/platform fee)
-                const refunded = (data || [])
+                const refunded = (historyData || [])
                     .filter(p => p.status === 'REFUNDED')
-                    .reduce((sum, p) => sum + (p.amount / 1.07), 0);
-                setTotalRefunded(Math.round(refunded));
+                    .reduce((sum, p) => sum + p.amount, 0);
+                setTotalRefunded(refunded);
+
+                // 2. Fetch Chart Data
+                const statsData = await getDriverStats();
+                setStats(statsData || []);
+
             } catch (err) {
                 console.error(err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchHistory();
+        fetchData();
     }, []);
 
     return (
@@ -47,6 +51,29 @@ const DriverHistory = () => {
             <div className="container">
                 <h1 className={styles.pageTitle}>My Earnings</h1>
                 
+                {/* NEW: Earnings Chart Section */}
+                {stats.length > 0 && (
+                    <div className={styles.chartSection}>
+                        <h3>Weekly Earnings Trend</h3>
+                        <div style={{ width: '100%', height: 300 }}>
+                            <ResponsiveContainer>
+                                <AreaChart data={stats}>
+                                    <defs>
+                                        <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip formatter={(value) => [`₹${value}`, 'Earnings']} />
+                                    <Area type="monotone" dataKey="amount" stroke="#10b981" fillOpacity={1} fill="url(#colorEarnings)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )}
+
                 <div className={styles.statsContainer}>
                     <div className={`${styles.statsCard} ${styles.earningsCard}`}>
                         <div className={styles.statsIcon}><Wallet size={24} /></div>
@@ -102,10 +129,10 @@ const DriverHistory = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            {(p.status === 'SUCCESS' || p.status === 'REFUNDED') && (
+                                            {p.status === 'SUCCESS' && (
                                                 <Button 
                                                     size="sm" 
-                                                    variant="outline"
+                                                    variant="outline" 
                                                     onClick={() => generateDriverInvoice(p)}
                                                     className={styles.downloadBtn}
                                                 >

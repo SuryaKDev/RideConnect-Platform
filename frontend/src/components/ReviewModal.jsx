@@ -3,35 +3,38 @@ import Button from './ui/Button';
 import styles from './ReviewModal.module.css';
 import { Star, X } from 'lucide-react';
 import { submitReview } from '../services/api';
-import { useAuth } from '../context/AuthContext'; // Import Auth
+import { useAuth } from '../context/AuthContext';
 
-const ReviewModal = ({ booking, onClose, onSuccess }) => {
-    const { user } = useAuth(); // Get current user to determine role
+const ReviewModal = ({ booking, onClose, onSuccess, showToast }) => {
+    const { user } = useAuth();
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [hover, setHover] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    // Determine who is being reviewed
     const isDriver = user?.role === 'DRIVER';
-    // If driver is reviewing, target is passenger. If passenger is reviewing, target is driver.
-    // We check booking structure to handle different DTO shapes from different pages.
     const revieweeName = isDriver 
         ? (booking.passengerName || booking.passenger?.name || "Passenger")
         : (booking.ride?.driver?.name || "Driver");
     
-    // Safety check for booking ID. 
     const bookingId = booking.bookingId || booking.id;
 
     const handleSubmit = async () => {
-        if (rating === 0) return alert("Please select a star rating.");
+        if (rating === 0) {
+            if (showToast) {
+                showToast('Please select a star rating', 'WARNING');
+            }
+            return;
+        }
         
         setLoading(true);
         try {
             await submitReview(bookingId, rating, comment);
             onSuccess();
         } catch (err) {
-            alert(err.message);
+            if (showToast) {
+                showToast(err.message, 'ERROR');
+            }
         } finally {
             setLoading(false);
         }

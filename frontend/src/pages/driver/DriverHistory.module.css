@@ -10,6 +10,23 @@
     font-size: 1.8rem;
 }
 
+/* --- NEW CHART STYLE --- */
+.chartSection {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+    margin-bottom: 2rem;
+}
+
+.chartSection h3 {
+    margin: 0 0 1.5rem 0;
+    color: #374151;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
 .statsContainer {
     display: flex;
     gap: 1.5rem;

@@ -184,6 +184,17 @@ export const getAllRides = async () => {
   return data;
 };
 
+// Fetch Dashboard Stats
+export const getAdminStats = async () => {
+    const response = await fetch(`${API_URL}/admin/stats`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch stats");
+    return data;
+};
+
 export const verifyDriver = async (driverId) => {
   const response = await fetch(`${API_URL}/admin/verify-driver/${driverId}`, {
     method: "PUT",
@@ -322,6 +333,16 @@ export const acceptBookingRequest = async (bookingId) => {
   return data;
 };
 
+export const getDriverStats = async () => {
+    const response = await fetch(`${API_URL}/payments/driver-stats`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch stats");
+    return data;
+};
+
 export const rejectBookingRequest = async (bookingId) => {
   const response = await fetch(`${API_URL}/bookings/${bookingId}/reject`, {
     method: "PUT",
@@ -409,4 +430,25 @@ export const uploadImage = async (file) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "Image upload failed");
     return data.url; // Returns the Cloudinary URL
+};
+
+export const getRecentRoutes = async () => {
+    const response = await fetch(`${API_URL}/bookings/recent-routes`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch routes");
+    return data;
+};
+
+export const getActiveRide = async () => {
+    const response = await fetch(`${API_URL}/bookings/active-ride`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    if (response.status === 204) return null; // Handle empty
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch active ride");
+    return data;
 };

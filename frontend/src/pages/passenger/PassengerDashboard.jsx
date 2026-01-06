@@ -1,31 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
-import { searchRides, bookRide } from '../../services/api';
-import UserProfileModal from '../../components/UserProfileModal'; // Ensure this path is correct locally
+import QuickBookCard from '../../components/passenger/QuickBookCard';
+import LiveTrackingCard from '../../components/passenger/LiveTrackingCard';
+import InteractiveMap from '../../components/maps/InteractiveMap';
+import UserProfileModal from '../../components/UserProfileModal';
+import { searchRides, bookRide, getRecentRoutes, getActiveRide } from '../../services/api';
 import styles from './PassengerDashboard.module.css';
-import { Search, MapPin, Calendar, Clock, User, CheckCircle, Filter } from 'lucide-react';
+import { Search, MapPin, Calendar, Clock, User, CheckCircle, Filter, Map as MapIcon } from 'lucide-react';
 
 const PassengerDashboard = () => {
+    // Search State
     const [searchParams, setSearchParams] = useState({ 
         source: '', destination: '', date: '',
         minPrice: '', maxPrice: '', minSeats: 1
     });
     
+    // Data State
     const [rides, setRides] = useState([]);
+    const [recentRoutes, setRecentRoutes] = useState([]);
+    const [activeRide, setActiveRide] = useState(null);
+    
+    // UI State
     const [loading, setLoading] = useState(true);
-    const [searched, setSearched] = useState(false);
+    const [showMapView, setShowMapView] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
+    const [viewProfileId, setViewProfileId] = useState(null);
+    
+    // Interaction State
     const [selectedRide, setSelectedRide] = useState(null); 
     const [seatsToBook, setSeatsToBook] = useState(1);
-    const [bookingStatus, setBookingStatus] = useState(null); 
-    const [showFilters, setShowFilters] = useState(false);
+    const [bookingStatus, setBookingStatus] = useState(null);
+    const [hoveredRideId, setHoveredRideId] = useState(null);
     
-    // NEW: State for Profile Modal
-    const [viewProfileId, setViewProfileId] = useState(null);
+    const rideCardRefs = useRef({});
 
-    // Initial Fetch (Browse All)
+    // Initial Fetch
     useEffect(() => {
-        performSearch({});
+        const loadDashboard = async () => {
+            setLoading(true);
+            try {
+                // 1. Fetch All Rides (Browse Mode)
+                const ridesData = await searchRides({});
+                setRides(ridesData || []);
+
+                // 2. Fetch Recent Routes (Optional - may not be implemented yet)
+                try {
+                    const routesData = await getRecentRoutes();
+                    setRecentRoutes(routesData || []);
+                } catch (err) {
+                    console.log("Recent routes not available:", err.message);
+                    setRecentRoutes([]); // Set empty array if endpoint not available
+                }
+
+                // 3. Fetch Active Ride (if any)
+                try {
+                    const activeData = await getActiveRide();
+                    setActiveRide(activeData);
+                } catch (err) {
+                    console.log("No active ride:", err.message);
+                    setActiveRide(null);
+                }
+            } catch (err) {
+                console.error("Dashboard Load Error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadDashboard();
     }, []);
 
     const handleSearchChange = (e) => {
@@ -36,24 +78,7 @@ const PassengerDashboard = () => {
         setLoading(true);
         try {
             const data = await searchRides(filters);
-            const mappedRides = data.map(ride => ({
-                id: ride.id,
-                // Ensure we capture driver ID for the profile click
-                driverId: ride.driver.id, 
-                driverName: ride.driver.name,
-                // Use profile pic if available
-                driverPic: ride.driver.profilePictureUrl, 
-                carModel: ride.driver.vehicleModel,
-                source: ride.source,
-                destination: ride.destination,
-                stopovers: ride.stopovers,
-                date: ride.travelDate,
-                time: ride.travelTime,
-                seats: ride.availableSeats,
-                price: ride.pricePerSeat
-            }));
-            setRides(mappedRides);
-            if (Object.keys(filters).length > 0) setSearched(true);
+            setRides(data || []);
         } catch (error) {
             console.error('Search failed', error);
         } finally {
@@ -66,17 +91,24 @@ const PassengerDashboard = () => {
         performSearch(searchParams);
     };
 
-    const handleBookClick = (ride) => {
-        setSelectedRide(ride);
-        setSeatsToBook(1);
-        setBookingStatus(null);
+    const handleQuickBook = (route) => {
+        setSearchParams({ ...searchParams, source: route.source, destination: route.destination });
+        performSearch({ source: route.source, destination: route.destination });
+    };
+
+    const handleMarkerClick = (rideId) => {
+        const card = rideCardRefs.current[rideId];
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Optional: Add highlight logic here
+        }
     };
 
     const confirmBooking = async () => {
         try {
             await bookRide(selectedRide.id, seatsToBook);
             setBookingStatus('success');
-            setTimeout(() => { setSelectedRide(null); }, 2000);
+            setTimeout(() => { setSelectedRide(null); setBookingStatus(null); }, 2000);
         } catch (error) {
             setBookingStatus('error');
         }
@@ -85,12 +117,34 @@ const PassengerDashboard = () => {
     return (
         <div className={styles.pageWrapper}>
             <Navbar />
+
+            {/* 1. Live Tracking Section (Top Priority) */}
+            {activeRide && (
+                <div className="container" style={{ marginTop: '2rem' }}>
+                    <LiveTrackingCard activeRide={activeRide} />
+                </div>
+            )}
+
+            {/* 2. Search Hero */}
             <div className={styles.searchHero}>
                 <div className="container">
                     <h1 className={styles.heroTitle}>Find your ride</h1>
+                    
+                    {/* Quick Book Widget */}
+                    {recentRoutes.length > 0 && (
+                        <div className={styles.quickBookSection}>
+                            <h3 className={styles.quickBookTitle}>Book Again</h3>
+                            <div className={styles.quickBookGrid}>
+                                {recentRoutes.map((route, idx) => (
+                                    <QuickBookCard key={idx} route={route} onClick={handleQuickBook} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Search Form */}
                     <div className={styles.searchContainer}>
-                         <form onSubmit={handleSearchSubmit}>
-                            {/* ... Search Bar Inputs ... */}
+                        <form onSubmit={handleSearchSubmit}>
                             <div className={styles.searchBar}>
                                 <div className={styles.searchInput}>
                                     <MapPin size={18} className={styles.icon} />
@@ -108,8 +162,7 @@ const PassengerDashboard = () => {
                                 </div>
                                 <Button type="submit" className={styles.searchBtn}><Search size={20} /> Search</Button>
                             </div>
-
-                             {/* ... Filters ... */}
+                            
                             <div className={styles.filterToggle} onClick={() => setShowFilters(!showFilters)}>
                                 <Filter size={16} /> {showFilters ? "Hide Filters" : "Advanced Filters"}
                             </div>
@@ -124,10 +177,6 @@ const PassengerDashboard = () => {
                                         <label>Max Price</label>
                                         <input type="number" name="maxPrice" placeholder="5000" value={searchParams.maxPrice} onChange={handleSearchChange} />
                                     </div>
-                                    <div className={styles.filterItem}>
-                                        <label>Min Seats</label>
-                                        <input type="number" name="minSeats" min="1" value={searchParams.minSeats} onChange={handleSearchChange} />
-                                    </div>
                                 </div>
                             )}
                         </form>
@@ -135,74 +184,91 @@ const PassengerDashboard = () => {
                 </div>
             </div>
 
+            {/* 3. Results Section (Map + List) */}
             <div className="container">
+                <div className={styles.viewToggle}>
+                    <Button variant={!showMapView ? 'primary' : 'outline'} onClick={() => setShowMapView(false)}>List View</Button>
+                    <Button variant={showMapView ? 'primary' : 'outline'} onClick={() => setShowMapView(true)}><MapIcon size={16}/> Map View</Button>
+                </div>
+
                 <div className={styles.resultsSection}>
                     {loading ? <p>Searching...</p> : rides.length === 0 ? <div className={styles.emptyState}>No rides found.</div> : (
-                        <div className={styles.ridesGrid}>
-                            {rides.map((ride) => (
-                                <div key={ride.id} className={styles.rideCard}>
-                                    <div className={styles.cardHeader}>
-                                        {/* INTERACTIVE DRIVER INFO: Click to open Profile */}
-                                        <div 
-                                            className={styles.driverInfo} 
-                                            onClick={() => setViewProfileId(ride.driverId)}
-                                            style={{cursor: 'pointer'}}
-                                            title="View Driver Profile"
-                                        >
-                                            <div className={styles.avatar}>
-                                                {ride.driverPic ? (
-                                                    <img 
-                                                        src={ride.driverPic} 
-                                                        alt="" 
-                                                        style={{width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover'}} 
-                                                    />
-                                                ) : (
-                                                    ride.driverName[0]
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h4>{ride.driverName}</h4>
-                                                <p className={styles.carModel}>{ride.carModel}</p>
-                                            </div>
-                                        </div>
-                                        <div className={styles.price}>₹{ride.price}</div>
-                                    </div>
-
-                                    <div className={styles.rideDetails}>
-                                        <div className={styles.timeLoc}><Clock size={16} /> {ride.time}</div>
-                                        <div className={styles.seats}><User size={16} /> {ride.seats} seats left</div>
-                                    </div>
-                                    {ride.stopovers && <div className={styles.stopovers}><small>Via: {ride.stopovers}</small></div>}
-                                    <div className={styles.routeDisplay}>{ride.source} ➝ {ride.destination}</div>
-
-                                    <Button className={styles.bookBtn} onClick={() => handleBookClick(ride)} disabled={ride.seats === 0}>
-                                        {ride.seats === 0 ? 'Bookings Closed' : 'Request to Book'}
-                                    </Button>
+                        showMapView ? (
+                            <div className={styles.splitView}>
+                                <div className={styles.mapContainer}>
+                                    <InteractiveMap 
+                                        rides={rides} 
+                                        onMarkerClick={handleMarkerClick}
+                                        highlightedRideId={hoveredRideId}
+                                    />
                                 </div>
-                            ))}
-                        </div>
+                                <div className={styles.listContainer}>
+                                    {rides.map(ride => (
+                                        <div 
+                                            key={ride.id} 
+                                            className={styles.rideCard} 
+                                            ref={el => rideCardRefs.current[ride.id] = el}
+                                            onMouseEnter={() => setHoveredRideId(ride.id)}
+                                            onMouseLeave={() => setHoveredRideId(null)}
+                                        >
+                                            <div className={styles.cardHeader}>
+                                                <div className={styles.driverInfo} onClick={() => setViewProfileId(ride.driver.id)} style={{cursor: 'pointer'}}>
+                                                    <div className={styles.avatar}>{ride.driver.name[0]}</div>
+                                                    <div><h4>{ride.driver.name}</h4><p className={styles.carModel}>{ride.driver.vehicleModel}</p></div>
+                                                </div>
+                                                <div className={styles.price}>₹{ride.pricePerSeat}</div>
+                                            </div>
+                                            <div className={styles.rideDetails}>
+                                                <div className={styles.timeLoc}><Clock size={16} /> {ride.travelTime}</div>
+                                                <div className={styles.seats}><User size={16} /> {ride.availableSeats} seats</div>
+                                            </div>
+                                            <div className={styles.routeDisplay}>{ride.source} ➝ {ride.destination}</div>
+                                            <Button className={styles.bookBtn} onClick={() => setSelectedRide(ride)}>Request to Book</Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className={styles.ridesGrid}>
+                                {rides.map((ride) => (
+                                    <div key={ride.id} className={styles.rideCard}>
+                                        <div className={styles.cardHeader}>
+                                            <div className={styles.driverInfo} onClick={() => setViewProfileId(ride.driver.id)} style={{cursor: 'pointer'}}>
+                                                <div className={styles.avatar}>{ride.driver.name[0]}</div>
+                                                <div><h4>{ride.driver.name}</h4><p className={styles.carModel}>{ride.driver.vehicleModel}</p></div>
+                                            </div>
+                                            <div className={styles.price}>₹{ride.pricePerSeat}</div>
+                                        </div>
+                                        <div className={styles.rideDetails}>
+                                            <div className={styles.timeLoc}><Clock size={16} /> {ride.travelTime}</div>
+                                            <div className={styles.seats}><User size={16} /> {ride.availableSeats} seats</div>
+                                        </div>
+                                        <div className={styles.routeDisplay}>{ride.source} ➝ {ride.destination}</div>
+                                        <Button className={styles.bookBtn} onClick={() => setSelectedRide(ride)}>Request to Book</Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )
                     )}
                 </div>
             </div>
 
-            {/* Profile Modal */}
+            {/* Modals */}
             {viewProfileId && <UserProfileModal userId={viewProfileId} onClose={() => setViewProfileId(null)} />}
-
-            {/* Booking Modal */}
+            
             {selectedRide && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
                         <h2>Confirm Request</h2>
                         <div className={styles.modalContent}>
-                            <div className={styles.summaryRow}><span>Driver</span> <strong>{selectedRide.driverName}</strong></div>
+                            <div className={styles.summaryRow}><span>Driver</span> <strong>{selectedRide.driver.name}</strong></div>
                             <div className={styles.summaryRow}><span>Route</span> <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong></div>
                             <div className={styles.inputRow}>
                                 <label>Number of Seats</label>
-                                <input type="number" min="1" max={selectedRide.seats} value={seatsToBook} onChange={(e) => setSeatsToBook(e.target.value)} className={styles.seatInput} />
+                                <input type="number" min="1" max={selectedRide.availableSeats} value={seatsToBook} onChange={(e) => setSeatsToBook(e.target.value)} className={styles.seatInput} />
                             </div>
-                            <div className={styles.totalRow}><span>Total Price</span> <span className={styles.totalPrice}>₹{selectedRide.price * seatsToBook}</span></div>
+                            <div className={styles.totalRow}><span>Total Price</span> <span className={styles.totalPrice}>₹{selectedRide.pricePerSeat * seatsToBook}</span></div>
                             {bookingStatus === 'success' && <div className={styles.successMessage}><CheckCircle size={18} /> Request Sent!</div>}
-                            {bookingStatus === 'error' && <div className={styles.errorMessage}>Request failed.</div>}
                         </div>
                         <div className={styles.modalActions}>
                             <Button variant="outline" onClick={() => setSelectedRide(null)}>Cancel</Button>

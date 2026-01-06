@@ -1,0 +1,60 @@
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f1f5f9;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.iconWrapper {
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.blue { background-color: #eff6ff; color: #3b82f6; }
+.green { background-color: #f0fdf4; color: #16a34a; }
+.purple { background-color: #faf5ff; color: #a855f7; }
+.orange { background-color: #fff7ed; color: #f97316; }
+
+.trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 20px;
+}
+
+.trendUp { background-color: #f0fdf4; color: #16a34a; }
+.trendDown { background-color: #fef2f2; color: #dc2626; }
+
+.value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.title {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 4px 0 0 0;
+    font-weight: 500;
+}
