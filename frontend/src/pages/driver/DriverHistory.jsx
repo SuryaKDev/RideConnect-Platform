@@ -3,8 +3,9 @@ import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import { getTransactionHistory, getDriverStats } from '../../services/api'; // Added getDriverStats
 import { generateDriverInvoice } from '../../utils/invoiceGenerator';
+import { Link } from 'react-router-dom';
 import styles from './DriverHistory.module.css';
-import { Download, Wallet, ArrowDownLeft } from 'lucide-react';
+import { Download, Wallet, ArrowDownLeft, Car, Users, CheckCircle, Plus } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'; // Added Recharts
 
 const DriverHistory = () => {
@@ -20,7 +21,7 @@ const DriverHistory = () => {
                 // 1. Fetch History List
                 const historyData = await getTransactionHistory();
                 setPayments(historyData || []);
-                
+
                 // Calculate Totals
                 const earnings = (historyData || [])
                     .filter(p => p.status === 'SUCCESS')
@@ -50,9 +51,47 @@ const DriverHistory = () => {
             <Navbar />
             <div className="container">
                 <h1 className={styles.pageTitle}>My Earnings</h1>
-                
-                {/* NEW: Earnings Chart Section */}
-                {stats.length > 0 && (
+
+
+                {/* 1. Motivational Hero (Only for Empty State) */}
+                {payments.length === 0 && (
+                    <div className={styles.heroSection} style={{ marginBottom: '2rem', padding: '2rem', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', borderRadius: '16px', border: '1px solid #dbeafe' }}>
+                        <div style={{ maxWidth: '600px' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e3a8a', marginBottom: '0.5rem' }}>Start Earning with RideConnect</h2>
+                            <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '1rem' }}>
+                                Publish your first ride to start generating income. Earnings are credited immediately after a trip is completed.
+                            </p>
+                            <Link to="/post-ride">
+                                <Button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
+                                    <Plus size={18} /> Publish a Ride
+                                </Button>
+                            </Link>
+
+                            {/* Progress Checklist */}
+                            <div style={{ marginTop: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
+                                    <div style={{ width: '24px', height: '24px', background: '#dbeafe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontWeight: 'bold' }}>1</div>
+                                    <span>Ride Published</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
+                                    <div style={{ width: '24px', height: '24px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 'bold' }}>2</div>
+                                    <span>Passenger Booked</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
+                                    <div style={{ width: '24px', height: '24px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 'bold' }}>3</div>
+                                    <span>Ride Completed</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
+                                    <div style={{ width: '24px', height: '24px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 'bold' }}>4</div>
+                                    <span>Earnings Credited</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 2. Earnings Trend Chart (Only if Data Exists) */}
+                {stats.length > 0 && payments.length > 0 && (
                     <div className={styles.chartSection}>
                         <h3>Weekly Earnings Trend</h3>
                         <div style={{ width: '100%', height: 300 }}>
@@ -60,8 +99,8 @@ const DriverHistory = () => {
                                 <AreaChart data={stats}>
                                     <defs>
                                         <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <XAxis dataKey="name" />
@@ -80,7 +119,8 @@ const DriverHistory = () => {
                         <div>
                             <h3>Net Income</h3>
                             <h2 className={styles.earningsAmount}>₹{totalEarnings}</h2>
-                            <span className={styles.statsSub}>After platform fees & taxes</span>
+                            <h2 className={styles.earningsAmount}>₹{totalEarnings}</h2>
+                            <span className={styles.statsSub}>{payments.length > 0 ? 'After platform fees & taxes' : 'Updates after ride completion'}</span>
                         </div>
                     </div>
                     <div className={`${styles.statsCard} ${styles.refundCard}`}>
@@ -93,7 +133,13 @@ const DriverHistory = () => {
                 </div>
 
                 <div className={styles.tableContainer}>
-                    {loading ? <p>Loading history...</p> : payments.length === 0 ? <p className={styles.empty}>No earnings yet.</p> : (
+                    {loading ? <p>Loading history...</p> : payments.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                            <Car size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                            <p style={{ fontSize: '1.1rem', fontWeight: '500' }}>No completed trips yet</p>
+                            <p>History will appear here once you complete a ride.</p>
+                        </div>
+                    ) : (
                         <table className={styles.table}>
                             <thead>
                                 <tr>
@@ -110,8 +156,8 @@ const DriverHistory = () => {
                                     <tr key={p.id}>
                                         <td>
                                             <div className={styles.dateCell}>
-                                                {new Date(p.paymentTime).toLocaleDateString()}
-                                                <small>{new Date(p.paymentTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+                                                {new Date(p.paymentTime).toLocaleDateString('en-GB')}
+                                                <small>{new Date(p.paymentTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
                                             </div>
                                         </td>
                                         <td>{p.booking?.passenger?.name || 'N/A'}</td>
@@ -130,9 +176,9 @@ const DriverHistory = () => {
                                         </td>
                                         <td>
                                             {p.status === 'SUCCESS' && (
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="outline" 
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
                                                     onClick={() => generateDriverInvoice(p)}
                                                     className={styles.downloadBtn}
                                                 >

@@ -4,33 +4,62 @@
 }
 
 .formContainer {
-    max-width: 600px;
+    max-width: 900px;
     margin: 3rem auto;
     background: white;
-    padding: 2.5rem;
-    border-radius: 12px; /* var(--radius-lg) usually resolves to ~12px or 0.5rem */
+    padding: 0;
+    /* Removing padding so header hits the edge */
+    border-radius: 12px;
+    /* var(--radius-lg) usually resolves to ~12px or 0.5rem */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     border: 1px solid #e2e8f0;
+    overflow: hidden;
+    /* Ensures header border-radius matches container */
+}
+
+.header {
+    background: #2563eb;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    position: relative;
+}
+
+.iconWrapper {
+    background: rgba(255, 255, 255, 0.2);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem auto;
+    backdrop-filter: blur(4px);
 }
 
 .formContainer h1 {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 700;
-    color: #1e293b; /* var(--text-main) */
+    color: white;
     margin-bottom: 0.5rem;
     margin-top: 0;
+    letter-spacing: -0.025em;
 }
 
 .subtitle {
-    color: #64748b; /* var(--text-muted) */
-    margin-bottom: 2rem;
+    color: #dbeafe;
+    /* Lighter blue */
+    margin-bottom: 0;
     margin-top: 0;
+    font-size: 1.1rem;
 }
 
 .form {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    padding: 2.5rem;
+    /* Add padding back to the form part */
 }
 
 .row {
@@ -56,7 +85,8 @@
 .errorAlert {
     background-color: #fef2f2;
     border: 1px solid #fee2e2;
-    color: #ef4444; /* var(--error) */
+    color: #ef4444;
+    /* var(--error) */
     padding: 0.75rem;
     border-radius: 6px;
     margin-bottom: 1.5rem;
@@ -69,7 +99,7 @@
         grid-template-columns: 1fr;
         gap: 1rem;
     }
-    
+
     .formContainer {
         padding: 1.5rem;
         margin: 1.5rem auto;
@@ -103,6 +133,7 @@
         grid-template-columns: 1fr;
         gap: 1rem;
     }
+
     .formContainer {
         padding: 1.5rem;
         margin: 1.5rem auto;

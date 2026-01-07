@@ -68,8 +68,8 @@ public class RideService {
         // 1. Geocoding (Coordinates)
         LatLng srcCoords = googleMapsService.getCoordinates(ride.getSource());
         LatLng destCoords = googleMapsService.getCoordinates(ride.getDestination());
-        if (srcCoords != null) ride.setSourceLocation(GeometryUtil.createPoint(srcCoords.lat, srcCoords.lng));
-        if (destCoords != null) ride.setDestinationLocation(GeometryUtil.createPoint(destCoords.lat, destCoords.lng));
+        // if (srcCoords != null) ride.setSourceLocation(GeometryUtil.createPoint(srcCoords.lat, srcCoords.lng));
+        // if (destCoords != null) ride.setDestinationLocation(GeometryUtil.createPoint(destCoords.lat, destCoords.lng));
 
         // 2. OPTIMIZED: Get Route & Distance in ONE call
         Map<String, Object> routeData = googleMapsService.getRouteDetails(ride.getSource(), ride.getDestination());
@@ -77,7 +77,7 @@ public class RideService {
 
         if (routeData != null) {
             if (routeData.containsKey("path")) {
-                ride.setRoutePath(GeometryUtil.createLineString((List<LatLng>) routeData.get("path")));
+                // ride.setRoutePath(GeometryUtil.createLineString((List<LatLng>) routeData.get("path")));
             }
             if (routeData.containsKey("distance")) {
                 distance = (Double) routeData.get("distance");

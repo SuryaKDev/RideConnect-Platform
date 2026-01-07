@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { getTransactionHistory } from '../services/api';
 import Navbar from '../components/Navbar';
-import Button from '../components/ui/Button'; 
+import Button from '../components/ui/Button';
 import styles from './TransactionHistory.module.css';
 import { generatePassengerInvoice } from '../utils/invoiceGenerator';
-import { Download } from 'lucide-react'; 
+import { Download } from 'lucide-react';
 
 const TransactionHistory = () => {
     const [payments, setPayments] = useState([]);
@@ -31,10 +31,10 @@ const TransactionHistory = () => {
             <Navbar />
             <div className="container" style={{ marginTop: '2rem' }}>
                 <h1 className={styles.pageTitle}>Transaction History</h1>
-                
+
                 {loading && <p>Loading transactions...</p>}
                 {error && <p className={styles.error}>{error}</p>}
-                
+
                 {!loading && !error && payments.length === 0 && (
                     <p>No transactions found.</p>
                 )}
@@ -55,7 +55,7 @@ const TransactionHistory = () => {
                                 {payments.map((p) => (
                                     <tr key={p.id}>
                                         <td>
-                                            {new Date(p.paymentTime).toLocaleDateString()}
+                                            {new Date(p.paymentTime).toLocaleDateString('en-GB')}
                                             <span className={styles.time}>
                                                 {new Date(p.paymentTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
@@ -76,11 +76,11 @@ const TransactionHistory = () => {
                                         </td>
                                         <td>
                                             {(p.status === 'SUCCESS' || p.status === 'REFUNDED') && (
-                                                <Button 
-                                                    size="sm" 
+                                                <Button
+                                                    size="sm"
                                                     variant="outline"
                                                     onClick={() => generatePassengerInvoice(p)}
-                                                    style={{display: 'flex', alignItems: 'center', gap: '5px', borderColor: '#0f4c81', color: '#0f4c81'}}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '5px', borderColor: '#0f4c81', color: '#0f4c81' }}
                                                 >
                                                     <Download size={14} /> PDF
                                                 </Button>

@@ -17,11 +17,11 @@ const PostRide = () => {
     const [formData, setFormData] = useState({
         source: '',
         destination: '',
-        stopovers: '', 
+        stopovers: '',
         date: '',
         time: '',
         seats: 3,
-        price: '' 
+        price: ''
     });
 
     const handleChange = (e) => {
@@ -61,7 +61,7 @@ const PostRide = () => {
             travelDate: formData.date,
             travelTime: formData.time + ":00",
             availableSeats: parseInt(formData.seats),
-            pricePerSeat: formData.price ? parseFloat(formData.price) : 0 
+            pricePerSeat: formData.price ? parseFloat(formData.price) : 0
         };
 
         try {
@@ -79,8 +79,13 @@ const PostRide = () => {
             <Navbar />
             <div className="container">
                 <div className={styles.formContainer}>
-                    <h1>Post a New Ride</h1>
-                    <p className={styles.subtitle}>Share your journey and earn.</p>
+                    <div className={styles.header}>
+                        <div className={styles.iconWrapper}>
+                            <Car size={40} color="white" strokeWidth={1.5} />
+                        </div>
+                        <h1>Post a New Ride</h1>
+                        <p className={styles.subtitle}>Share your journey and earn.</p>
+                    </div>
 
                     {error && <div className={styles.errorAlert}>{error}</div>}
 
@@ -90,16 +95,16 @@ const PostRide = () => {
                             <Input label="Destination" id="destination" name="destination" placeholder="e.g. Bangalore" value={formData.destination} onChange={handleChange} required />
                         </div>
 
-                        <div style={{textAlign: 'right', marginTop: '-10px', marginBottom: '10px'}}>
-                            <Button 
-                                type="button" 
-                                size="sm" 
-                                variant="outline" 
+                        <div style={{ textAlign: 'right', marginTop: '-10px', marginBottom: '10px' }}>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
                                 onClick={handleCalculate}
                                 disabled={calcLoading || !formData.source || !formData.destination}
-                                style={{fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px'}}
+                                style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                             >
-                                {calcLoading ? 'Calculating...' : <><Calculator size={14}/> Check Fare</>}
+                                {calcLoading ? 'Calculating...' : <><Calculator size={14} /> Check Fare</>}
                             </Button>
                         </div>
 
@@ -111,13 +116,13 @@ const PostRide = () => {
                             </div>
                         )}
 
-                        <Input 
-                            label="Stopovers (Optional)" 
-                            id="stopovers" 
-                            name="stopovers" 
-                            placeholder="e.g. Kanchipuram, Vellore, Ambur" 
-                            value={formData.stopovers} 
-                            onChange={handleChange} 
+                        <Input
+                            label="Stopovers (Optional)"
+                            id="stopovers"
+                            name="stopovers"
+                            placeholder="e.g. Kanchipuram, Vellore, Ambur"
+                            value={formData.stopovers}
+                            onChange={handleChange}
                         />
 
                         <div className={styles.row}>
@@ -127,16 +132,16 @@ const PostRide = () => {
 
                         <div className={styles.row}>
                             <Input label="Available Seats" id="seats" name="seats" type="number" min="1" max="10" value={formData.seats} onChange={handleChange} required />
-                            <Input 
-                                label="Price Per Seat (₹)" 
-                                id="price" 
-                                name="price" 
-                                type="number" 
-                                min="0" 
+                            <Input
+                                label="Price Per Seat (₹)"
+                                id="price"
+                                name="price"
+                                type="number"
+                                min="0"
                                 max={suggestion ? suggestion.suggestedFare : undefined}
                                 placeholder="Leave 0 for auto-calc"
-                                value={formData.price} 
-                                onChange={handleChange} 
+                                value={formData.price}
+                                onChange={handleChange}
                             />
                         </div>
 

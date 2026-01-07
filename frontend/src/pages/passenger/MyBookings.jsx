@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
-import PaymentModal from '../../components/PaymentModal'; 
+import PaymentModal from '../../components/PaymentModal';
 import ReviewModal from '../../components/ReviewModal';
 import UserProfileModal from '../../components/UserProfileModal';
 import LocalToast from '../../components/LocalToast';
@@ -15,17 +15,17 @@ import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle,
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [paymentBooking, setPaymentBooking] = useState(null); 
+    const [paymentBooking, setPaymentBooking] = useState(null);
     const [reviewBooking, setReviewBooking] = useState(null);
-    const [viewProfileId, setViewProfileId] = useState(null); 
+    const [viewProfileId, setViewProfileId] = useState(null);
     const [activeTab, setActiveTab] = useState('upcoming');
     const { toasts, showToast, removeToast } = useToast();
-    const [confirmModal, setConfirmModal] = useState({ 
-        show: false, 
+    const [confirmModal, setConfirmModal] = useState({
+        show: false,
         type: 'warning',
         title: '',
-        message: '', 
-        onConfirm: null 
+        message: '',
+        onConfirm: null
     });
 
     const fetchBookings = async () => {
@@ -44,9 +44,9 @@ const MyBookings = () => {
     }, []);
 
     const handlePaymentSuccess = () => {
-        setPaymentBooking(null); 
+        setPaymentBooking(null);
         setLoading(true);
-        fetchBookings(); 
+        fetchBookings();
     };
 
     const handleReviewSuccess = () => {
@@ -79,19 +79,19 @@ const MyBookings = () => {
     };
 
     // Filter Logic
-    const upcomingBookings = bookings.filter(b => 
-        (b.status === 'PENDING_APPROVAL' || b.status === 'PENDING_PAYMENT' || b.status === 'CONFIRMED') && 
-        !b.ride.status.includes('CANCELLED') && 
+    const upcomingBookings = bookings.filter(b =>
+        (b.status === 'PENDING_APPROVAL' || b.status === 'PENDING_PAYMENT' || b.status === 'CONFIRMED') &&
+        !b.ride.status.includes('CANCELLED') &&
         b.ride.status !== 'COMPLETED'
     );
 
     // History: CANCELLED, REFUNDED, COMPLETED, or Admin/Driver Cancelled
-    const historyBookings = bookings.filter(b => 
-        b.status === 'CANCELLED' || 
+    const historyBookings = bookings.filter(b =>
+        b.status === 'CANCELLED' ||
         b.status === 'CANCELLED_BY_DRIVER' ||
         b.status === 'REJECTED' ||
-        b.status === 'REFUNDED' || 
-        b.ride.status === 'COMPLETED' || 
+        b.status === 'REFUNDED' ||
+        b.ride.status === 'COMPLETED' ||
         b.ride.status.includes('CANCELLED')
     );
 
@@ -112,17 +112,16 @@ const MyBookings = () => {
                 <div key={booking.id} className={styles.bookingCard}>
                     <div className={styles.cardHeader}>
                         {getStatusBadge(booking.status, booking.ride.status)}
-                        <span className={styles.bookingId}>ID: #{booking.id}</span>
                     </div>
 
                     <div className={styles.route}>
                         <div className={styles.location}>
-                            <MapPin size={16} className={styles.icon} />
+                            <MapPin size={16} className={styles.icon} color="#10b981" />
                             <span>{booking.ride.source}</span>
                         </div>
                         <div className={styles.connector}></div>
                         <div className={styles.location}>
-                            <MapPin size={16} className={styles.icon} />
+                            <MapPin size={16} className={styles.icon} color="#ef4444" />
                             <span>{booking.ride.destination}</span>
                         </div>
                     </div>
@@ -134,10 +133,10 @@ const MyBookings = () => {
                         <div className={styles.detailItem}>
                             <Clock size={16} /> {booking.ride.travelTime}
                         </div>
-                        <div 
-                            className={styles.detailItem} 
+                        <div
+                            className={styles.detailItem}
                             onClick={() => setViewProfileId(booking.ride.driver?.id)}
-                            style={{cursor: 'pointer', color: '#0f4c81', fontWeight: '500'}}
+                            style={{ cursor: 'pointer', color: '#0f4c81', fontWeight: '500' }}
                             title="View Driver Profile"
                         >
                             Driver: {booking.ride.driver?.name || 'Unknown'}
@@ -151,14 +150,14 @@ const MyBookings = () => {
                                 Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked}
                             </span>
                         </div>
-                        
-                        <div className={styles.actions} style={{display: 'flex', gap: '10px'}}>
+
+                        <div className={styles.actions} style={{ display: 'flex', gap: '10px' }}>
                             {/* Cancel Button - Show if active and not completed */}
                             {!booking.status.includes('CANCELLED') && booking.status !== 'REJECTED' && booking.ride.status !== 'COMPLETED' && booking.ride.status !== 'CANCELLED' && (
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     onClick={() => handleCancel(booking.id)}
-                                    style={{borderColor: '#dc3545', color: '#dc3545'}}
+                                    style={{ borderColor: '#dc3545', color: '#dc3545' }}
                                 >
                                     Cancel
                                 </Button>
@@ -167,23 +166,23 @@ const MyBookings = () => {
                             {/* Pay Button - Only if Pending Payment */}
                             {booking.status === 'PENDING_PAYMENT' && booking.ride.status !== 'COMPLETED' && (
                                 <Button className={styles.payBtn} onClick={() => setPaymentBooking(booking)}>
-                                    <CreditCard size={16} style={{marginRight: '5px'}}/> Pay Now
+                                    <CreditCard size={16} style={{ marginRight: '5px' }} /> Pay Now
                                 </Button>
                             )}
-                            
+
                             {/* Review Button - Only if Completed & Confirmed */}
                             {booking.ride.status === 'COMPLETED' && booking.status === 'CONFIRMED' && (
-                                <Button 
+                                <Button
                                     onClick={() => setReviewBooking(booking)}
-                                    style={{backgroundColor: '#ffc107', color: '#333', borderColor: '#ffc107'}}
+                                    style={{ backgroundColor: '#ffc107', color: '#333', borderColor: '#ffc107' }}
                                 >
-                                    <Star size={16} style={{marginRight:'5px'}}/> Rate Driver
+                                    <Star size={16} style={{ marginRight: '5px' }} /> Rate Driver
                                 </Button>
                             )}
-                            
+
                             {/* Refund Button - For Cancelled/Rejected rides in history */}
                             {activeTab === 'history' && booking.status === 'CONFIRMED' && (booking.ride.status.includes('CANCELLED') || booking.status === 'CANCELLED') && (
-                                <Button variant="outline" onClick={handleRefundRequest} style={{borderColor: '#ffc107', color: '#ffc107'}}>
+                                <Button variant="outline" onClick={handleRefundRequest} style={{ borderColor: '#ffc107', color: '#ffc107' }}>
                                     Request Refund
                                 </Button>
                             )}
@@ -202,24 +201,24 @@ const MyBookings = () => {
                 <div className={styles.header}>
                     <h1>My Bookings</h1>
                     <Link to="/history">
-                        <Button variant="outline" style={{borderColor: '#0f4c81', color: '#0f4c81', display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        <Button variant="outline" style={{ borderColor: '#0f4c81', color: '#0f4c81', display: 'flex', alignItems: 'center', gap: '5px' }}>
                             <Receipt size={18} /> Payment History
                         </Button>
                     </Link>
                 </div>
 
                 <div className={styles.tabs}>
-                    <button 
+                    <button
                         className={`${styles.tabBtn} ${activeTab === 'upcoming' ? styles.active : ''}`}
                         onClick={() => setActiveTab('upcoming')}
                     >
-                        <Calendar size={18} style={{marginRight: '5px'}} /> Upcoming
+                        <Calendar size={18} style={{ marginRight: '5px' }} /> Upcoming
                     </button>
-                    <button 
+                    <button
                         className={`${styles.tabBtn} ${activeTab === 'history' ? styles.active : ''}`}
                         onClick={() => setActiveTab('history')}
                     >
-                        <History size={18} style={{marginRight: '5px'}} /> History
+                        <History size={18} style={{ marginRight: '5px' }} /> History
                     </button>
                 </div>
 
@@ -236,13 +235,13 @@ const MyBookings = () => {
 
             {/* Modals */}
             {paymentBooking && (
-                <PaymentModal 
-                    booking={paymentBooking} 
-                    onClose={() => setPaymentBooking(null)} 
-                    onSuccess={handlePaymentSuccess} 
+                <PaymentModal
+                    booking={paymentBooking}
+                    onClose={() => setPaymentBooking(null)}
+                    onSuccess={handlePaymentSuccess}
                 />
             )}
-            
+
             {reviewBooking && (
                 <ReviewModal
                     booking={reviewBooking}
@@ -252,12 +251,12 @@ const MyBookings = () => {
             )}
 
             {viewProfileId && (
-                <UserProfileModal 
-                    userId={viewProfileId} 
-                    onClose={() => setViewProfileId(null)} 
+                <UserProfileModal
+                    userId={viewProfileId}
+                    onClose={() => setViewProfileId(null)}
                 />
             )}
-            
+
             <ConfirmModal
                 isOpen={confirmModal.show}
                 onClose={() => setConfirmModal({ ...confirmModal, show: false })}

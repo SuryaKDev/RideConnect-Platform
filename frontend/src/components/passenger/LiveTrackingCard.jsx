@@ -2,20 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { GoogleMap, DirectionsRenderer } from '@react-google-maps/api';
 import Button from '../ui/Button';
 import styles from './LiveTrackingCard.module.css';
-import { Navigation, Phone, X } from 'lucide-react';
+import { Navigation, Phone, X, Maximize2 } from 'lucide-react';
 
 const mapContainerStyle = { width: '100%', height: '200px', borderRadius: '12px' };
 
 const LiveTrackingCard = ({ activeRide }) => {
     const [directions, setDirections] = useState(null);
     const [showContactModal, setShowContactModal] = useState(false);
+    const [showMapModal, setShowMapModal] = useState(false);
 
     // Fetch directions from Google Maps
     useEffect(() => {
         if (!activeRide || !window.google || !window.google.maps) return;
 
         const directionsService = new window.google.maps.DirectionsService();
-        
+
         directionsService.route(
             {
                 origin: activeRide.ride.source,
@@ -33,10 +34,11 @@ const LiveTrackingCard = ({ activeRide }) => {
     if (!activeRide) return null;
 
     const mapCenter = directions?.routes?.[0]?.bounds?.getCenter() || { lat: 20.5937, lng: 78.9629 };
+    const duration = directions?.routes?.[0]?.legs?.[0]?.duration?.text;
 
     return (
         <div className={styles.card}>
-            <div className={styles.mapSection}>
+            <div className={styles.mapSection} style={{ position: 'relative' }}>
                 <GoogleMap
                     mapContainerStyle={mapContainerStyle}
                     center={mapCenter}
@@ -44,7 +46,7 @@ const LiveTrackingCard = ({ activeRide }) => {
                     options={{ disableDefaultUI: true, zoomControl: false }}
                 >
                     {directions && (
-                        <DirectionsRenderer 
+                        <DirectionsRenderer
                             directions={directions}
                             options={{
                                 suppressMarkers: false,
@@ -56,16 +58,33 @@ const LiveTrackingCard = ({ activeRide }) => {
                         />
                     )}
                 </GoogleMap>
+                <button
+                    onClick={() => setShowMapModal(true)}
+                    style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        background: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '5px',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                    }}
+                    title="Expand Map"
+                >
+                    <Maximize2 size={16} color="#64748b" />
+                </button>
             </div>
-            
+
             <div className={styles.infoSection}>
                 <div className={styles.header}>
                     <span className={styles.badge}>LIVE RIDE</span>
-                    <h3>Arriving in 60 min</h3>
+                    <h3>{duration ? `Arriving in ${duration}` : 'Calculating arrival...'}</h3>
                 </div>
-                
+
                 <div className={styles.routeInfo}>
-                    <Navigation size={16} className={styles.icon}/>
+                    <Navigation size={16} className={styles.icon} />
                     <span>{activeRide.ride.source}</span>
                     <span className={styles.arrow}>→</span>
                     <span>{activeRide.ride.destination}</span>
@@ -77,12 +96,12 @@ const LiveTrackingCard = ({ activeRide }) => {
                         <p className={styles.driverName}>{activeRide.ride.driver.name}</p>
                         <p className={styles.carModel}>{activeRide.ride.driver.vehicleModel}</p>
                     </div>
-                    <button 
+                    <button
                         className={styles.callBtn}
                         onClick={() => setShowContactModal(true)}
                         title="Contact driver"
                     >
-                        <Phone size={18}/>
+                        <Phone size={18} />
                     </button>
                 </div>
             </div>
@@ -109,7 +128,7 @@ const LiveTrackingCard = ({ activeRide }) => {
                         width: '90%',
                         position: 'relative'
                     }}>
-                        <button 
+                        <button
                             onClick={() => setShowContactModal(false)}
                             style={{
                                 position: 'absolute',
@@ -136,15 +155,15 @@ const LiveTrackingCard = ({ activeRide }) => {
                             </p>
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 onClick={() => setShowContactModal(false)}
                                 style={{ flex: 1 }}
                             >
                                 Close
                             </Button>
                             {activeRide.ride.driver.phone && (
-                                <Button 
+                                <Button
                                     onClick={() => window.location.href = `tel:${activeRide.ride.driver.phone}`}
                                     style={{ flex: 1 }}
                                 >
@@ -153,6 +172,80 @@ const LiveTrackingCard = ({ activeRide }) => {
                                 </Button>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Map Modal */}
+            {showMapModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    zIndex: 2000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem'
+                }}>
+                    <div style={{
+                        width: '100%',
+                        height: '100%',
+                        maxWidth: '1200px',
+                        maxHeight: '800px',
+                        position: 'relative',
+                        background: 'white',
+                        borderRadius: '16px',
+                        overflow: 'hidden'
+                    }}>
+                        <button
+                            onClick={() => setShowMapModal(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '20px',
+                                right: '20px',
+                                background: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '40px',
+                                height: '40px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                zIndex: 10,
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            <X size={24} />
+                        </button>
+                        <GoogleMap
+                            mapContainerStyle={{ width: '100%', height: '100%' }}
+                            center={mapCenter}
+                            zoom={12}
+                            options={{
+                                disableDefaultUI: false,
+                                zoomControl: true,
+                                streetViewControl: false,
+                                mapTypeControl: false
+                            }}
+                        >
+                            {directions && (
+                                <DirectionsRenderer
+                                    directions={directions}
+                                    options={{
+                                        suppressMarkers: false,
+                                        polylineOptions: {
+                                            strokeColor: "#3b82f6",
+                                            strokeWeight: 5
+                                        }
+                                    }}
+                                />
+                            )}
+                        </GoogleMap>
                     </div>
                 </div>
             )}

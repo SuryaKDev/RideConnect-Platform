@@ -5,6 +5,8 @@ import { loginUser } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import styles from './Login.module.css';
+import { useToast } from '../utils/useToast';
+import LocalToast from '../components/LocalToast';
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -12,6 +14,7 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const { toasts, showToast, removeToast } = useToast();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,8 +69,17 @@ const Login = () => {
             // Update Global Auth Context
             login(token, role, name, email, isVerified);
 
-            // Redirect to Home Page
-            navigate('/');
+            // Redirect based on Role
+            showToast("Successfully Logged In!", "SUCCESS");
+            setTimeout(() => {
+                if (role === 'ADMIN') {
+                    navigate('/admin-dashboard');
+                } else if (role === 'DRIVER') {
+                    navigate('/driver-dashboard');
+                } else {
+                    navigate('/passenger-dashboard');
+                }
+            }, 1000);
 
         } catch (err) {
             setError(err.message || 'Login failed. Please try again.');
@@ -119,6 +131,7 @@ const Login = () => {
                     </p>
                 </div>
             </div>
+            <LocalToast toasts={toasts} onRemove={removeToast} />
         </div>
     );
 };

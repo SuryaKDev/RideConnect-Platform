@@ -55,7 +55,7 @@ const Navbar = () => {
                 <div className={styles.navLinks}>
                     {location.pathname !== '/login' && location.pathname !== '/register' && (
                         <>
-                            <a href="#about" onClick={handleAboutClick} className={styles.navLink}>About Us</a>
+                            {!user && <a href="#about" onClick={handleAboutClick} className={styles.navLink}>About Us</a>}
 
                             {user?.role === 'PASSENGER' && (
                                 <Link to="/passenger-dashboard">
@@ -70,10 +70,10 @@ const Navbar = () => {
                                             <Button size="sm" variant="outline">Publish a Ride</Button>
                                         </Link>
                                     ) : (
-                                        <Button 
-                                            size="sm" 
-                                            variant="outline" 
-                                            disabled 
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled
                                             onClick={handlePublishRideClick}
                                             style={{ cursor: 'not-allowed' }}
                                         >

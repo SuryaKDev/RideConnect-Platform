@@ -47,22 +47,22 @@ public class Ride {
 
     private String cancellationReason;
 
-    // --- SPATIAL COLUMNS ---
+    // --- SPATIAL COLUMNS (DISABLED FOR COMPATIBILITY) ---
 
     // Store exact start point
-    @Column(columnDefinition = "geometry(Point, 4326)")
-    @JsonIgnore // Don't send complex geometry to frontend list
-    private Point sourceLocation;
+    // @Column(columnDefinition = "geometry(Point, 4326)")
+    // @JsonIgnore // Don't send complex geometry to frontend list
+    // private Point sourceLocation;
 
-    // Store exact end point
-    @Column(columnDefinition = "geometry(Point, 4326)")
-    @JsonIgnore
-    private Point destinationLocation;
+    // // Store exact end point
+    // @Column(columnDefinition = "geometry(Point, 4326)")
+    // @JsonIgnore
+    // private Point destinationLocation;
 
-    // Store the full path
-    @Column(columnDefinition = "geometry(LineString, 4326)")
-    @JsonIgnore
-    private LineString routePath;
+    // // Store the full path
+    // @Column(columnDefinition = "geometry(LineString, 4326)")
+    // @JsonIgnore
+    // private LineString routePath;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "driver_id", nullable = false)
