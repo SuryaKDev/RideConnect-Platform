@@ -17,6 +17,9 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
 
     long countByStatus(String status);
 
+    @Query("SELECT COUNT(r) FROM Ride r WHERE r.status LIKE 'CANCELLED%'")
+    long countCancelledRides();
+
     // --- LEVEL 3.5: DYNAMIC SMART ROUTE MATCHING ---
     // LOGIC:
     // 1. Calculate Dynamic Buffer: 10% of total distance.

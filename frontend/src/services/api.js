@@ -118,7 +118,6 @@ export const searchRides = async (filters) => {
 // --- BOOKING SERVICES ---
 
 export const bookRide = async (rideId, seats) => {
-  // Fix: Send rideId and seats as query parameters
   const response = await fetch(`${API_URL}/bookings/book?rideId=${rideId}&seats=${seats}`, {
     method: "POST",
     headers: getHeaders(),

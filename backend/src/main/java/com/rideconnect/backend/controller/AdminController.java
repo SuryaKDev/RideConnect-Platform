@@ -82,13 +82,17 @@ public class AdminController {
         long totalUsers = userRepository.count();
         long activeRides = rideRepository.countByStatus("AVAILABLE");
         long completedRides = rideRepository.countByStatus("COMPLETED");
+        long cancelledRides = rideRepository.countCancelledRides();
         Double totalRevenue = paymentRepository.calculateTotalRevenue();
+        Double totalRefunded = paymentRepository.calculateTotalRefunded();
 
         return ResponseEntity.ok(Map.of(
                 "totalUsers", totalUsers,
                 "activeRides", activeRides,
                 "completedRides", completedRides,
-                "totalRevenue", totalRevenue
+                "cancelledRides", cancelledRides,
+                "totalRevenue", totalRevenue,
+                "totalRefunded", totalRefunded
         ));
     }
 }

@@ -138,9 +138,11 @@ const PassengerDashboard = () => {
         try {
             await bookRide(selectedRide.id, seatsToBook);
             setBookingStatus('success');
+            showToast("Ride booked successfully!", "SUCCESS");
             setTimeout(() => { setSelectedRide(null); setBookingStatus(null); }, 2000);
         } catch (error) {
             setBookingStatus('error');
+            showToast(error.message || "Booking failed", "ERROR");
         }
     };
 

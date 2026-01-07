@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { postRide, calculateFare } from '../../services/api';
 import styles from './PostRide.module.css';
-import { Calculator } from 'lucide-react';
+import { Calculator, Car } from 'lucide-react';
 
 const PostRide = () => {
     const navigate = useNavigate();

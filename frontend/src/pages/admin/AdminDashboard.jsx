@@ -55,6 +55,7 @@ const AdminDashboard = () => {
         const fetchStats = async () => {
             try {
                 const data = await getAdminStats();
+                console.log('Admin Stats from backend:', data);
                 setStats(data || {
                     totalUsers: 0,
                     activeRides: 0,
@@ -341,9 +342,9 @@ const AdminDashboard = () => {
                 {/* Stats Row */}
                 {activeTab === 'overview' && (
                     <div className={styles.statsGrid}>
-                        <StatCard title="Total Revenue" value={`₹${stats.totalRevenue ? stats.totalRevenue.toLocaleString() : '0'}`} icon={IndianRupee} color="green" trend="up" trendValue="12%" />
+                        <StatCard title="Total Revenue" value={`₹${stats.totalRevenue ? stats.totalRevenue.toLocaleString() : '0'}`} icon={IndianRupee} color="green" />
                         <StatCard title="Active Rides" value={stats.activeRides || 0} icon={MapPin} color="blue" />
-                        <StatCard title="Total Users" value={stats.totalUsers || 0} icon={Users} color="purple" trend="up" trendValue="5%" />
+                        <StatCard title="Total Users" value={stats.totalUsers || 0} icon={Users} color="purple" />
                         <StatCard title="Completed Trips" value={stats.completedRides || 0} icon={CheckCircle} color="emerald" />
 
                         {/* New Metrics */}
@@ -352,12 +353,10 @@ const AdminDashboard = () => {
                             value={stats.cancelledRides || 0}
                             icon={XCircle}
                             color="red"
-                            trend="down"
-                            trendValue="2%"
                         />
                         <StatCard
                             title="Refunded Amount"
-                            value={`₹${stats.refundedAmount ? stats.refundedAmount.toLocaleString() : '0'}`}
+                            value={`₹${(stats.refundedAmount || stats.totalRefunds || 0).toLocaleString()}`}
                             icon={RefreshCcw}
                             color="orange"
                         />
