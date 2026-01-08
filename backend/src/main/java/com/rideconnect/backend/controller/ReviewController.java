@@ -26,6 +26,10 @@ public class ReviewController {
             @RequestBody Map<String, Object> request,
             @AuthenticationPrincipal UserDetails userDetails) {
 
+        if (request.get("bookingId") == null || request.get("rating") == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "bookingId and rating are required."));
+        }
+
         Long bookingId = Long.valueOf(request.get("bookingId").toString());
         Integer rating = Integer.valueOf(request.get("rating").toString());
         String comment = request.getOrDefault("comment", "").toString();

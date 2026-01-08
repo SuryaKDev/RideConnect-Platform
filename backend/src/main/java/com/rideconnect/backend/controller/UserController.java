@@ -12,7 +12,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,6 +25,9 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private com.rideconnect.backend.repository.ReviewRepository reviewRepository;
 
     @GetMapping("/profile")
     public ResponseEntity<User> getMyProfile(@AuthenticationPrincipal UserDetails userDetails) {
@@ -53,6 +58,21 @@ public class UserController {
             profile.put("averageRating", user.getAverageRating());
             profile.put("totalReviews", user.getTotalReviews());
             profile.put("phone", user.getPhone()); // Needed for contact
+
+            // Include reviews with simplified reviewer info
+            List<Map<String, Object>> reviews = reviewRepository.findByRevieweeId(user.getId()).stream()
+                    .map(review -> {
+                        Map<String, Object> r = new HashMap<>();
+                        r.put("id", review.getId());
+                        r.put("rating", review.getRating());
+                        r.put("comment", review.getComment());
+                        r.put("createdAt", review.getCreatedAt());
+                        r.put("reviewerName", review.getReviewer().getName());
+                        r.put("reviewerImage", review.getReviewer().getProfilePictureUrl());
+                        return r;
+                    }).collect(Collectors.toList());
+
+            profile.put("reviews", reviews);
 
             // Extra data for Drivers
             if (user.getRole() == Role.DRIVER) {
