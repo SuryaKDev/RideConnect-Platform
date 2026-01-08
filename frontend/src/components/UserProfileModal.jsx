@@ -55,6 +55,12 @@ const UserProfileModal = ({ userId, onClose }) => {
                                             <span>{profile.averageRating || "New"} ({profile.totalReviews || 0})</span>
                                         </div>
                                     )}
+                                    {profile.role === 'PASSENGER' && (
+                                        <div className={styles.rating}>
+                                            <Star size={14} fill="#ffc107" color="#ffc107" />
+                                            <span>{profile.averageRating || "New"} ({profile.totalReviews || 0})</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <p className={styles.bio}>{profile.bio || "No bio added."}</p>
                             </div>
@@ -92,6 +98,47 @@ const UserProfileModal = ({ userId, onClose }) => {
                                             </div>
                                         )}
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Reviews Section */}
+                        {profile.reviews && profile.reviews.length > 0 && (
+                            <div className={styles.section}>
+                                <h3 className={styles.sectionTitle}>Reviews ({profile.reviews.length})</h3>
+                                <div className={styles.reviewsList}>
+                                    {profile.reviews.map((review, index) => (
+                                        <div key={index} className={styles.reviewCard}>
+                                            <div className={styles.reviewHeader}>
+                                                <div className={styles.reviewerInfo}>
+                                                    <div className={styles.reviewerAvatar}>
+                                                        {review.reviewerProfilePicture ? (
+                                                            <img src={review.reviewerProfilePicture} alt={review.reviewerName} />
+                                                        ) : (
+                                                            <User size={20} />
+                                                        )}
+                                                    </div>
+                                                    <div className={styles.reviewerDetails}>
+                                                        <span className={styles.reviewerName}>{review.reviewerName}</span>
+                                                        <span className={styles.reviewDate}>
+                                                            {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                                                year: 'numeric',
+                                                                month: 'short',
+                                                                day: 'numeric'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.reviewRating}>
+                                                    <Star size={12} fill="#ffc107" color="#ffc107" />
+                                                    <span>{review.rating}</span>
+                                                </div>
+                                            </div>
+                                            {review.comment && (
+                                                <p className={styles.reviewComment}>{review.comment}</p>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

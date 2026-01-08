@@ -1,18 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from './ui/Button';
 import LocalToast from './LocalToast';
 import { useToast } from '../utils/useToast';
-import { User, LogOut, LayoutDashboard, Ticket } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, Ticket, Bell } from 'lucide-react';
 import styles from './Navbar.module.css';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/api';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [loadingNotifications, setLoadingNotifications] = useState(false);
     const { toasts, showToast, removeToast } = useToast();
+
+    useEffect(() => {
+        if (user) {
+            fetchNotifications();
+            // Poll for new notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [user]);
+
+    const fetchNotifications = async () => {
+        try {
+            setLoadingNotifications(true);
+            const data = await getNotifications();
+            setNotifications(data);
+        } catch (error) {
+            console.error("Failed to fetch notifications:", error);
+        } finally {
+            setLoadingNotifications(false);
+        }
+    };
+
+    const handleMarkAsRead = async (notificationId) => {
+        try {
+            await markNotificationAsRead(notificationId);
+            setNotifications(prev => 
+                prev.map(notif => 
+                    notif.id === notificationId ? { ...notif, read: true } : notif
+                )
+            );
+        } catch (error) {
+            console.error("Failed to mark notification as read:", error);
+        }
+    };
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            await markAllNotificationsAsRead();
+            setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+        } catch (error) {
+            console.error("Failed to mark all notifications as read:", error);
+        }
+    };
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+
+    const formatNotificationTime = (timestamp) => {
+        try {
+            // Handle different date formats from backend
+            let date;
+            if (Array.isArray(timestamp)) {
+                // Java LocalDateTime format: [year, month, day, hour, minute, second, nano]
+                const [year, month, day, hour, minute] = timestamp;
+                date = new Date(year, month - 1, day, hour, minute);
+            } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+                date = new Date(timestamp);
+            } else {
+                date = new Date(timestamp);
+            }
+
+            if (isNaN(date.getTime())) {
+                return 'Just now';
+            }
+
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return 'Just now';
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -93,6 +172,66 @@ const Navbar = () => {
 
                     {user ? (
                         <div className={styles.profileContainer}>
+                            {/* Notification Bell */}
+                            <div className={styles.notificationContainer}>
+                                <button
+                                    className={styles.notificationBtn}
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                >
+                                    <Bell size={20} />
+                                    {unreadCount > 0 && (
+                                        <span className={styles.notificationBadge}>{unreadCount}</span>
+                                    )}
+                                </button>
+
+                                {showNotifications && (
+                                    <div className={styles.notificationDropdown}>
+                                        <div className={styles.notificationHeader}>
+                                            <h3>Notifications</h3>
+                                            {unreadCount > 0 && (
+                                                <button 
+                                                    onClick={handleMarkAllAsRead}
+                                                    className={styles.markAllBtn}
+                                                >
+                                                    Mark all as read
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className={styles.notificationList}>
+                                            {loadingNotifications ? (
+                                                <div className={styles.notificationEmpty}>Loading...</div>
+                                            ) : notifications.length === 0 ? (
+                                                <div className={styles.notificationEmpty}>No notifications</div>
+                                            ) : (
+                                                notifications.map((notification) => (
+                                                    <div 
+                                                        key={notification.id} 
+                                                        className={`${styles.notificationItem} ${!notification.read ? styles.unread : ''}`}
+                                                        onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+                                                    >
+                                                        <div className={styles.notificationContent}>
+                                                            <div className={styles.notificationTitle}>
+                                                                {notification.title}
+                                                            </div>
+                                                            <div className={styles.notificationMessage}>
+                                                                {notification.message}
+                                                            </div>
+                                                            <div className={styles.notificationTime}>
+                                                                {formatNotificationTime(notification.timestamp)}
+                                                            </div>
+                                                        </div>
+                                                        {!notification.read && (
+                                                            <div className={styles.unreadDot}></div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             <button
                                 className={styles.profileBtn}
                                 onClick={() => setShowProfileMenu(!showProfileMenu)}

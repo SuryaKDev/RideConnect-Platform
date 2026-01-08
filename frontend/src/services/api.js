@@ -377,10 +377,15 @@ export const completeRide = async (rideId) => {
 // --- REVIEW SERVICES ---
 
 export const submitReview = async (bookingId, rating, comment) => {
+    const payload = { 
+        bookingId, 
+        rating,
+        comment: comment && comment.trim() ? comment.trim() : null
+    };
     const response = await fetch(`${API_URL}/reviews/submit`, {
         method: "POST",
         headers: getHeaders(),
-        body: JSON.stringify({ bookingId, rating, comment }),
+        body: JSON.stringify(payload),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "Failed to submit review");
@@ -449,5 +454,37 @@ export const getActiveRide = async () => {
     if (response.status === 204) return null; // Handle empty
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "Failed to fetch active ride");
+    return data;
+};
+
+// --- NOTIFICATION SERVICES ---
+
+export const getNotifications = async () => {
+    const response = await fetch(`${API_URL}/notifications`, {
+        method: "GET",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch notifications");
+    return data;
+};
+
+export const markNotificationAsRead = async (notificationId) => {
+    const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
+        method: "PUT",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to mark notification as read");
+    return data;
+};
+
+export const markAllNotificationsAsRead = async () => {
+    const response = await fetch(`${API_URL}/notifications/read-all`, {
+        method: "PUT",
+        headers: getHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to mark all notifications as read");
     return data;
 };
