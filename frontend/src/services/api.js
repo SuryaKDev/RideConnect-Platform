@@ -84,13 +84,13 @@ export const postRide = async (rideData) => {
 };
 
 export const calculateFare = async (source, destination) => {
-    const response = await fetch(`${API_URL}/rides/calculate?source=${source}&destination=${destination}`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to calculate fare");
-    return data;
+  const response = await fetch(`${API_URL}/rides/calculate?source=${source}&destination=${destination}`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to calculate fare");
+  return data;
 };
 
 // --- UPDATED SEARCH FUNCTION ---
@@ -185,13 +185,13 @@ export const getAllRides = async () => {
 
 // Fetch Dashboard Stats
 export const getAdminStats = async () => {
-    const response = await fetch(`${API_URL}/admin/stats`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch stats");
-    return data;
+  const response = await fetch(`${API_URL}/admin/stats`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch stats");
+  return data;
 };
 
 export const verifyDriver = async (driverId) => {
@@ -333,13 +333,13 @@ export const acceptBookingRequest = async (bookingId) => {
 };
 
 export const getDriverStats = async () => {
-    const response = await fetch(`${API_URL}/payments/driver-stats`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch stats");
-    return data;
+  const response = await fetch(`${API_URL}/payments/driver-stats`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch stats");
+  return data;
 };
 
 export const rejectBookingRequest = async (bookingId) => {
@@ -355,136 +355,183 @@ export const rejectBookingRequest = async (bookingId) => {
 // --- RIDE LIFECYCLE (Driver) ---
 
 export const startRide = async (rideId) => {
-    const response = await fetch(`${API_URL}/rides/${rideId}/start`, {
-        method: "PUT",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to start ride");
-    return data;
+  const response = await fetch(`${API_URL}/rides/${rideId}/start`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to start ride");
+  return data;
 };
 
 export const completeRide = async (rideId) => {
-    const response = await fetch(`${API_URL}/rides/${rideId}/complete`, {
-        method: "PUT",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to complete ride");
-    return data;
+  const response = await fetch(`${API_URL}/rides/${rideId}/complete`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to complete ride");
+  return data;
 };
 
 // --- REVIEW SERVICES ---
 
 export const submitReview = async (bookingId, rating, comment) => {
-    const payload = { 
-        bookingId, 
-        rating,
-        comment: comment && comment.trim() ? comment.trim() : null
-    };
-    const response = await fetch(`${API_URL}/reviews/submit`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(payload),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to submit review");
-    return data;
+  // MOCK DELAY
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return {
+    id: Math.floor(Math.random() * 1000),
+    bookingId,
+    rating,
+    comment,
+    createdAt: new Date().toISOString()
+  };
 };
 
 export const getMyReviews = async () => {
-    const response = await fetch(`${API_URL}/reviews/my-reviews`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch reviews");
-    return data;
+  // MOCK DELAY
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  // MOCK DATA
+  return [
+    {
+      id: 101,
+      reviewerName: "Priya Sharma",
+      reviewerProfilePicture: "https://i.pravatar.cc/300?img=5",
+      rating: 5,
+      comment: "Absolutely amazing ride! The car was super clean and Alex was very polite.",
+      createdAt: "2025-10-15T10:30:00Z"
+    },
+    {
+      id: 102,
+      reviewerName: "Rahul Verma",
+      reviewerProfilePicture: "https://i.pravatar.cc/300?img=3",
+      rating: 4,
+      comment: "Good drive, but arrived 5 mins late due to traffic.",
+      createdAt: "2025-10-12T08:15:00Z"
+    }
+  ];
 };
 
 // --- PUBLIC PROFILE SERVICE ---
+// --- PUBLIC PROFILE SERVICE (MOCKED) ---
 export const getUserPublicProfile = async (userId) => {
-    const response = await fetch(`${API_URL}/users/${userId}`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch user profile");
-    return data;
+  // MOCK DELAY
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  // DUMMY DATA FOR UI TESTING
+  return {
+    id: userId,
+    name: "Alex Johnson",
+    email: "alex.driver@example.com",
+    phone: "+91 98765 43210",
+    role: "DRIVER",
+    profilePictureUrl: "https://i.pravatar.cc/300?img=11",
+    bio: "Professional driver with 5 years of experience. I love meeting new people and ensuring a safe ride.",
+    vehicleModel: "Toyota Innova Crysta",
+    licensePlate: "TS 09 AB 1234",
+    carImageUrl: "https://imgd.aeplcdn.com/664x374/n/cw/ec/115025/innova-hycross-exterior-right-front-three-quarter-73.jpeg?isig=0&q=80",
+    carFeatures: "AC, Music System, Extra Legroom, WiFi",
+    averageRating: 4.8,
+    totalReviews: 124,
+    reviews: [
+      {
+        reviewerName: "Priya Sharma",
+        reviewerProfilePicture: "https://i.pravatar.cc/300?img=5",
+        rating: 5,
+        comment: "Absolutely amazing ride! The car was super clean and Alex was very polite.",
+        createdAt: "2025-10-15T10:30:00Z"
+      },
+      {
+        reviewerName: "Rahul Verma",
+        reviewerProfilePicture: "https://i.pravatar.cc/300?img=3",
+        rating: 4,
+        comment: "Good drive, but arrived 5 mins late due to traffic.",
+        createdAt: "2025-10-12T08:15:00Z"
+      },
+      {
+        reviewerName: "Sneha Gupta",
+        reviewerProfilePicture: null,
+        rating: 5,
+        comment: "Very safe driver. Highly recommended for female travelers.",
+        createdAt: "2025-09-28T14:20:00Z"
+      }
+    ]
+  };
 };
 
 // --- FILE UPLOAD SERVICE ---
 export const uploadImage = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-    // Note: Do NOT set Content-Type header manually for FormData. 
-    // The browser sets it automatically with the correct boundary.
-    const token = localStorage.getItem("token");
-    
-    const response = await fetch(`${API_URL}/upload`, {
-        method: "POST",
-        headers: {
-            // "Content-Type": "multipart/form-data", // <--- DO NOT ADD THIS
-            "Authorization": `Bearer ${token}`
-        },
-        body: formData,
-    });
+  // Note: Do NOT set Content-Type header manually for FormData. 
+  // The browser sets it automatically with the correct boundary.
+  const token = localStorage.getItem("token");
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Image upload failed");
-    return data.url; // Returns the Cloudinary URL
+  const response = await fetch(`${API_URL}/upload`, {
+    method: "POST",
+    headers: {
+      // "Content-Type": "multipart/form-data", // <--- DO NOT ADD THIS
+      "Authorization": `Bearer ${token}`
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Image upload failed");
+  return data.url; // Returns the Cloudinary URL
 };
 
 export const getRecentRoutes = async () => {
-    const response = await fetch(`${API_URL}/bookings/recent-routes`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch routes");
-    return data;
+  const response = await fetch(`${API_URL}/bookings/recent-routes`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch routes");
+  return data;
 };
 
 export const getActiveRide = async () => {
-    const response = await fetch(`${API_URL}/bookings/active-ride`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    if (response.status === 204) return null; // Handle empty
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch active ride");
-    return data;
+  const response = await fetch(`${API_URL}/bookings/active-ride`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  if (response.status === 204) return null; // Handle empty
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch active ride");
+  return data;
 };
 
 // --- NOTIFICATION SERVICES ---
 
 export const getNotifications = async () => {
-    const response = await fetch(`${API_URL}/notifications`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to fetch notifications");
-    return data;
+  const response = await fetch(`${API_URL}/notifications`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch notifications");
+  return data;
 };
 
 export const markNotificationAsRead = async (notificationId) => {
-    const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
-        method: "PUT",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to mark notification as read");
-    return data;
+  const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to mark notification as read");
+  return data;
 };
 
 export const markAllNotificationsAsRead = async () => {
-    const response = await fetch(`${API_URL}/notifications/read-all`, {
-        method: "PUT",
-        headers: getHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Failed to mark all notifications as read");
-    return data;
+  const response = await fetch(`${API_URL}/notifications/read-all`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to mark all notifications as read");
+  return data;
 };

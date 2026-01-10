@@ -18,6 +18,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -37,11 +38,12 @@
 
 @keyframes slideUp {
     from {
-        transform: translateY(30px);
+        transform: translateY(30px) scale(0.95);
         opacity: 0;
     }
+
     to {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
     }
 }
@@ -94,12 +96,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 2.5rem;
-    padding: 2rem;
-    background: #f8fafc;
-    border-radius: 16px;
-    border: 2px solid #e2e8f0;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 2.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    /* Subtle gradient */
+    border-radius: 24px;
+    border: 1px solid #e2e8f0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .stars {
@@ -110,11 +114,15 @@
 
 .star {
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* Bouncy transition */
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .star:hover {
-    transform: scale(1.15);
+    transform: scale(1.3) rotate(5deg);
+    /* playful hover */
+    filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.4));
 }
 
 .ratingText {
@@ -154,7 +162,8 @@
 .textarea:focus {
     outline: none;
     border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
 .textarea::placeholder {

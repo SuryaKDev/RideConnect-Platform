@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
@@ -228,7 +229,15 @@ const MyBookings = () => {
                     activeTab === 'upcoming' ? (
                         upcomingBookings.length === 0 ? <div className={styles.emptyState}>No upcoming trips. Book a ride now!</div> : renderBookings(upcomingBookings)
                     ) : (
-                        historyBookings.length === 0 ? <div className={styles.emptyState}>No past trips.</div> : renderBookings(historyBookings)
+                        <>
+                            {historyBookings.length === 0 ? <div className={styles.emptyState}>No past trips.</div> : renderBookings(historyBookings)}
+                            {historyBookings.length > 0 && (
+                                <div style={{ marginTop: '3rem', marginBottom: '2rem' }}>
+                                    <h3 style={{ marginBottom: '1rem', color: '#1e293b' }}>Spending Summary</h3>
+                                    <SpendingChart history={historyBookings} />
+                                </div>
+                            )}
+                        </>
                     )
                 )}
             </div>
@@ -271,3 +280,52 @@ const MyBookings = () => {
 };
 
 export default MyBookings;
+
+// Internal Component for Spending Chart
+const SpendingChart = ({ history }) => {
+    // Process Data: Group by Month
+    const data = useMemo(() => {
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const monthName = d.toLocaleString('default', { month: 'short' });
+            last6Months.push({ name: monthName, uv: 0 }); // uv = Amount
+        }
+
+        history.forEach(booking => {
+            // Note: Use booking.ride.status or booking.status depending on logic.
+            // Assuming completed rides or paid bookings count.
+            if ((booking.status === 'CONFIRMED' || booking.status === 'COMPLETED') && booking.ride.status === 'COMPLETED') {
+                const date = new Date(booking.ride.travelDate); // Use travel date for spending visual
+                const monthName = date.toLocaleString('default', { month: 'short' });
+                const monthEntry = last6Months.find(m => m.name === monthName);
+                if (monthEntry) {
+                    // Calculate price: pricePerSeat * seatsBooked
+                    monthEntry.uv += (booking.ride.pricePerSeat * booking.seatsBooked);
+                }
+            }
+        });
+        return last6Months;
+    }, [history]);
+
+    return (
+        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data}>
+                    <defs>
+                        <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                        </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                    <YAxis axisLine={false} tickLine={false} />
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                    <Area type="monotone" dataKey="uv" stroke="#8884d8" fillOpacity={1} fill="url(#colorUv)" />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
+    );
+};

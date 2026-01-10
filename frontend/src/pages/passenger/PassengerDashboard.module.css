@@ -105,14 +105,14 @@
 
 .filterBar {
     display: flex;
-    gap: 15px;
-    padding: 15px 15px 5px;
-    border-top: 1px solid #eee;
-    margin-top: 5px;
+    gap: 20px;
+    padding: 15px 20px;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 10px;
     animation: slideDown 0.2s ease-out;
-    background-color: #fcfcfc;
+    background-color: #fafbfd;
     border-radius: 0 0 8px 8px;
-    flex-wrap: wrap;
+    align-items: flex-end;
 }
 
 @keyframes slideDown {
@@ -130,27 +130,34 @@
 .filterItem {
     display: flex;
     flex-direction: column;
-    min-width: 120px;
-    flex: 1;
+    width: auto;
+    flex: 0 1 auto;
 }
 
 .filterItem label {
-    font-size: 0.75rem;
-    color: #666;
-    margin-bottom: 4px;
-    font-weight: 600;
+    font-size: 0.7rem;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .filterItem input {
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 12px;
     font-size: 0.9rem;
     outline: none;
+    width: 140px;
+    transition: all 0.2s;
+    background: white;
+    color: #334155;
 }
 
 .filterItem input:focus {
     border-color: #0f4c81;
+    box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.1);
 }
 
 /* Results Section */
@@ -382,24 +389,70 @@
 /* Feature B: Split View Layout */
 .splitView {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    /* Symmetric Professional Split */
+    grid-template-columns: 1.4fr 1fr;
+    /* Map gets more space, Ride List gets less (narrower cards) */
     gap: 1.5rem;
-    min-height: 80vh;
     align-items: start;
     margin-bottom: 3rem;
 }
 
 .mapContainer {
-    position: sticky;
-    top: 2rem;
-    height: calc(100vh - 4rem);
-    min-height: 600px;
-    border-radius: 16px;
+    height: 350px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
     background: #f8fafc;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mapExpanded {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    right: 2rem;
+    bottom: 2rem;
+    height: auto !important;
+    z-index: 1000;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: expandMap 0.3s forwards;
+}
+
+@keyframes expandMap {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.expandMapBtn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    width: 40px !important;
+    height: 40px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    padding: 0 !important;
+    transition: all 0.2s;
+}
+
+.expandMapBtn:hover {
+    background: #f1f5f9;
+    color: #0f4c81;
 }
 
 .listContainer {
@@ -436,105 +489,207 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(8px);
 }
 
 .modal {
     background: white;
-    padding: 2rem;
-    border-radius: 12px;
+    padding: 0;
+    border-radius: 24px;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    animation: fadeIn 0.2s ease-out;
+    max-width: 450px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(20px) scale(0.95);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
 .modal h2 {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
+    margin: 0;
+    padding: 2rem 2rem 1.5rem;
     text-align: center;
-    color: #333;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #0f4c81 0%, #1e88e5 100%);
 }
 
 .modalContent {
-    margin-bottom: 1.5rem;
+    background: #f8fafc;
+    padding: 2rem;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .summaryRow {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.8rem;
+    align-items: center;
     font-size: 0.95rem;
-    color: #555;
+    color: #64748b;
 }
 
 .summaryRow strong {
-    color: #333;
+    color: #1e293b;
+    font-weight: 600;
 }
 
 .inputRow {
-    margin: 1.5rem 0;
+    margin: 0.5rem 0;
 }
 
 .inputRow label {
     display: block;
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 0.5rem;
-    color: #333;
+    color: #334155;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .seatInput {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1.1rem;
     outline: none;
+    transition: all 0.2s;
+    background: white;
+    color: #0f172a;
+    font-weight: 600;
+    text-align: center;
 }
 
 .seatInput:focus {
     border-color: #0f4c81;
+    box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.1);
+}
+
+/* Trust Badge */
+.verifiedBadge {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #10b981;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+/* Stepper */
+.stepperContainer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    background: white;
+    padding: 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.stepperBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    background: #f1f5f9;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stepperBtn:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #0f4c81;
+}
+
+.stepperBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.stepperValue {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    min-width: 40px;
+    text-align: center;
+}
+
+.seatLimit {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 0.5rem;
+    margin-left: 4px;
+}
+
+/* Reassurance Text */
+.reassurance {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0;
+    padding-bottom: 0.5rem;
 }
 
 .totalRow {
     display: flex;
     justify-content: space-between;
-    margin-top: 1rem;
+    align-items: center;
     padding-top: 1rem;
-    border-top: 1px solid #eee;
+    border-top: 1px dashed #e2e8f0;
     font-weight: 700;
-    font-size: 1.1rem;
-    color: #333;
+    font-size: 1.25rem;
+    color: #1e293b;
+    margin-top: 0.5rem;
 }
 
 .totalPrice {
     color: #0f4c81;
+    font-size: 1.5rem;
 }
 
 .modalActions {
+    padding: 1.5rem 2rem;
     display: flex;
     gap: 1rem;
+    background: white;
 }
 
 .modalActions button {
     flex: 1;
+    border-radius: 10px;
 }
 
 .successMessage {

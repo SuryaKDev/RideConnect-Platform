@@ -17,25 +17,31 @@ const defaultCenter = { lat: 20.5937, lng: 78.9629 };
  * @param {number} selectedRideId - Currently selected ride ID
  * @param {number} highlightedRideId - Currently highlighted ride ID (from hover)
  */
-function InteractiveMap({ 
-  rides = [], 
-  onMarkerClick, 
-  onRideSelect, 
+function InteractiveMap({
+  rides = [],
+  onMarkerClick,
+  onRideSelect,
   selectedRideId,
-  highlightedRideId 
+  highlightedRideId,
+  style = {}
 }) {
   const [activeMarker, setActiveMarker] = useState(null);
   const [directions, setDirections] = useState({});
+
+  const mapStyle = {
+    ...containerStyle,
+    ...style
+  };
 
   // Fetch directions for all rides
   useEffect(() => {
     if (!rides.length || !window.google?.maps) return;
 
     const directionsService = new window.google.maps.DirectionsService();
-    
+
     rides.forEach((ride) => {
       if (!ride.source || !ride.destination) return;
-      
+
       directionsService.route(
         {
           origin: ride.source,
@@ -85,7 +91,7 @@ function InteractiveMap({
 
   return (
     <GoogleMap
-      mapContainerStyle={containerStyle}
+      mapContainerStyle={mapStyle}
       center={center}
       zoom={10}
       options={{
@@ -99,10 +105,10 @@ function InteractiveMap({
       {rides.map((ride) => {
         const direction = directions[ride.id];
         if (!direction) return null;
-        
+
         const isHighlighted = highlightedRideId === ride.id;
         const isSelected = selectedRideId === ride.id;
-        
+
         return (
           <DirectionsRenderer
             key={`direction-${ride.id}`}
@@ -121,7 +127,7 @@ function InteractiveMap({
 
       {rides.map((ride) => {
         const position = getRideSourcePosition(ride);
-        
+
         if (!position) return null;
 
         // Determine marker style based on state
@@ -182,7 +188,7 @@ function getRideSourcePosition(ride) {
   if (ride.sourceLat && ride.sourceLng) {
     return { lat: Number(ride.sourceLat), lng: Number(ride.sourceLng) };
   }
-  
+
   if (ride.sourceLatitude && ride.sourceLongitude) {
     return { lat: Number(ride.sourceLatitude), lng: Number(ride.sourceLongitude) };
   }

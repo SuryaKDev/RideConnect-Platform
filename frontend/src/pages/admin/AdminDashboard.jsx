@@ -650,7 +650,7 @@ const AdminDashboard = () => {
                                             <SortableHeader label="Name" sortKey="name" />
                                             <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Phone</th>
                                             <SortableHeader label="Role" sortKey="role" />
-                                            <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Pmt. Status</th>
+
                                             <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Status</th>
                                             <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Action</th>
                                         </tr>
@@ -661,10 +661,7 @@ const AdminDashboard = () => {
                                                 const isVerified = u.isVerified !== undefined ? u.isVerified : (u.verified !== undefined ? u.verified : false);
                                                 const isActive = u.isActive !== undefined ? u.isActive : (u.active !== undefined ? u.active : true);
 
-                                                // Payment Status Logic (Mocked)
-                                                const pmtStatus = u.role === 'DRIVER' ? (isVerified ? 'Verified' : 'Pending') : (u.id % 3 === 0 ? 'Pending' : 'Verified');
-                                                const pmtColor = pmtStatus === 'Verified' ? '#10b981' : '#94a3b8';
-                                                const pmtBg = pmtStatus === 'Verified' ? '#ecfdf5' : '#f1f5f9';
+
 
                                                 return (
                                                     <tr key={u.id}>
@@ -672,19 +669,7 @@ const AdminDashboard = () => {
                                                         <td><div className={styles.userName}>{u.name}</div><small className={styles.userEmail}>{u.email}</small></td>
                                                         <td style={{ color: '#64748b', fontSize: '0.9rem' }}>{u.phone || 'N/A'}</td>
                                                         <td><span className={styles.roleBadge}>{u.role}</span></td>
-                                                        <td>
-                                                            <span style={{
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 600,
-                                                                color: pmtColor,
-                                                                background: pmtBg,
-                                                                padding: '2px 8px',
-                                                                borderRadius: '12px',
-                                                                border: `1px solid ${pmtColor}30`
-                                                            }}>
-                                                                {pmtStatus}
-                                                            </span>
-                                                        </td>
+
                                                         <td>
                                                             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                                                                 {u.role === 'DRIVER' && (isVerified ? <span className={styles.verified}>Verified</span> : <span className={styles.pending}>Pending</span>)}

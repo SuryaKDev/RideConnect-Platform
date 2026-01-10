@@ -55,36 +55,44 @@ const DriverHistory = () => {
 
                 {/* 1. Motivational Hero (Only for Empty State) */}
                 {payments.length === 0 && (
-                    <div className={styles.heroSection} style={{ marginBottom: '2rem', padding: '2rem', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', borderRadius: '16px', border: '1px solid #dbeafe' }}>
-                        <div style={{ maxWidth: '600px' }}>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e3a8a', marginBottom: '0.5rem' }}>Start Earning with RideConnect</h2>
-                            <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '1rem' }}>
+                    <div className={styles.heroCard}>
+                        <div className={styles.heroContent}>
+                            <h2>Start Earning with RideConnect</h2>
+                            <p>
                                 Publish your first ride to start generating income. Earnings are credited immediately after a trip is completed.
                             </p>
-                            <Link to="/post-ride">
-                                <Button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
+                            <Link to="/post-ride" style={{ textDecoration: 'none' }}>
+                                <Button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '0.95rem' }}>
                                     <Plus size={18} /> Publish a Ride
                                 </Button>
                             </Link>
 
-                            {/* Progress Checklist */}
-                            <div style={{ marginTop: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
-                                    <div style={{ width: '24px', height: '24px', background: '#dbeafe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontWeight: 'bold' }}>1</div>
-                                    <span>Ride Published</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
-                                    <div style={{ width: '24px', height: '24px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 'bold' }}>2</div>
-                                    <span>Passenger Booked</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
-                                    <div style={{ width: '24px', height: '24px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 'bold' }}>3</div>
-                                    <span>Ride Completed</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.9rem' }}>
-                                    <div style={{ width: '24px', height: '24px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 'bold' }}>4</div>
-                                    <span>Earnings Credited</span>
-                                </div>
+                        </div>
+
+                        {/* Progress Checklist (Visual Timeline) */}
+                        <div className={styles.heroSteps}>
+                            {/* Step 1: Completed */}
+                            <div className={`${styles.stepItem} ${styles.stepCompleted}`}>
+                                <div className={styles.stepIcon}><CheckCircle size={18} /></div>
+                                <div className={styles.stepLabel}>Profile<br />Verified</div>
+                            </div>
+
+                            {/* Step 2: Active (Current Focus) */}
+                            <div className={`${styles.stepItem} ${styles.stepActive}`}>
+                                <div className={styles.stepIcon}>2</div>
+                                <div className={styles.stepLabel}>Publish<br />Ride</div>
+                            </div>
+
+                            {/* Step 3: Future (Muted) */}
+                            <div className={styles.stepItem}>
+                                <div className={styles.stepIcon}>3</div>
+                                <div className={styles.stepLabel}>Get<br />Bookings</div>
+                            </div>
+
+                            {/* Step 4: Future (Muted) */}
+                            <div className={styles.stepItem}>
+                                <div className={styles.stepIcon}>4</div>
+                                <div className={styles.stepLabel}>Earn<br />Money</div>
                             </div>
                         </div>
                     </div>
@@ -119,8 +127,6 @@ const DriverHistory = () => {
                         <div>
                             <h3>Net Income</h3>
                             <h2 className={styles.earningsAmount}>₹{totalEarnings}</h2>
-                            <h2 className={styles.earningsAmount}>₹{totalEarnings}</h2>
-                            <span className={styles.statsSub}>{payments.length > 0 ? 'After platform fees & taxes' : 'Updates after ride completion'}</span>
                         </div>
                     </div>
                     <div className={`${styles.statsCard} ${styles.refundCard}`}>

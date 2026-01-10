@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
+import LocalToast from '../../components/LocalToast';
 import QuickBookCard from '../../components/passenger/QuickBookCard';
 import LiveTrackingCard from '../../components/passenger/LiveTrackingCard';
 import InteractiveMap from '../../components/maps/InteractiveMap';
 import UserProfileModal from '../../components/UserProfileModal';
 import ReviewModal from '../../components/ReviewModal';
 import { searchRides, bookRide, getRecentRoutes, getActiveRide, getMyBookings } from '../../services/api';
-import { useToast } from '../../utils/useToast';
+import { useToast } from '../../utils/useToast.js';
 import styles from './PassengerDashboard.module.css';
-import { Search, MapPin, Calendar, Clock, User, CheckCircle, Filter, Map as MapIcon } from 'lucide-react';
+import { Search, MapPin, Calendar, Clock, User, CheckCircle, Filter, Map as MapIcon, Maximize, Minimize, ShieldCheck, Plus, Minus } from 'lucide-react';
 
 const PassengerDashboard = () => {
     // Search State
@@ -30,6 +31,7 @@ const PassengerDashboard = () => {
     const [showMapView, setShowMapView] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [viewProfileId, setViewProfileId] = useState(null);
+    const [isMapExpanded, setIsMapExpanded] = useState(false);
 
     // Interaction State
     const [selectedRide, setSelectedRide] = useState(null);
@@ -40,7 +42,7 @@ const PassengerDashboard = () => {
     const [hasSearched, setHasSearched] = useState(false);
 
     const [reviewBooking, setReviewBooking] = useState(null);
-    const { showToast } = useToast();
+    const { toasts, showToast, removeToast } = useToast();
 
     const rideCardRefs = useRef({});
 
@@ -140,10 +142,22 @@ const PassengerDashboard = () => {
             setBookingStatus('success');
             showToast("Ride booked successfully!", "SUCCESS");
             setTimeout(() => { setSelectedRide(null); setBookingStatus(null); }, 2000);
+            // Refresh history
+            const historyData = await getMyBookings();
+            setHistory(historyData || []);
         } catch (error) {
             setBookingStatus('error');
             showToast(error.message || "Booking failed", "ERROR");
         }
+    };
+
+    const handleBookClick = (ride) => {
+        const isDuplicate = history.some(booking => booking.ride.id === ride.id && ['PENDING', 'CONFIRMED'].includes(booking.status));
+        if (isDuplicate) {
+            showToast("You have already booked this ride.", "ERROR");
+            return;
+        }
+        setSelectedRide(ride);
     };
 
     return (
@@ -221,11 +235,19 @@ const PassengerDashboard = () => {
                         loading ? <p>Searching...</p> : rides.length === 0 ? <div className={styles.emptyState}>No rides found.</div> : (
                             showMapView ? (
                                 <div className={styles.splitView}>
-                                    <div className={styles.mapContainer}>
+                                    <div className={`${styles.mapContainer} ${isMapExpanded ? styles.mapExpanded : ''}`}>
+                                        <Button
+                                            className={styles.expandMapBtn}
+                                            onClick={() => setIsMapExpanded(!isMapExpanded)}
+                                            title={isMapExpanded ? "Collapse Map" : "Expand Map"}
+                                        >
+                                            {isMapExpanded ? <Minimize size={20} /> : <Maximize size={20} />}
+                                        </Button>
                                         <InteractiveMap
                                             rides={rides}
                                             onMarkerClick={handleMarkerClick}
                                             highlightedRideId={hoveredRideId}
+                                            style={{ height: '100%', minHeight: '100%' }}
                                         />
                                     </div>
                                     <div className={styles.listContainer}>
@@ -251,7 +273,7 @@ const PassengerDashboard = () => {
                                                     <div className={styles.seats}><User size={16} /> {ride.availableSeats} seats</div>
                                                 </div>
                                                 <div className={styles.routeDisplay}>{ride.source} ➝ {ride.destination}</div>
-                                                <Button className={styles.bookBtn} onClick={() => setSelectedRide(ride)}>Request to Book</Button>
+                                                <Button className={styles.bookBtn} onClick={() => handleBookClick(ride)}>Request to Book</Button>
                                             </div>
                                         ))}
                                     </div>
@@ -274,7 +296,7 @@ const PassengerDashboard = () => {
                                                 <div className={styles.seats}><User size={16} /> {ride.availableSeats} seats</div>
                                             </div>
                                             <div className={styles.routeDisplay}>{ride.source} ➝ {ride.destination}</div>
-                                            <Button className={styles.bookBtn} onClick={() => setSelectedRide(ride)}>Request to Book</Button>
+                                            <Button className={styles.bookBtn} onClick={() => handleBookClick(ride)}>Request to Book</Button>
                                         </div>
                                     ))}
                                 </div>
@@ -306,62 +328,9 @@ const PassengerDashboard = () => {
                 </div>
             )}
 
-            {/* 6. Spending Summary */}
-            {history.length > 0 && (
-                <div className="container" style={{ marginTop: '3rem' }}>
-                    <div className={styles.sectionTitle}>Your Spending Summary</div>
-                    <SpendingChart history={history} />
-                </div>
-            )}
 
-            {/* 7. Ride History */}
-            <div className="container" style={{ marginTop: '3rem', marginBottom: '3rem' }}>
-                <h2 className={styles.sectionTitle}>Ride History</h2>
-                {history.length === 0 ? (
-                    <p style={{ color: '#64748b' }}>No past rides found.</p>
-                ) : (
-                    <div className={styles.tableWrapper}>
-                        <table className={styles.historyTable}>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Route</th>
-                                    <th>Driver</th>
-                                    <th>Transaction ID</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {history.map((booking) => (
-                                    <tr key={booking.id}>
-                                        <td>{new Date(booking.bookingTime).toLocaleDateString('en-GB')}</td>
-                                        <td>{booking.ride.source} → {booking.ride.destination}</td>
-                                        <td>{booking.ride.driver.name}</td>
-                                        <td>
-                                            <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                                                {booking.payment?.transactionId || 'N/A'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`${styles.statusBadge} ${styles[booking.status]}`}>
-                                                {booking.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {booking.status === 'COMPLETED' && (
-                                                <Button size="sm" variant="outline" onClick={() => handleRateDriver(booking)}>
-                                                    Rate Driver
-                                                </Button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+
+
 
             {/* Modals */}
             {viewProfileId && <UserProfileModal userId={viewProfileId} onClose={() => setViewProfileId(null)} />}
@@ -376,72 +345,60 @@ const PassengerDashboard = () => {
             {selectedRide && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
-                        <h2>Confirm Request</h2>
+                        <h2>Confirm your booking</h2>
                         <div className={styles.modalContent}>
-                            <div className={styles.summaryRow}><span>Driver</span> <strong>{selectedRide.driver.name}</strong></div>
+                            <div className={styles.summaryRow}>
+                                <span>Driver</span>
+                                <div style={{ textAlign: 'right' }}>
+                                    <strong>{selectedRide.driver.name}</strong>
+                                    <div className={styles.verifiedBadge}><ShieldCheck size={14} /> Verified Driver</div>
+                                </div>
+                            </div>
                             <div className={styles.summaryRow}><span>Route</span> <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong></div>
+
                             <div className={styles.inputRow}>
                                 <label>Number of Seats</label>
-                                <input type="number" min="1" max={selectedRide.availableSeats} value={seatsToBook} onChange={(e) => setSeatsToBook(e.target.value)} className={styles.seatInput} />
+                                <div className={styles.stepperContainer}>
+                                    <button
+                                        className={styles.stepperBtn}
+                                        onClick={() => setSeatsToBook(s => Math.max(1, s - 1))}
+                                        disabled={seatsToBook <= 1}
+                                    >
+                                        <Minus size={16} />
+                                    </button>
+                                    <span className={styles.stepperValue}>{seatsToBook}</span>
+                                    <button
+                                        className={styles.stepperBtn}
+                                        onClick={() => setSeatsToBook(s => Math.min(selectedRide.availableSeats, s + 1))}
+                                        disabled={seatsToBook >= selectedRide.availableSeats}
+                                    >
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+                                <div className={styles.seatLimit}>{selectedRide.availableSeats} seats available</div>
                             </div>
-                            <div className={styles.totalRow}><span>Total Price</span> <span className={styles.totalPrice}>₹{selectedRide.pricePerSeat * seatsToBook}</span></div>
+
+                            <div className={styles.totalRow}>
+                                <span>Total Price</span>
+                                <span className={styles.totalPrice}>₹{selectedRide.pricePerSeat * seatsToBook}</span>
+                            </div>
+                            <p className={styles.reassurance}>You won’t be charged until the driver accepts your request.</p>
+
                             {bookingStatus === 'success' && <div className={styles.successMessage}><CheckCircle size={18} /> Request Sent!</div>}
                         </div>
                         <div className={styles.modalActions}>
-                            <Button variant="outline" onClick={() => setSelectedRide(null)}>Cancel</Button>
-                            <Button onClick={confirmBooking} disabled={bookingStatus === 'success'}>{bookingStatus === 'success' ? 'Sent' : 'Send Request'}</Button>
+                            <Button variant="outline" onClick={() => setSelectedRide(null)}>Go Back</Button>
+                            <Button onClick={confirmBooking} disabled={bookingStatus === 'success'}>
+                                {bookingStatus === 'success' ? 'Sent' : 'Request Booking'}
+                            </Button>
                         </div>
                     </div>
                 </div>
             )}
+            <LocalToast toasts={toasts} onRemove={removeToast} />
         </div>
     );
 };
 
 export default PassengerDashboard;
 
-// Internal Component for Spending Chart
-const SpendingChart = ({ history }) => {
-    // Process Data: Group by Month
-    const data = useMemo(() => {
-        const last6Months = [];
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
-            const monthName = d.toLocaleString('default', { month: 'short' });
-            last6Months.push({ name: monthName, uv: 0 }); // uv = Amount
-        }
-
-        history.forEach(ride => {
-            if (ride.payment && ride.status === 'COMPLETED') {
-                const date = new Date(ride.bookingTime);
-                const monthName = date.toLocaleString('default', { month: 'short' });
-                const monthEntry = last6Months.find(m => m.name === monthName);
-                if (monthEntry) {
-                    monthEntry.uv += ride.payment.amount;
-                }
-            }
-        });
-        return last6Months;
-    }, [history]);
-
-    return (
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data}>
-                    <defs>
-                        <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-                        </linearGradient>
-                    </defs>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis axisLine={false} tickLine={false} />
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                    <Area type="monotone" dataKey="uv" stroke="#8884d8" fillOpacity={1} fill="url(#colorUv)" />
-                </AreaChart>
-            </ResponsiveContainer>
-        </div>
-    );
-};
