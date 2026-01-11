@@ -546,7 +546,7 @@
 
 .summaryRow {
     display: flex;
-    justify-content: space-between;
+    justify-content: left;
     align-items: center;
     font-size: 0.95rem;
     color: #64748b;
@@ -594,7 +594,7 @@
 .verifiedBadge {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: left;
     gap: 4px;
     font-size: 0.75rem;
     color: #10b981;
