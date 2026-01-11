@@ -267,7 +267,7 @@ const DriverDashboard = () => {
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
                         <div className={styles.modalHeader}>
-                            <h3>Passenger List (Ride #{passengerModal.rideId})</h3>
+                            <h3>Passenger List (Ride {passengerModal.rideId})</h3>
                             <button onClick={() => setPassengerModal({ show: false, passengers: [], rideId: null, rideStatus: null })} className={styles.closeBtn}>&times;</button>
                         </div>
                         {loadingPassengers ? <p>Loading...</p> : passengerModal.passengers.length === 0 ? <p className={styles.emptyText}>No passengers yet.</p> : (
