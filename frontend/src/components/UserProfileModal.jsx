@@ -29,7 +29,7 @@ const UserProfileModal = ({ userId, onClose }) => {
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <button onClick={onClose} className={styles.closeBtn}><X size={20} /></button>
-                
+
                 {loading ? (
                     <div className={styles.loading}>Loading profile...</div>
                 ) : error ? (
@@ -52,17 +52,25 @@ const UserProfileModal = ({ userId, onClose }) => {
                                     {profile.role === 'DRIVER' && (
                                         <div className={styles.rating}>
                                             <Star size={14} fill="#ffc107" color="#ffc107" />
-                                            <span>{profile.averageRating || "New"} ({profile.totalReviews || 0})</span>
+                                            <span>
+                                                {profile.totalReviews > 0
+                                                    ? `${profile.averageRating} (${profile.totalReviews} reviews)`
+                                                    : "New Driver"}
+                                            </span>
                                         </div>
                                     )}
                                     {profile.role === 'PASSENGER' && (
                                         <div className={styles.rating}>
                                             <Star size={14} fill="#ffc107" color="#ffc107" />
-                                            <span>{profile.averageRating || "New"} ({profile.totalReviews || 0})</span>
+                                            <span>
+                                                {profile.totalReviews > 0
+                                                    ? `${profile.averageRating} (${profile.totalReviews} ratings)`
+                                                    : "New Member"}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
-                                <p className={styles.bio}>{profile.bio || "No bio added."}</p>
+                                {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
                             </div>
                         </div>
 
@@ -72,8 +80,11 @@ const UserProfileModal = ({ userId, onClose }) => {
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>Contact Info</h3>
                             <div className={styles.infoRow}>
-                                <Phone size={16} className={styles.icon} /> 
+                                <Phone size={16} className={styles.icon} />
                                 <span>{profile.phone}</span>
+                            </div>
+                            <div className={styles.privacyNote}>
+                                <Shield size={12} /> Visible to booked passengers only.
                             </div>
                         </div>
 
@@ -88,7 +99,7 @@ const UserProfileModal = ({ userId, onClose }) => {
                                         <div className={styles.carPlaceholder}><Car size={32} /></div>
                                     )}
                                     <div className={styles.carInfo}>
-                                        <h4>{profile.vehicleModel || "Unknown Model"}</h4>
+                                        <h4>Vehicle: {profile.vehicleModel || "Standard Car"}</h4>
                                         {profile.licensePlate && <small className={styles.plate}>{profile.licensePlate}</small>}
                                         {profile.carFeatures && (
                                             <div className={styles.features}>
@@ -144,7 +155,13 @@ const UserProfileModal = ({ userId, onClose }) => {
                         )}
 
                         <div className={styles.actions}>
-                            <Button onClick={onClose} style={{width: '100%'}}>Close</Button>
+                            <Button
+                                onClick={onClose}
+                                variant="outline"
+                                style={{ width: '100%', borderColor: '#e2e8f0', color: '#64748b' }}
+                            >
+                                Close
+                            </Button>
                         </div>
                     </div>
                 ) : null}

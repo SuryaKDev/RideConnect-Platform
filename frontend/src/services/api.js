@@ -181,7 +181,7 @@ export const getAllRides = async () => {
   return [
     {
       id: 1001,
-      driver: { name: "Kumar V", phone: "9876543210" },
+      driver: { name: "Driver 1", phone: "987XXXXXXX" },
       source: "Chennai, Tamil Nadu",
       destination: "Coimbatore, Tamil Nadu",
       status: "IN_PROGRESS",
@@ -191,7 +191,7 @@ export const getAllRides = async () => {
     },
     {
       id: 1002,
-      driver: { name: "Alex Johnson", phone: "9123456780" },
+      driver: { name: "Driver 2", phone: "912XXXXXXX" },
       source: "Bangalore, Karnataka",
       destination: "Mysore, Karnataka",
       status: "AVAILABLE",
@@ -201,7 +201,7 @@ export const getAllRides = async () => {
     },
     {
       id: 1003,
-      driver: { name: "Rajesh K", phone: "8887776665" },
+      driver: { name: "Driver 3", phone: "888XXXXXXX" },
       source: "Hyderabad, Telangana",
       destination: "Vijayawada, AP",
       status: "COMPLETED",
@@ -211,7 +211,7 @@ export const getAllRides = async () => {
     },
     {
       id: 1004,
-      driver: { name: "Sneha G", phone: "7776665554" },
+      driver: { name: "Driver 4", phone: "777XXXXXXX" },
       source: "Mumbai, Maharashtra",
       destination: "Pune, Maharashtra",
       status: "CANCELLED",
@@ -431,72 +431,19 @@ export const getMyReviews = async () => {
   // MOCK DELAY
   await new Promise(resolve => setTimeout(resolve, 600));
 
-  // MOCK DATA
-  return [
-    {
-      id: 101,
-      reviewerName: "Priya Sharma",
-      reviewerProfilePicture: "https://i.pravatar.cc/300?img=5",
-      rating: 5,
-      comment: "Absolutely amazing ride! The car was super clean and Alex was very polite.",
-      createdAt: "2025-10-15T10:30:00Z"
-    },
-    {
-      id: 102,
-      reviewerName: "Rahul Verma",
-      reviewerProfilePicture: "https://i.pravatar.cc/300?img=3",
-      rating: 4,
-      comment: "Good drive, but arrived 5 mins late due to traffic.",
-      createdAt: "2025-10-12T08:15:00Z"
-    }
-  ];
+  // MOCK DATA - Return empty for new user experience
+  return [];
 };
 
 // --- PUBLIC PROFILE SERVICE ---
-// --- PUBLIC PROFILE SERVICE (MOCKED) ---
 export const getUserPublicProfile = async (userId) => {
-  // MOCK DELAY
-  await new Promise(resolve => setTimeout(resolve, 600));
-
-  // DUMMY DATA FOR UI TESTING
-  return {
-    id: userId,
-    name: "Alex Johnson",
-    email: "alex.driver@example.com",
-    phone: "+91 98765 43210",
-    role: "DRIVER",
-    profilePictureUrl: "https://i.pravatar.cc/300?img=11",
-    bio: "Professional driver with 5 years of experience. I love meeting new people and ensuring a safe ride.",
-    vehicleModel: "Toyota Innova Crysta",
-    licensePlate: "TS 09 AB 1234",
-    carImageUrl: "https://imgd.aeplcdn.com/664x374/n/cw/ec/115025/innova-hycross-exterior-right-front-three-quarter-73.jpeg?isig=0&q=80",
-    carFeatures: "AC, Music System, Extra Legroom, WiFi",
-    averageRating: 4.8,
-    totalReviews: 124,
-    reviews: [
-      {
-        reviewerName: "Priya Sharma",
-        reviewerProfilePicture: "https://i.pravatar.cc/300?img=5",
-        rating: 5,
-        comment: "Absolutely amazing ride! The car was super clean and Alex was very polite.",
-        createdAt: "2025-10-15T10:30:00Z"
-      },
-      {
-        reviewerName: "Rahul Verma",
-        reviewerProfilePicture: "https://i.pravatar.cc/300?img=3",
-        rating: 4,
-        comment: "Good drive, but arrived 5 mins late due to traffic.",
-        createdAt: "2025-10-12T08:15:00Z"
-      },
-      {
-        reviewerName: "Sneha Gupta",
-        reviewerProfilePicture: null,
-        rating: 5,
-        comment: "Very safe driver. Highly recommended for female travelers.",
-        createdAt: "2025-09-28T14:20:00Z"
-      }
-    ]
-  };
+  const response = await fetch(`${API_URL}/users/${userId}`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch public profile");
+  return data;
 };
 
 // --- FILE UPLOAD SERVICE ---
