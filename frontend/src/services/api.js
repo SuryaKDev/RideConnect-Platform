@@ -174,13 +174,52 @@ export const getAllBookings = async () => {
 };
 
 export const getAllRides = async () => {
-  const response = await fetch(`${API_URL}/rides/all`, {
-    method: "GET",
-    headers: getHeaders(),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || "Failed to fetch rides");
-  return data;
+  // MOCK DELAY
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // DUMMY RIDES FOR ADMIN CONSOLE UI
+  return [
+    {
+      id: 1001,
+      driver: { name: "Kumar V", phone: "9876543210" },
+      source: "Chennai, Tamil Nadu",
+      destination: "Coimbatore, Tamil Nadu",
+      status: "IN_PROGRESS",
+      pricePerSeat: 850,
+      availableSeats: 2,
+      startTime: new Date().toISOString()
+    },
+    {
+      id: 1002,
+      driver: { name: "Alex Johnson", phone: "9123456780" },
+      source: "Bangalore, Karnataka",
+      destination: "Mysore, Karnataka",
+      status: "AVAILABLE",
+      pricePerSeat: 450,
+      availableSeats: 3,
+      startTime: new Date(Date.now() + 86400000).toISOString()
+    },
+    {
+      id: 1003,
+      driver: { name: "Rajesh K", phone: "8887776665" },
+      source: "Hyderabad, Telangana",
+      destination: "Vijayawada, AP",
+      status: "COMPLETED",
+      pricePerSeat: 600,
+      availableSeats: 0,
+      startTime: "2023-11-10T10:00:00Z"
+    },
+    {
+      id: 1004,
+      driver: { name: "Sneha G", phone: "7776665554" },
+      source: "Mumbai, Maharashtra",
+      destination: "Pune, Maharashtra",
+      status: "CANCELLED",
+      pricePerSeat: 300,
+      availableSeats: 4,
+      startTime: "2023-11-12T09:00:00Z"
+    }
+  ];
 };
 
 // Fetch Dashboard Stats

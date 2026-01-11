@@ -14,15 +14,31 @@ const PostRide = () => {
     const [error, setError] = useState('');
     const [suggestion, setSuggestion] = useState(null); // Store suggested price
 
+    // Stopovers State (Chip Logic) - RESTORED
+    const [currentStopover, setCurrentStopover] = useState('');
+    const [stopoverList, setStopoverList] = useState([]);
+
     const [formData, setFormData] = useState({
         source: '',
         destination: '',
-        stopovers: '',
         date: '',
         time: '',
         seats: 3,
         price: ''
     });
+
+    const handleAddStopover = () => {
+        if (currentStopover.trim()) {
+            if (!stopoverList.includes(currentStopover.trim())) {
+                setStopoverList([...stopoverList, currentStopover.trim()]);
+            }
+            setCurrentStopover('');
+        }
+    };
+
+    const handleRemoveStopover = (indexToRemove) => {
+        setStopoverList(stopoverList.filter((_, index) => index !== indexToRemove));
+    };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -57,7 +73,7 @@ const PostRide = () => {
         const payload = {
             source: formData.source,
             destination: formData.destination,
-            stopovers: formData.stopovers,
+            stopovers: stopoverList.join(', '), // Join chips with comma
             travelDate: formData.date,
             travelTime: formData.time + ":00",
             availableSeats: parseInt(formData.seats),
@@ -116,14 +132,49 @@ const PostRide = () => {
                             </div>
                         )}
 
-                        <Input
-                            label="Stopovers (Optional)"
-                            id="stopovers"
-                            name="stopovers"
-                            placeholder="e.g. Kanchipuram, Vellore, Ambur"
-                            value={formData.stopovers}
-                            onChange={handleChange}
-                        />
+                        {/* Stopovers Input with Chips */}
+                        <div className="input-group">
+                            <label htmlFor="stopoverInput" style={{ fontWeight: 500, marginBottom: '8px', display: 'block', color: '#1e293b' }}>
+                                Stopovers (Optional)
+                            </label>
+                            <div className={styles.stopoverInputWrapper}>
+                                <input
+                                    id="stopoverInput"
+                                    type="text"
+                                    placeholder="e.g. Kanchipuram"
+                                    value={currentStopover}
+                                    onChange={(e) => setCurrentStopover(e.target.value)}
+                                    // Allow Enter key to add
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleAddStopover();
+                                        }
+                                    }}
+                                />
+                                <Button type="button" onClick={handleAddStopover} size="sm" style={{ height: '42px', minWidth: '80px' }}>
+                                    Add
+                                </Button>
+                            </div>
+
+                            {/* Chips List */}
+                            {stopoverList.length > 0 && (
+                                <div className={styles.chipsContainer}>
+                                    {stopoverList.map((place, index) => (
+                                        <div key={index} className={styles.chip}>
+                                            {place}
+                                            <span
+                                                className={styles.chipRemove}
+                                                onClick={() => handleRemoveStopover(index)}
+                                                title="Remove"
+                                            >
+                                                ×
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
 
                         <div className={styles.row}>
                             <Input label="Date" id="date" name="date" type="date" value={formData.date} onChange={handleChange} required />
