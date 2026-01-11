@@ -348,13 +348,13 @@ const PassengerDashboard = () => {
                         <h2>Confirm your booking</h2>
                         <div className={styles.modalContent}>
                             <div className={styles.summaryRow}>
-                                <span>Driver</span>
-                                <div style={{ textAlign: 'right' }}>
+                                <span>Driver: </span>
+                                <div style={{ textAlign: 'left' }}>
                                     <strong>{selectedRide.driver.name}</strong>
                                     <div className={styles.verifiedBadge}><ShieldCheck size={14} /> Verified Driver</div>
                                 </div>
                             </div>
-                            <div className={styles.summaryRow}><span>Route</span> <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong></div>
+                            <div className={styles.summaryRow}><span>Route: </span> <strong>{selectedRide.source} ➝ {selectedRide.destination}</strong></div>
 
                             <div className={styles.inputRow}>
                                 <label>Number of Seats</label>

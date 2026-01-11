@@ -774,7 +774,7 @@ const AdminDashboard = () => {
                 cancelModal.show && (
                     <div className={styles.modalOverlay}>
                         <div className={styles.modal}>
-                            <h3>Cancel Ride #{cancelModal.rideId}</h3>
+                            <h3>Cancel Ride</h3>
                             <p>Please provide a reason for cancellation.</p>
                             <textarea className={styles.textarea} value={cancelModal.reason} onChange={(e) => setCancelModal({ ...cancelModal, reason: e.target.value })} />
                             <div className={styles.modalActions}>
