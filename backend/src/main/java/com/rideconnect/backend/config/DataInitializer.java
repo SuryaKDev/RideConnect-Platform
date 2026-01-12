@@ -18,6 +18,9 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Value("${admin.name}")
+    private String adminName;
+
     @Value("${admin.email}")
     private String adminEmail;
 
@@ -29,13 +32,15 @@ public class DataInitializer implements CommandLineRunner {
         // Check if Admin exists. If not, create one.
         if (!userRepository.existsByEmail(adminEmail)) {
             User admin = User.builder()
-                    .name("Super Admin")
-                    .email("admin@rideconnect.com")
+                    .name(adminName)
+                    .email(adminEmail)
                     .password(passwordEncoder.encode(adminPassword)) // Default Password
                     .phone("0000000000")
                     .role(Role.ADMIN)
                     .isVerified(true)
+                    .isEmailVerified(true)
                     .isActive(true)
+                    .memberSince("December 2025")
                     .build();
             
             userRepository.save(admin);

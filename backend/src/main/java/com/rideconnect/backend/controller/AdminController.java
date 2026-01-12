@@ -7,6 +7,7 @@ import com.rideconnect.backend.repository.PaymentRepository;
 import com.rideconnect.backend.repository.RideRepository;
 import com.rideconnect.backend.repository.UserRepository;
 import com.rideconnect.backend.service.NotificationService;
+import com.rideconnect.backend.service.RideService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +34,9 @@ public class AdminController {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private RideService rideService;
+
     @GetMapping("/users")
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -41,6 +45,11 @@ public class AdminController {
     @GetMapping("/bookings")
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
+    }
+
+    @GetMapping("/rides")
+    public List<com.rideconnect.backend.model.Ride> getAllRides() {
+        return rideRepository.findAll();
     }
 
     @PutMapping("/verify-driver/{id}")
@@ -69,12 +78,8 @@ public class AdminController {
     @PutMapping("/rides/{id}/cancel")
     public ResponseEntity<?> cancelRide(@PathVariable Long id, @RequestBody Map<String, String> request) {
         String reason = request.get("reason");
-        return rideRepository.findById(id).map(ride -> {
-            ride.setStatus("CANCELLED_BY_ADMIN");
-            ride.setCancellationReason(reason != null ? reason : "Violation of terms");
-            rideRepository.save(ride);
-            return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully. Reason logged."));
-        }).orElseThrow(() -> new RuntimeException("Ride not found"));
+        rideService.cancelRide(id, null, reason, true);
+        return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully. Reason logged."));
     }
 
     @GetMapping("/stats")

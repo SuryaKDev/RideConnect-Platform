@@ -35,10 +35,15 @@ public class BookingService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private EmailService emailService;
+
     @Transactional
     public Booking bookRide(Long rideId, Integer seats, String passengerEmail) {
         User passenger = userRepository.findByEmail(passengerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passenger.isEmailVerified()) throw new RuntimeException("Please verify your email before booking a ride.");
 
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new RuntimeException("Ride not found"));
@@ -73,6 +78,14 @@ public class BookingService {
         // Notify Driver
         notificationService.notifyUser(ride.getDriver().getEmail(), "New Ride Request",
                 passenger.getName() + " requested " + seats + " seat(s). Please Accept or Reject.", "INFO");
+
+        emailService.sendNewBookingAlertForDriver(
+                ride.getDriver().getEmail(),
+                ride.getDriver().getName(),
+                passenger.getName(),
+                ride.getSource(),
+                ride.getDestination()
+        );
 
         return savedBooking;
     }

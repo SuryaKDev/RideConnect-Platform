@@ -44,6 +44,14 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    @PostMapping("/unsubscribe")
+    public ResponseEntity<?> unsubscribe(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userService.findByEmail(userDetails.getUsername());
+        user.setEmailOptOut(true);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "You have successfully unsubscribed from non-essential emails."));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserPublicProfile(@PathVariable Long id) {
         return userRepository.findById(id).map(user -> {
@@ -58,6 +66,7 @@ public class UserController {
             profile.put("averageRating", user.getAverageRating());
             profile.put("totalReviews", user.getTotalReviews());
             profile.put("phone", user.getPhone()); // Needed for contact
+            profile.put("memberSince", user.getMemberSince()); // Month Year info
 
             // Include reviews with simplified reviewer info
             List<Map<String, Object>> reviews = reviewRepository.findByRevieweeId(user.getId()).stream()

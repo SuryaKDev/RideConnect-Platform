@@ -31,4 +31,25 @@ public class AuthController {
         Map<String, Object> response = userService.loginUser(loginRequest);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        userService.verifyEmail(token);
+        return ResponseEntity.ok(Map.of("message", "Email verified successfully!"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        userService.processForgotPassword(email);
+        return ResponseEntity.ok(Map.of("message", "Password reset link sent to your email."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("newPassword");
+        userService.resetPassword(token, newPassword);
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully!"));
+    }
 }

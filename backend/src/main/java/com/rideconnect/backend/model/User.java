@@ -63,11 +63,28 @@ public class User {
     private Integer totalReviews = 0;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean isVerified = false;
 
     @Column(nullable = false)
     @Builder.Default
     private boolean isActive = true;
+
+    // --- EMAIL VERIFICATION & PREFERENCES ---
+    private String emailVerificationToken;
+    
+    @Builder.Default
+    private boolean isEmailVerified = false;
+
+    @Builder.Default
+    private boolean emailOptOut = false;
+
+    // --- MEMBER SINCE ---
+    private String memberSince; // Format: "January 2026"
+
+    // --- PASSWORD RESET ---
+    private String passwordResetToken;
+    private java.time.LocalDateTime passwordResetTokenExpiry;
 
     // Helper method to check if user is a driver
     public boolean isDriver() {

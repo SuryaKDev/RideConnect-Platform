@@ -168,6 +168,8 @@ public class PaymentService {
                 String userEmail = payment.getBooking().getPassenger().getEmail();
                 notificationService.notifyUser(userEmail, "Refund Processed",
                         "₹" + payment.getAmount() + " has been refunded.", "INFO");
+
+                emailService.sendRefundConfirmation(userEmail, payment.getBooking().getPassenger().getName(), payment.getAmount());
             }
         }
     }

@@ -60,6 +60,7 @@ public class RideService {
 
     public Ride postRide(Ride ride, String email) {
         User driver = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        if (!driver.isEmailVerified()) throw new RuntimeException("Please verify your email before posting a ride.");
         if (!driver.isDriver()) throw new RuntimeException("Only drivers can post rides!");
 
         LocalDate today = LocalDate.now();
@@ -151,16 +152,24 @@ public class RideService {
     }
 
     @Transactional
-    public void cancelRide(Long rideId, String driverEmail) {
+    public void cancelRide(Long rideId, String driverEmail, String reason, boolean isAdmin) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
-        if (!ride.getDriver().getEmail().equals(driverEmail)) throw new RuntimeException("Not authorized");
-        ride.setStatus("CANCELLED");
+        
+        if (!isAdmin && !ride.getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized");
+        }
+
+        ride.setStatus(isAdmin ? "CANCELLED_BY_ADMIN" : "CANCELLED");
+        if (reason != null) {
+            ride.setCancellationReason(reason);
+        }
         rideRepository.save(ride);
+
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
             if (!b.getStatus().contains("CANCELLED")) {
                 if ("CONFIRMED".equals(b.getStatus())) paymentService.processRefund(b.getId());
-                b.setStatus("CANCELLED_BY_DRIVER");
+                b.setStatus(isAdmin ? "CANCELLED_BY_ADMIN" : "CANCELLED_BY_DRIVER");
                 bookingRepository.save(b);
 
                 emailService.sendRideCancellation(
@@ -170,9 +179,15 @@ public class RideService {
                         ride.getDestination()
                 );
 
-                notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Cancelled", "Ride cancelled by driver. Refund initiated.", "WARNING");
+                String msg = isAdmin ? "Ride cancelled by admin: " + reason : "Ride cancelled by driver. Refund initiated.";
+                notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Cancelled", msg, "WARNING");
             }
         }
+    }
+
+    @Transactional
+    public void cancelRide(Long rideId, String driverEmail) {
+        cancelRide(rideId, driverEmail, null, false);
     }
 
     @Transactional
@@ -222,6 +237,12 @@ public class RideService {
             if ("CONFIRMED".equals(b.getStatus())) {
                 notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Completed",
                         "You have reached your destination. Please rate your driver!", "SUCCESS");
+
+                emailService.sendReviewRequest(
+                        b.getPassenger().getEmail(),
+                        b.getPassenger().getName(),
+                        ride.getDriver().getName()
+                );
             }
         }
     }

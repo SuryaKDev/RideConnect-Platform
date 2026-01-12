@@ -24,6 +24,12 @@ public class RideReminderScheduler {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private com.rideconnect.backend.repository.PaymentRepository paymentRepository;
+
+    @Autowired
+    private com.rideconnect.backend.repository.UserRepository userRepository;
+
     // Run every 30 minutes
     @Scheduled(fixedRate = 1800000)
     public void sendRideReminders() {
@@ -46,6 +52,27 @@ public class RideReminderScheduler {
             emailService.sendEmail(passengerEmail, "Reminder: Upcoming Ride", message);
 
             System.out.println("   -> Reminded: " + passengerEmail);
+        }
+    }
+
+    // Run on the 1st of every month at midnight
+    @Scheduled(cron = "0 0 0 1 * ?")
+    public void sendMonthlySummaries() {
+        System.out.println("📊 Generating monthly summaries...");
+        List<String> emails = paymentRepository.findAllPassengerEmails();
+        java.time.LocalDateTime oneMonthAgo = java.time.LocalDateTime.now().minusMonths(1);
+
+        for (String email : emails) {
+            com.rideconnect.backend.model.User user = userRepository.findByEmail(email).orElse(null);
+            if (user != null && !user.isEmailOptOut()) {
+                List<com.rideconnect.backend.model.Payment> payments = paymentRepository.findPassengerPaymentsSince(email, oneMonthAgo);
+                double totalSpent = payments.stream().mapToDouble(com.rideconnect.backend.model.Payment::getAmount).sum();
+                int rideCount = payments.size();
+
+                if (rideCount > 0) {
+                    emailService.sendMonthlySummary(email, user.getName(), totalSpent, rideCount);
+                }
+            }
         }
     }
 }

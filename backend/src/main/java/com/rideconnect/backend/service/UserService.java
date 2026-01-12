@@ -15,8 +15,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -25,18 +32,25 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final EmailService emailService;
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Autowired
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        @Lazy AuthenticationManager authenticationManager,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.emailService = emailService;
     }
 
+    @Transactional
     public User registerUser(User user) {
         // 1. Check if email exists
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -58,7 +72,21 @@ public class UserService {
             user.setVerified(true);
         }
 
-        return userRepository.save(user);
+        // 5. Generate Email Verification Token
+        user.setEmailVerificationToken(UUID.randomUUID().toString());
+        user.setEmailVerified(false);
+
+        // 6. Capture Registration Date (Month Year)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
+        user.setMemberSince(LocalDate.now().format(formatter));
+
+        User savedUser = userRepository.save(user);
+
+        // 7. Send Welcome Email
+        String verificationLink = frontendUrl + "/verify-email?token=" + savedUser.getEmailVerificationToken();
+        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getName(), verificationLink);
+
+        return savedUser;
     }
 
     public Map<String, Object> loginUser(LoginRequest loginRequest) {
@@ -74,7 +102,12 @@ public class UserService {
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 3. Generate Token WITH Name and ID included
+        // 3. Check if Email is Verified
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("Please verify your email before logging in.");
+        }
+
+        // 4. Generate Token WITH Name and ID included
         String token = jwtUtil.generateToken(user.getEmail(), user.getName(), user.getId());
 
         // 4. Extract Role
@@ -118,6 +151,7 @@ public class UserService {
                 throw new RuntimeException("Incorrect current password.");
             }
             user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            emailService.sendPasswordChangeAlert(user.getEmail(), user.getName());
         }
 
         // 4. Driver Details
@@ -135,5 +169,51 @@ public class UserService {
         }
 
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public void verifyEmail(String token) {
+        System.out.println("🔍 Attempting to verify email with token: " + token);
+        User user = userRepository.findByEmailVerificationToken(token)
+                .orElseThrow(() -> {
+                    System.err.println("❌ Verification failed: Token not found in database: " + token);
+                    return new RuntimeException("Invalid verification token");
+                });
+
+        user.setEmailVerified(true);
+        user.setEmailVerificationToken(null);
+        userRepository.save(user);
+        System.out.println("✅ Email verified successfully for: " + user.getEmail());
+    }
+
+    @Transactional
+    public void processForgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        String token = UUID.randomUUID().toString();
+        user.setPasswordResetToken(token);
+        user.setPasswordResetTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+
+        String resetLink = frontendUrl + "/reset-password?token=" + token;
+        emailService.sendForgotPasswordEmail(user.getEmail(), user.getName(), resetLink);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByPasswordResetToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired password reset token"));
+
+        if (user.getPasswordResetTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+            throw new RuntimeException("Password reset token has expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiry(null);
+        userRepository.save(user);
+        
+        emailService.sendPasswordChangeAlert(user.getEmail(), user.getName());
     }
 }
