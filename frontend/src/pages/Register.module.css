@@ -1,39 +1,66 @@
 .pageWrapper {
     min-height: 100vh;
-    background-color: #f3f4f6;
+    background-color: #f5f5f7;
     display: flex;
     flex-direction: column;
+    padding: 0;
+}
+
+.header {
+    background: white;
+    padding: 1.5rem 4rem;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logoText {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #111827;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.loginLink {
+    font-size: 1rem;
+    color: #6b7280;
 }
 
 .container {
     width: 100%;
-    max-width: 520px;
-    /* Slightly wider for register form */
-    margin: 0 auto;
+    max-width: 1100px;
+    margin: 3rem auto;
+    padding: 0 2rem;
 }
 
 .formCard {
     background: white;
-    padding: 3rem;
-    border-radius: 1.5rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-    width: 100%;
+    padding: 3.5rem 4.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 .formHeader {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .formHeader h2 {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 2.25rem;
+    font-weight: 700;
     color: #111827;
     margin-bottom: 0.5rem;
-    letter-spacing: -0.02em;
 }
 
 .subtitle {
@@ -42,82 +69,94 @@
 }
 
 .roleToggle {
-    display: flex;
+    display: inline-flex;
     background: #f3f4f6;
-    padding: 0.25rem;
+    padding: 0.375rem;
     border-radius: 0.75rem;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .roleBtn {
-    flex: 1;
-    padding: 0.75rem;
+    padding: 0.75rem 2rem;
     border-radius: 0.5rem;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     color: #6b7280;
+    background: transparent;
+    border: none;
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .roleBtn.active {
-    background: white;
-    color: #111827;
+    background: #5046e5;
+    color: white;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+}
+
 .driverFields {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
     border-top: 1px solid #e5e7eb;
 }
 
 .sectionTitle {
-    font-size: 1rem;
+    font-size: 1.125rem;
     font-weight: 600;
-    color: #374151;
-    margin-bottom: 1rem;
+    color: #111827;
+    margin-bottom: 1.5rem;
 }
 
 .errorAlert {
     background-color: #fef2f2;
-    border: 1px solid #fee2e2;
-    color: #ef4444;
-    padding: 0.75rem;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 1rem;
     border-radius: 0.5rem;
     margin-bottom: 1.5rem;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
 }
 
 .submitBtn {
     width: 100%;
-    margin-top: 2rem;
+    margin-top: 2.5rem;
     padding: 1rem;
     font-size: 1rem;
     font-weight: 600;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    border-radius: 9999px;
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    background: #5046e5;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    color: white;
 }
 
-.submitBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+.submitBtn:hover:not(:disabled) {
+    background: #4338ca;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.footerText {
-    margin-top: 2rem;
-    text-align: center;
-    color: #6b7280;
-    font-size: 0.875rem;
+.submitBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .link {
-    color: #4f46e5;
+    color: #5046e5;
     font-weight: 600;
-    margin-left: 0.25rem;
+    text-decoration: none;
+    transition: color 0.2s ease;
 }
 
 .link:hover {
+    color: #4338ca;
     text-decoration: underline;
 }

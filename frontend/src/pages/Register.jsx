@@ -60,14 +60,22 @@ const Register = () => {
     return (
         <div className={styles.pageWrapper}>
             <LocalToast toasts={toasts} onRemove={removeToast} />
+            
+            <div className={styles.header}>
+                <div className={styles.logo}>
+                    <span className={styles.logoText}>RideConnect</span>
+                </div>
+                <div className={styles.loginLink}>
+                    Already a member? <Link to="/login" className={styles.link}>Login</Link>
+                </div>
+            </div>
+
             <div className={styles.container}>
                 <div className={styles.formCard}>
                     <div className={styles.formHeader}>
-                        <h2>Create Account</h2>
-                        <p className={styles.subtitle}>Sign up to get started with RideConnect</p>
+                        <h2>Let's get you started</h2>
+                        <p className={styles.subtitle}>Enter the details to get started</p>
                     </div>
-
-                    {error && <div className={styles.errorAlert}>{error}</div>}
 
                     <div className={styles.roleToggle}>
                         <button
@@ -86,18 +94,30 @@ const Register = () => {
                         </button>
                     </div>
 
+                    {error && <div className={styles.errorAlert}>{error}</div>}
+
                     <form onSubmit={handleSubmit}>
-                        <Input label="Full Name" id="name" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
-                        <Input label="Email" id="email" name="email" type="email" placeholder="name@example.com" value={formData.email} onChange={handleChange} required />
-                        <Input label="Password" id="password" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
-                        <Input label="Phone Number" id="phone" name="phone" placeholder="9876543210" value={formData.phone} onChange={handleChange} required />
+                        <div className={styles.formGrid}>
+                            <Input label="Full Name" id="name" name="name" placeholder="Enter your Full Name" value={formData.name} onChange={handleChange} required />
+                            <Input label="Email Address" id="email" name="email" type="email" placeholder="Enter your Email Address" value={formData.email} onChange={handleChange} required />
+                        </div>
+
+                        <div className={styles.formGrid}>
+                            <Input label="Password" id="password" name="password" type="password" placeholder="Enter your Password" value={formData.password} onChange={handleChange} required />
+                            <Input label="Phone Number" id="phone" name="phone" placeholder="Enter your Phone Number" value={formData.phone} onChange={handleChange} required />
+                        </div>
 
                         {role === 'DRIVER' && (
                             <div className={styles.driverFields}>
                                 <h3 className={styles.sectionTitle}>Vehicle Details</h3>
-                                <Input label="Vehicle Model" id="vehicleModel" name="vehicleModel" placeholder="Swift Dzire" value={formData.vehicleModel} onChange={handleChange} required />
-                                <Input label="License Plate" id="licensePlate" name="licensePlate" placeholder="TN-01-AB-1234" value={formData.licensePlate} onChange={handleChange} required />
-                                <Input label="Capacity" id="vehicleCapacity" name="vehicleCapacity" type="number" min="1" max="10" value={formData.vehicleCapacity} onChange={handleChange} required />
+                                <div className={styles.formGrid}>
+                                    <Input label="Vehicle Model" id="vehicleModel" name="vehicleModel" placeholder="Enter Vehicle Model" value={formData.vehicleModel} onChange={handleChange} required />
+                                    <Input label="License Plate" id="licensePlate" name="licensePlate" placeholder="Enter License Plate" value={formData.licensePlate} onChange={handleChange} required />
+                                </div>
+                                <div className={styles.formGrid}>
+                                    <Input label="Vehicle Capacity" id="vehicleCapacity" name="vehicleCapacity" type="number" min="1" max="10" placeholder="Enter Capacity" value={formData.vehicleCapacity} onChange={handleChange} required />
+                                    <div></div>
+                                </div>
                             </div>
                         )}
 
@@ -105,10 +125,6 @@ const Register = () => {
                             {loading ? 'Creating Account...' : 'Sign Up'}
                         </Button>
                     </form>
-
-                    <p className={styles.footerText}>
-                        Already have an account? <Link to="/login" className={styles.link}>Login</Link>
-                    </p>
                 </div>
             </div>
         </div>

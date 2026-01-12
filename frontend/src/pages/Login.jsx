@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { loginUser } from '../services/api';
+import { loginUser, forgotPassword } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import styles from './Login.module.css';
@@ -12,6 +12,9 @@ const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [forgotLoading, setForgotLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
     const { toasts, showToast, removeToast } = useToast();
@@ -82,9 +85,33 @@ const Login = () => {
             }, 1000);
 
         } catch (err) {
-            setError(err.message || 'Login failed. Please try again.');
+            const errorMessage = err.message || 'Login failed. Please try again.';
+            // Check if error is related to email verification
+            if (errorMessage.toLowerCase().includes('email') && 
+                (errorMessage.toLowerCase().includes('verify') || 
+                 errorMessage.toLowerCase().includes('verified') ||
+                 errorMessage.toLowerCase().includes('verification'))) {
+                setError('⚠️ Please verify your email before logging in. Check your inbox for the verification link.');
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setForgotLoading(true);
+        try {
+            await forgotPassword(forgotEmail);
+            showToast('Password reset link sent to your email!', 'SUCCESS');
+            setShowForgotPassword(false);
+            setForgotEmail('');
+        } catch (err) {
+            showToast(err.message || 'Failed to send reset link', 'ERROR');
+        } finally {
+            setForgotLoading(false);
         }
     };
 
@@ -121,6 +148,16 @@ const Login = () => {
 
                         {error && <div className={styles.errorAlert}>{error}</div>}
 
+                        <div className={styles.forgotPasswordLink}>
+                            <button 
+                                type="button" 
+                                onClick={() => setShowForgotPassword(true)}
+                                className={styles.forgotBtn}
+                            >
+                                Forgot Password?
+                            </button>
+                        </div>
+
                         <Button type="submit" className={styles.submitBtn} disabled={loading}>
                             {loading ? 'Logging in...' : 'Login'}
                         </Button>
@@ -131,6 +168,43 @@ const Login = () => {
                     </p>
                 </div>
             </div>
+
+            {/* Forgot Password Modal - Moved outside login form to prevent event bubbling */}
+            {showForgotPassword && (
+                <div className={styles.modalOverlay} onClick={() => setShowForgotPassword(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <h2>Reset Password</h2>
+                        <p className={styles.modalText}>Enter your email address and we'll send you a link to reset your password.</p>
+                        
+                        <form onSubmit={handleForgotPassword}>
+                            <Input
+                                label="Email Address"
+                                id="forgotEmail"
+                                name="forgotEmail"
+                                type="email"
+                                placeholder="name@example.com"
+                                value={forgotEmail}
+                                onChange={(e) => setForgotEmail(e.target.value)}
+                                required
+                            />
+                            
+                            <div className={styles.modalActions}>
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    onClick={() => setShowForgotPassword(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={forgotLoading}>
+                                    {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            
             <LocalToast toasts={toasts} onRemove={removeToast} />
         </div>
     );

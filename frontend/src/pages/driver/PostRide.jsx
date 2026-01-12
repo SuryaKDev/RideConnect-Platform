@@ -84,7 +84,16 @@ const PostRide = () => {
             await postRide(payload);
             navigate('/driver-dashboard');
         } catch (err) {
-            setError(err.message || 'Failed to post ride.');
+            const errorMessage = err.message || 'Failed to post ride.';
+            // Check if error is related to email verification
+            if (errorMessage.toLowerCase().includes('email') && 
+                (errorMessage.toLowerCase().includes('verify') || 
+                 errorMessage.toLowerCase().includes('verified') ||
+                 errorMessage.toLowerCase().includes('verification'))) {
+                setError('⚠️ Please verify your email before posting rides. Check your inbox for the verification link.');
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setLoading(false);
         }

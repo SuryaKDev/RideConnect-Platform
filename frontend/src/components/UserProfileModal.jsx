@@ -4,7 +4,7 @@ import styles from './UserProfileModal.module.css';
 import { Star, Phone, X, Car, User, Shield } from 'lucide-react';
 import Button from './ui/Button';
 
-const UserProfileModal = ({ userId, onClose }) => {
+const UserProfileModal = ({ userId, onClose, hasBooked = false }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -49,6 +49,9 @@ const UserProfileModal = ({ userId, onClose }) => {
                                 <h2>{profile.name}</h2>
                                 <div className={styles.badges}>
                                     <span className={styles.roleBadge}>{profile.role}</span>
+                                    {profile.memberSince && (
+                                        <span className={styles.memberSinceBadge}>Member since {profile.memberSince}</span>
+                                    )}
                                     {profile.role === 'DRIVER' && (
                                         <div className={styles.rating}>
                                             <Star size={14} fill="#ffc107" color="#ffc107" />
@@ -79,13 +82,16 @@ const UserProfileModal = ({ userId, onClose }) => {
                         {/* Contact Info */}
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>Contact Info</h3>
-                            <div className={styles.infoRow}>
-                                <Phone size={16} className={styles.icon} />
-                                <span>{profile.phone}</span>
-                            </div>
-                            <div className={styles.privacyNote}>
-                                <Shield size={12} /> Visible to booked passengers only.
-                            </div>
+                            {hasBooked ? (
+                                <div className={styles.infoRow}>
+                                    <Phone size={16} className={styles.icon} />
+                                    <span>{profile.phone}</span>
+                                </div>
+                            ) : (
+                                <div className={styles.privacyNote}>
+                                    <Shield size={14} /> Contact details visible only after booking this ride.
+                                </div>
+                            )}
                         </div>
 
                         {/* Driver Specifics */}
@@ -153,16 +159,6 @@ const UserProfileModal = ({ userId, onClose }) => {
                                 </div>
                             </div>
                         )}
-
-                        <div className={styles.actions}>
-                            <Button
-                                onClick={onClose}
-                                variant="outline"
-                                style={{ width: '100%', borderColor: '#e2e8f0', color: '#64748b' }}
-                            >
-                                Close
-                            </Button>
-                        </div>
                     </div>
                 ) : null}
             </div>

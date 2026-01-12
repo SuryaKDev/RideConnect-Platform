@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import PostRide from './pages/driver/PostRide';
 import DriverHistory from './pages/driver/DriverHistory';
@@ -39,6 +41,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/history" element={<TransactionHistory />} />
 

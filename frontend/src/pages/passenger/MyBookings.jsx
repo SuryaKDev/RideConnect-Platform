@@ -263,6 +263,7 @@ const MyBookings = () => {
                 <UserProfileModal
                     userId={viewProfileId}
                     onClose={() => setViewProfileId(null)}
+                    hasBooked={true}
                 />
             )}
 

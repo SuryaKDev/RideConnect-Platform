@@ -152,6 +152,16 @@
     text-transform: uppercase;
 }
 
+.memberSinceBadge {
+    background: #f1f5f9;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
 .rating {
     display: flex;
     align-items: center;

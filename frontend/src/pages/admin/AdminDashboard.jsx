@@ -8,11 +8,9 @@ import LocalToast from '../../components/LocalToast';
 import { useToast } from '../../utils/useToast';
 import { getAllUsers, getAllRides, getAllBookings, verifyDriver, blockUser, cancelRideAdmin, getAdminStats } from '../../services/api';
 import styles from './AdminDashboard.module.css';
-import { Users, Car, IndianRupee, MapPin, Activity, LayoutDashboard, LogOut, Menu, Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown, XCircle, RefreshCcw, CheckCircle } from 'lucide-react';
+import { Users, Car, IndianRupee, MapPin, Activity, LayoutDashboard, LogOut, Menu, Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown, XCircle, RefreshCcw, CheckCircle, ChevronDown, ChevronUp, UserCircle, Mail, Phone, CreditCard, User, ShieldCheck, Star } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, ReferenceLine, LabelList } from 'recharts';
 
-// Mock Data for Graph (In Milestone 3.5 we can fetch this from DB)
-// Dynamic Chart Data State
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 const ITEMS_PER_PAGE = 10;
 
@@ -37,6 +35,7 @@ const AdminDashboard = () => {
     });
     const [users, setUsers] = useState([]);
     const [rides, setRides] = useState([]);
+    const [bookings, setBookings] = useState([]);
 
     // Interactive States
     const [loading, setLoading] = useState(true);
@@ -49,6 +48,14 @@ const AdminDashboard = () => {
     const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'warning' });
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { toasts, showToast, removeToast } = useToast();
+    
+    // New states for ride details
+    const [expandedRideId, setExpandedRideId] = useState(null);
+    const [rideBookings, setRideBookings] = useState({});
+    const [loadingBookings, setLoadingBookings] = useState(false);
+    
+    // New state for user details
+    const [expandedUserId, setExpandedUserId] = useState(null);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -83,6 +90,7 @@ const AdminDashboard = () => {
 
                 setUsers(usersData || []);
                 setRides(ridesData || []);
+                setBookings(bookingsData || []);
                 setStats(statsData || {});
 
                 // Calculate Chart Data (Revenue per Day for last 7 days)
@@ -209,7 +217,7 @@ const AdminDashboard = () => {
         : processedData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     // For Overview tab, we need separate data for users and rides
-    const recentUsers = activeTab === 'overview' ? users.slice(0, 5) : [];
+    const recentUsers = activeTab === 'overview' ? users.filter(u => u.role !== 'ADMIN').slice(0, 5) : [];
     const recentRides = activeTab === 'overview' ? rides.slice(0, 5) : [];
 
     const handleSort = (key) => {
@@ -260,6 +268,37 @@ const AdminDashboard = () => {
     };
 
     const openCancelModal = (rideId) => setCancelModal({ show: true, rideId, reason: '' });
+
+    const toggleRideDetails = async (rideId) => {
+        if (expandedRideId === rideId) {
+            setExpandedRideId(null);
+            return;
+        }
+        
+        setExpandedRideId(rideId);
+        
+        // Fetch bookings if not already loaded
+        if (!rideBookings[rideId]) {
+            setLoadingBookings(true);
+            try {
+                const bookings = await getAllBookings();
+                const rideSpecificBookings = bookings.filter(b => b.ride?.id === rideId);
+                setRideBookings(prev => ({ ...prev, [rideId]: rideSpecificBookings }));
+            } catch (error) {
+                showToast('Failed to fetch booking details', 'ERROR');
+            } finally {
+                setLoadingBookings(false);
+            }
+        }
+    };
+    
+    const toggleUserDetails = (userId) => {
+        if (expandedUserId === userId) {
+            setExpandedUserId(null);
+        } else {
+            setExpandedUserId(userId);
+        }
+    };
 
     const submitCancel = async () => {
         if (!cancelModal.reason.trim()) {
@@ -646,6 +685,7 @@ const AdminDashboard = () => {
                                 <table className={styles.table}>
                                     <thead>
                                         <tr>
+                                            {activeTab === 'users' && <th style={{ width: '40px' }}></th>}
                                             <SortableHeader label="ID" sortKey="id" />
                                             <SortableHeader label="Name" sortKey="name" />
                                             <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Phone</th>
@@ -655,38 +695,180 @@ const AdminDashboard = () => {
                                             <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Action</th>
                                         </tr>
                                     </thead>
-                                    {loading ? <TableSkeleton cols={7} /> : (
+                                    {loading ? <TableSkeleton cols={activeTab === 'users' ? 7 : 6} /> : (
                                         <tbody>
                                             {(activeTab === 'overview' ? recentUsers : paginatedData).map(u => {
                                                 const isVerified = u.isVerified !== undefined ? u.isVerified : (u.verified !== undefined ? u.verified : false);
                                                 const isActive = u.isActive !== undefined ? u.isActive : (u.active !== undefined ? u.active : true);
-
-
+                                                const isExpanded = expandedUserId === u.id;
+                                                const isAdmin = u.role === 'ADMIN';
+                                                // Format Member Since date
+                                                const memberSince = u.memberSince || (u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : null);
+                                                
+                                                // Calculate actual counts from loaded data
+                                                const totalRidesPosted = rides.filter(r => r.driver?.id === u.id).length;
+                                                const totalBookingsMade = bookings.filter(b => b.passenger?.id === u.id).length;
 
                                                 return (
-                                                    <tr key={u.id}>
-                                                        <td>{String(u.id).padStart(3, '0')}</td>
-                                                        <td><div className={styles.userName}>{u.name}</div><small className={styles.userEmail}>{u.email}</small></td>
-                                                        <td style={{ color: '#64748b', fontSize: '0.9rem' }}>{u.phone || 'N/A'}</td>
-                                                        <td><span className={styles.roleBadge}>{u.role}</span></td>
+                                                    <React.Fragment key={u.id}>
+                                                        <tr style={{ cursor: activeTab === 'users' && !isAdmin ? 'pointer' : 'default', backgroundColor: isExpanded ? '#f8fafc' : 'transparent' }} onClick={() => activeTab === 'users' && !isAdmin && toggleUserDetails(u.id)}>
+                                                            {activeTab === 'users' && (
+                                                                <td style={{ textAlign: 'center' }}>
+                                                                    {!isAdmin && (isExpanded ? <ChevronUp size={18} color="#6366f1" /> : <ChevronDown size={18} color="#94a3b8" />)}
+                                                                </td>
+                                                            )}
+                                                            <td>{String(u.id).padStart(3, '0')}</td>
+                                                            <td><div className={styles.userName}>{u.name}</div><small className={styles.userEmail}>{u.email}</small></td>
+                                                            <td style={{ color: '#64748b', fontSize: '0.9rem' }}>{u.phone || 'N/A'}</td>
+                                                            <td><span className={styles.roleBadge}>{u.role}</span></td>
 
-                                                        <td>
-                                                            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                                                                {u.role === 'DRIVER' && (isVerified ? <span className={styles.verified}>Verified</span> : <span className={styles.pending}>Pending</span>)}
-                                                                {!isActive ? <span className={styles.blocked}>Blocked</span> : <span className={styles.activeStatus}>Active</span>}
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            <div className={styles.tableActions}>
-                                                                {u.role === 'DRIVER' && !isVerified && <Button size="sm" onClick={() => handleVerify(u.id)} className={styles.actionBtn}>Verify</Button>}
-                                                                {isActive && u.role !== 'ADMIN' && <Button size="sm" variant="outline" onClick={() => handleBlock(u.id)} className={styles.btnDanger}>Block</Button>}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
+                                                            <td>
+                                                                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                                                                    {u.role === 'DRIVER' && (isVerified ? <span className={styles.verified}>Verified</span> : <span className={styles.pending}>Pending</span>)}
+                                                                    {!isActive ? <span className={styles.blocked}>Blocked</span> : <span className={styles.activeStatus}>Active</span>}
+                                                                </div>
+                                                            </td>
+                                                            <td onClick={(e) => e.stopPropagation()}>
+                                                                <div className={styles.tableActions}>
+                                                                    {u.role === 'DRIVER' && !isVerified && <Button size="sm" onClick={() => handleVerify(u.id)} className={styles.actionBtn}>Verify</Button>}
+                                                                    {isActive && u.role !== 'ADMIN' && <Button size="sm" variant="outline" onClick={() => handleBlock(u.id)} className={styles.btnDanger}>Block</Button>}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        {/* Expanded Row: User Details */}
+                                                        {isExpanded && activeTab === 'users' && !isAdmin && (
+                                                            <tr>
+                                                                <td colSpan="7" style={{ padding: 0, backgroundColor: '#f8fafc', borderTop: 'none' }}>
+                                                                    <div style={{ padding: '1.5rem', borderLeft: '3px solid #6366f1' }}>
+                                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                                                                            {/* Basic Information */}
+                                                                            <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                    <User size={16} /> Basic Information
+                                                                                </h4>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
+                                                                                    <div>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Full Name:</span>
+                                                                                        <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px' }}>{u.name}</div>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Email:</span>
+                                                                                        <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                            {u.email}
+                                                                                            {u.emailVerified ? <CheckCircle size={14} color="#10b981" /> : <XCircle size={14} color="#ef4444" />}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Phone:</span>
+                                                                                        <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px' }}>{u.phone || 'Not provided'}</div>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Role:</span>
+                                                                                        <div style={{ marginTop: '4px' }}><span className={styles.roleBadge}>{u.role}</span></div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            
+                                                                            {/* Account Status */}
+                                                                            <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                    <ShieldCheck size={16} /> Account Status
+                                                                                </h4>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
+                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Account Active:</span>
+                                                                                        <span style={{ fontWeight: 600, color: isActive ? '#10b981' : '#ef4444' }}>
+                                                                                            {isActive ? 'Yes' : 'Blocked'}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Email Verified:</span>
+                                                                                        <span style={{ fontWeight: 600, color: u.emailVerified ? '#10b981' : '#ef4444' }}>
+                                                                                            {u.emailVerified ? 'Yes' : 'No'}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    {u.role === 'DRIVER' && (
+                                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                            <span style={{ color: '#64748b', fontWeight: 500 }}>Driver Verified:</span>
+                                                                                            <span style={{ fontWeight: 600, color: isVerified ? '#10b981' : '#f59e0b' }}>
+                                                                                                {isVerified ? 'Yes' : 'Pending'}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <div>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Member Since:</span>
+                                                                                        <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px' }}>
+                                                                                            {memberSince || 'N/A'}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            
+                                                                            {/* Driver Specific Info */}
+                                                                            {u.role === 'DRIVER' && (
+                                                                                <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                        <Car size={16} /> Driver Information
+                                                                                    </h4>
+                                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
+                                                                                        <div>
+                                                                                            <span style={{ color: '#64748b', fontWeight: 500 }}>Vehicle Model:</span>
+                                                                                            <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px' }}>{u.vehicleModel || 'Not provided'}</div>
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <span style={{ color: '#64748b', fontWeight: 500 }}>License Plate:</span>
+                                                                                            <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px' }}>{u.licensePlate || 'Not provided'}</div>
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <span style={{ color: '#64748b', fontWeight: 500 }}>Average Rating:</span>
+                                                                                            <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                                <Star size={14} fill="#ffc107" color="#ffc107" />
+                                                                                                <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                                                                                                    {u.averageRating ? u.averageRating.toFixed(1) : 'N/A'} {u.totalReviews ? `(${u.totalReviews} reviews)` : ''}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                            
+                                                                            {/* Additional Info */}
+                                                                            <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                    <Activity size={16} /> Activity
+                                                                                </h4>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
+                                                                                    {u.role === 'DRIVER' && (
+                                                                                        <div>
+                                                                                            <span style={{ color: '#64748b', fontWeight: 500 }}>Total Rides Posted:</span>
+                                                                                            <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px' }}>{totalRidesPosted}</div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {u.role === 'PASSENGER' && (
+                                                                                        <div>
+                                                                                            <span style={{ color: '#64748b', fontWeight: 500 }}>Total Bookings:</span>
+                                                                                            <div style={{ fontWeight: 600, color: '#1e293b', marginTop: '2px' }}>{totalBookingsMade}</div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <div>
+                                                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>Bio:</span>
+                                                                                        <div style={{ fontWeight: 500, color: '#64748b', marginTop: '2px', fontStyle: u.bio ? 'normal' : 'italic' }}>
+                                                                                            {u.bio || 'No bio provided'}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </React.Fragment>
                                                 );
                                             })}
                                             {!loading && (activeTab === 'overview' ? recentUsers : paginatedData).length === 0 && (
-                                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No users found matching filters.</td></tr>
+                                                <tr><td colSpan={activeTab === 'users' ? '7' : '6'} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No users found matching filters.</td></tr>
                                             )}
                                         </tbody>
                                     )}  </table>
@@ -698,10 +880,10 @@ const AdminDashboard = () => {
                                     <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
                                         Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, processedData.length)} to {Math.min(currentPage * ITEMS_PER_PAGE, processedData.length)} of {processedData.length} results
                                     </span>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <Button size="sm" variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft size={16} /></Button>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ background: 'none', border: 'none', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', padding: 0, display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.3 : 1 }}><ChevronLeft size={16} /></button>
                                         <span style={{ display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '0.9rem', fontWeight: '600' }}>{currentPage}</span>
-                                        <Button size="sm" variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}><ChevronRight size={16} /></Button>
+                                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ background: 'none', border: 'none', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', padding: 0, display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.3 : 1 }}><ChevronRight size={16} /></button>
                                     </div>
                                 </div>
                             )}
@@ -719,32 +901,179 @@ const AdminDashboard = () => {
                                 <table className={styles.table}>
                                     <thead>
                                         <tr>
+                                            {activeTab === 'rides' && <th style={{ width: '40px' }}></th>}
                                             <SortableHeader label="ID" sortKey="id" />
                                             <SortableHeader label="Driver" sortKey="driver.name" />
-                                            <SortableHeader label="Source" sortKey="source" />
-                                            <SortableHeader label="Destination" sortKey="destination" />
+                                            <SortableHeader label="Route" sortKey="source" />
+                                            <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Price</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Bookings</th>
                                             <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Status</th>
                                             <th style={{ padding: '12px', textAlign: 'left', color: '#64748b', fontSize: '0.85rem' }}>Actions</th>
                                         </tr>
                                     </thead>
-                                    {loading ? <TableSkeleton cols={6} /> : (
+                                    {loading ? <TableSkeleton cols={activeTab === 'rides' ? 8 : 7} /> : (
                                         <tbody>
-                                            {(activeTab === 'overview' ? recentRides : paginatedData).map(r => (
-                                                <tr key={r.id}>
-                                                    <td>{String(r.id).padStart(3, '0')}</td>
-                                                    <td>{r.driver?.name}</td>
-                                                    <td>{r.source}</td>
-                                                    <td>{r.destination}</td>
-                                                    <td><span className={`${styles.statusBadge} ${styles[r.status]}`}>{r.status}</span></td>
-                                                    <td>
-                                                        {r.status !== 'CANCELLED' && r.status !== 'CANCELLED_BY_ADMIN' && (
-                                                            <Button size="sm" variant="outline" onClick={() => openCancelModal(r.id)} className={styles.btnDanger}>Cancel</Button>
+                                            {(activeTab === 'overview' ? recentRides : paginatedData).map(r => {
+                                                const isExpanded = expandedRideId === r.id;
+                                                const bookings = rideBookings[r.id] || [];
+                                                // Only count seats from active bookings (not cancelled)
+                                                const activeBookings = bookings.filter(b => b.status !== 'CANCELLED' && b.status !== 'CANCELLED_BY_DRIVER' && b.status !== 'CANCELLED_BY_ADMIN');
+                                                const totalBookedSeats = activeBookings.reduce((sum, b) => sum + (b.seatsBooked || 0), 0);
+                                                // Calculate total original seats: availableSeats (current) + bookedSeats
+                                                const totalSeats = r.availableSeats + totalBookedSeats;
+                                                // Calculate revenue: check payment first, fallback to pricePerSeat * seatsBooked * 1.07 (5% GST + 2% platform fee)
+                                                const revenue = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED').reduce((sum, b) => {
+                                                    const amount = b.payment?.amount || (r.pricePerSeat * (b.seatsBooked || 0) * 1.07);
+                                                    return sum + amount;
+                                                }, 0);
+                                                
+                                                return (
+                                                    <React.Fragment key={r.id}>
+                                                        <tr style={{ cursor: activeTab === 'rides' ? 'pointer' : 'default', backgroundColor: isExpanded ? '#f8fafc' : 'transparent' }} onClick={() => activeTab === 'rides' && toggleRideDetails(r.id)}>
+                                                            {activeTab === 'rides' && (
+                                                                <td style={{ textAlign: 'center' }}>
+                                                                    {isExpanded ? <ChevronUp size={18} color="#6366f1" /> : <ChevronDown size={18} color="#94a3b8" />}
+                                                                </td>
+                                                            )}
+                                                            <td>{String(r.id).padStart(3, '0')}</td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ fontWeight: 600 }}>{r.driver?.name}</span>
+                                                                    <small style={{ color: '#64748b', fontSize: '0.8rem' }}>{r.driver?.phone}</small>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                    <span style={{ fontWeight: 500 }}>{r.source}</span>
+                                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>→ {r.destination}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td style={{ fontWeight: 600, color: '#10b981' }}>₹{r.pricePerSeat}</td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ fontWeight: 600 }}>{bookings.length} booking{bookings.length !== 1 ? 's' : ''}</span>
+                                                                    <small style={{ color: '#64748b', fontSize: '0.8rem' }}>{totalBookedSeats}/{totalSeats} seats</small>
+                                                                </div>
+                                                            </td>
+                                                            <td><span className={`${styles.statusBadge} ${styles[r.status]}`}>{r.status}</span></td>
+                                                            <td onClick={(e) => e.stopPropagation()}>
+                                                                {r.status !== 'CANCELLED' && r.status !== 'CANCELLED_BY_ADMIN' && (
+                                                                    <Button size="sm" variant="outline" onClick={() => openCancelModal(r.id)} className={styles.btnDanger}>Cancel</Button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        {/* Expanded Row: Customer Details */}
+                                                        {isExpanded && activeTab === 'rides' && (
+                                                            <tr>
+                                                                <td colSpan="8" style={{ padding: 0, backgroundColor: '#f8fafc', borderTop: 'none' }}>
+                                                                    <div style={{ padding: '1.5rem', borderLeft: '3px solid #6366f1' }}>
+                                                                        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>
+                                                                                <Users size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                                                                                Customers & Bookings ({bookings.length} total{bookings.filter(b => b.status === 'CANCELLED' || b.status === 'CANCELLED_BY_DRIVER' || b.status === 'CANCELLED_BY_ADMIN').length > 0 ? `, ${bookings.filter(b => b.status !== 'CANCELLED' && b.status !== 'CANCELLED_BY_DRIVER' && b.status !== 'CANCELLED_BY_ADMIN').length} active` : ''})
+                                                                            </h4>
+                                                                            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', flexWrap: 'wrap' }}>
+                                                                                <div>
+                                                                                    <span style={{ color: '#64748b' }}>Total Revenue: </span>
+                                                                                    <span style={{ fontWeight: 700, color: '#10b981' }}>₹{revenue}</span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <span style={{ color: '#64748b' }}>Active Passengers: </span>
+                                                                                    <span style={{ fontWeight: 700, color: '#6366f1' }}>{totalBookedSeats}</span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <span style={{ color: '#64748b' }}>Available Seats: </span>
+                                                                                    <span style={{ fontWeight: 700, color: '#0ea5e9' }}>{r.availableSeats}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        {loadingBookings ? (
+                                                                            <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                                                                Loading customer details...
+                                                                            </div>
+                                                                        ) : bookings.length === 0 ? (
+                                                                            <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                                                                <UserCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
+                                                                                <p>No bookings for this ride yet.</p>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1rem' }}>
+                                                                                {bookings.map((booking, idx) => {
+                                                                                    const isCancelled = booking.status === 'CANCELLED' || booking.status === 'CANCELLED_BY_DRIVER' || booking.status === 'CANCELLED_BY_ADMIN';
+                                                                                    return (
+                                                                                    <div key={idx} style={{ 
+                                                                                        padding: '1rem', 
+                                                                                        backgroundColor: isCancelled ? '#fef2f2' : 'white', 
+                                                                                        borderRadius: '12px', 
+                                                                                        border: isCancelled ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                                                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                                                                                        opacity: isCancelled ? 0.75 : 1
+                                                                                    }}>
+                                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                                <UserCircle size={24} color={isCancelled ? '#ef4444' : '#6366f1'} />
+                                                                                                <div>
+                                                                                                    <div style={{ fontWeight: 700, color: '#1e293b' }}>{booking.passenger?.name || 'N/A'}</div>
+                                                                                                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Booking #{String(booking.id).padStart(3, '0')}</div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <span className={`${styles.statusBadge} ${styles[booking.status]}`} style={{ fontSize: '0.7rem', padding: '4px 8px' }}>
+                                                                                                {booking.status}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        
+                                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b' }}>
+                                                                                                <Mail size={14} />
+                                                                                                <span>{booking.passenger?.email || 'N/A'}</span>
+                                                                                            </div>
+                                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b' }}>
+                                                                                                <Phone size={14} />
+                                                                                                <span>{booking.passenger?.phone || 'N/A'}</span>
+                                                                                            </div>
+                                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isCancelled ? '#ef4444' : '#64748b' }}>
+                                                                                                <Users size={14} />
+                                                                                                <span>{booking.seatsBooked || 0} seat{booking.seatsBooked !== 1 ? 's' : ''} {isCancelled ? '(freed)' : 'booked'}</span>
+                                                                                            </div>
+                                                                                            {booking.payment && (
+                                                                                                <div style={{ 
+                                                                                                    marginTop: '0.5rem', 
+                                                                                                    paddingTop: '0.5rem', 
+                                                                                                    borderTop: '1px solid #f1f5f9',
+                                                                                                    display: 'flex',
+                                                                                                    justifyContent: 'space-between',
+                                                                                                    alignItems: 'center'
+                                                                                                }}>
+                                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                                                        <CreditCard size={14} color={booking.payment.status === 'COMPLETED' ? '#10b981' : isCancelled ? '#ef4444' : '#f59e0b'} />
+                                                                                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{isCancelled ? 'Refunded' : 'Payment'}</span>
+                                                                                                    </div>
+                                                                                                    <span style={{ 
+                                                                                                        fontWeight: 700, 
+                                                                                                        color: booking.payment.status === 'COMPLETED' ? '#10b981' : isCancelled ? '#ef4444' : '#f59e0b',
+                                                                                                        textDecoration: isCancelled ? 'line-through' : 'none'
+                                                                                                    }}>
+                                                                                                        ₹{booking.payment.amount}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
                                                         )}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                    </React.Fragment>
+                                                );
+                                            })}
                                             {!loading && (activeTab === 'overview' ? recentRides : paginatedData).length === 0 && (
-                                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No rides found matching filters.</td></tr>
+                                                <tr><td colSpan={activeTab === 'rides' ? '8' : '7'} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No rides found matching filters.</td></tr>
                                             )}
                                         </tbody>
                                     )}
@@ -757,10 +1086,10 @@ const AdminDashboard = () => {
                                     <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
                                         Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, processedData.length)} to {Math.min(currentPage * ITEMS_PER_PAGE, processedData.length)} of {processedData.length} results
                                     </span>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <Button size="sm" variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft size={16} /></Button>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ background: 'none', border: 'none', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', padding: 0, display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.3 : 1 }}><ChevronLeft size={16} /></button>
                                         <span style={{ display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: '0.9rem', fontWeight: '600' }}>{currentPage}</span>
-                                        <Button size="sm" variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}><ChevronRight size={16} /></Button>
+                                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ background: 'none', border: 'none', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', padding: 0, display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.3 : 1 }}><ChevronRight size={16} /></button>
                                     </div>
                                 </div>
                             )}

@@ -125,6 +125,8 @@ const DriverDashboard = () => {
             showToast('Booking accepted successfully!', 'SUCCESS');
             const list = await getRidePassengers(passengerModal.rideId);
             setPassengerModal(prev => ({ ...prev, passengers: list }));
+            // Refresh rides to get updated seat counts from backend
+            fetchRides();
         } catch (err) {
             showToast(err.message, 'ERROR');
         }
@@ -159,7 +161,8 @@ const DriverDashboard = () => {
 
     const renderRideList = (rideList) => (
         <div className={styles.ridesGrid}>
-            {rideList.map((ride) => (
+            {rideList.map((ride) => {
+                return (
                 <div key={ride.id} className={styles.rideCard}>
                     <div className={`${styles.statusBadge} ${styles[ride.status]}`}>
                         {ride.status ? ride.status.replace(/_/g, ' ') : 'AVAILABLE'}
@@ -185,7 +188,7 @@ const DriverDashboard = () => {
                             <Clock size={16} className={styles.icon} /> {ride.travelTime}
                         </div>
                         <div className={styles.detailItem}>
-                            <Users size={16} className={styles.icon} /> {ride.availableSeats} Seats
+                            <Users size={16} className={styles.icon} /> {ride.availableSeats} Seats Available
                         </div>
                     </div>
 
@@ -215,7 +218,8 @@ const DriverDashboard = () => {
                         )}
                     </div>
                 </div>
-            ))}
+                );
+            })}
         </div>
     );
 
@@ -324,7 +328,11 @@ const DriverDashboard = () => {
             )}
 
             {/* Profile Modal */}
-            {viewProfileId && <UserProfileModal userId={viewProfileId} onClose={() => setViewProfileId(null)} />}
+            {viewProfileId && <UserProfileModal 
+                userId={viewProfileId} 
+                onClose={() => setViewProfileId(null)} 
+                hasBooked={true}
+            />}
 
             {/* Review Modal */}
             {reviewTarget && (

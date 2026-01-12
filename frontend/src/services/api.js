@@ -63,6 +63,55 @@ export const registerUser = async (userData) => {
   return data;
 };
 
+export const forgotPassword = async (email) => {
+  const response = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to send reset link");
+  }
+  return data;
+};
+
+export const resetPassword = async (token, newPassword) => {
+  const response = await fetch(`${API_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to reset password");
+  }
+  return data;
+};
+
+export const verifyEmail = async (token) => {
+  const response = await fetch(`${API_URL}/auth/verify-email?token=${token}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    // Response is not JSON
+    data = { message: text };
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || text || "Failed to verify email");
+  }
+  return data;
+};
+
 export const logoutUser = () => {
   localStorage.removeItem("token");
   window.location.href = "/login"; // Force redirect
@@ -174,52 +223,13 @@ export const getAllBookings = async () => {
 };
 
 export const getAllRides = async () => {
-  // MOCK DELAY
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  // DUMMY RIDES FOR ADMIN CONSOLE UI
-  return [
-    {
-      id: 1001,
-      driver: { name: "Driver 1", phone: "987XXXXXXX" },
-      source: "Chennai, Tamil Nadu",
-      destination: "Coimbatore, Tamil Nadu",
-      status: "IN_PROGRESS",
-      pricePerSeat: 850,
-      availableSeats: 2,
-      startTime: new Date().toISOString()
-    },
-    {
-      id: 1002,
-      driver: { name: "Driver 2", phone: "912XXXXXXX" },
-      source: "Bangalore, Karnataka",
-      destination: "Mysore, Karnataka",
-      status: "AVAILABLE",
-      pricePerSeat: 450,
-      availableSeats: 3,
-      startTime: new Date(Date.now() + 86400000).toISOString()
-    },
-    {
-      id: 1003,
-      driver: { name: "Driver 3", phone: "888XXXXXXX" },
-      source: "Hyderabad, Telangana",
-      destination: "Vijayawada, AP",
-      status: "COMPLETED",
-      pricePerSeat: 600,
-      availableSeats: 0,
-      startTime: "2023-11-10T10:00:00Z"
-    },
-    {
-      id: 1004,
-      driver: { name: "Driver 4", phone: "777XXXXXXX" },
-      source: "Mumbai, Maharashtra",
-      destination: "Pune, Maharashtra",
-      status: "CANCELLED",
-      pricePerSeat: 300,
-      availableSeats: 4,
-      startTime: "2023-11-12T09:00:00Z"
-    }
-  ];
+  const response = await fetch(`${API_URL}/admin/rides`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch rides");
+  return data;
 };
 
 // Fetch Dashboard Stats
@@ -416,23 +426,24 @@ export const completeRide = async (rideId) => {
 // --- REVIEW SERVICES ---
 
 export const submitReview = async (bookingId, rating, comment) => {
-  // MOCK DELAY
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return {
-    id: Math.floor(Math.random() * 1000),
-    bookingId,
-    rating,
-    comment,
-    createdAt: new Date().toISOString()
-  };
+  const response = await fetch(`${API_URL}/reviews/submit`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ bookingId, rating, comment })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to submit review");
+  return data;
 };
 
 export const getMyReviews = async () => {
-  // MOCK DELAY
-  await new Promise(resolve => setTimeout(resolve, 600));
-
-  // MOCK DATA - Return empty for new user experience
-  return [];
+  const response = await fetch(`${API_URL}/reviews/my-reviews`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch reviews");
+  return data;
 };
 
 // --- PUBLIC PROFILE SERVICE ---
