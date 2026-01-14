@@ -28,14 +28,25 @@ const Navbar = () => {
     }, [user]);
 
     const fetchNotifications = async () => {
+        // Don't show loading for polling requests
+        const isInitialLoad = notifications.length === 0;
+        
         try {
-            setLoadingNotifications(true);
+            if (isInitialLoad) {
+                setLoadingNotifications(true);
+            }
             const data = await getNotifications();
-            setNotifications(data);
+            setNotifications(data || []);
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
+            // If 403, user might not be authenticated - silently fail
+            if (error.message?.includes('Access denied')) {
+                setNotifications([]);
+            }
         } finally {
-            setLoadingNotifications(false);
+            if (isInitialLoad) {
+                setLoadingNotifications(false);
+            }
         }
     };
 

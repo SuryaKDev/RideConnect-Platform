@@ -921,8 +921,8 @@ const AdminDashboard = () => {
                                                 const totalBookedSeats = activeBookings.reduce((sum, b) => sum + (b.seatsBooked || 0), 0);
                                                 // Calculate total original seats: availableSeats (current) + bookedSeats
                                                 const totalSeats = r.availableSeats + totalBookedSeats;
-                                                // Calculate revenue: check payment first, fallback to pricePerSeat * seatsBooked * 1.07 (5% GST + 2% platform fee)
-                                                const revenue = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED').reduce((sum, b) => {
+                                                // Calculate revenue: include all non-cancelled bookings
+                                                const revenue = activeBookings.reduce((sum, b) => {
                                                     const amount = b.payment?.amount || (r.pricePerSeat * (b.seatsBooked || 0) * 1.07);
                                                     return sum + amount;
                                                 }, 0);
@@ -976,7 +976,7 @@ const AdminDashboard = () => {
                                                                             <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', flexWrap: 'wrap' }}>
                                                                                 <div>
                                                                                     <span style={{ color: '#64748b' }}>Total Revenue: </span>
-                                                                                    <span style={{ fontWeight: 700, color: '#10b981' }}>₹{revenue}</span>
+                                                                                    <span style={{ fontWeight: 700, color: '#10b981' }}>₹{revenue.toFixed(2)}</span>
                                                                                 </div>
                                                                                 <div>
                                                                                     <span style={{ color: '#64748b' }}>Active Passengers: </span>

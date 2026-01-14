@@ -129,11 +129,14 @@ const PassengerDashboard = () => {
     };
 
     const confirmBooking = async () => {
+        setBookingStatus('loading');
         try {
             await bookRide(selectedRide.id, seatsToBook);
-            setBookingStatus('success');
             showToast("Ride booked successfully!", "SUCCESS");
-            setTimeout(() => { setSelectedRide(null); setBookingStatus(null); }, 2000);
+            // Close modal and reset state immediately
+            setSelectedRide(null);
+            setBookingStatus(null);
+            setSeatsToBook(1);
             // Refresh history
             const historyData = await getMyBookings();
             setHistory(historyData || []);
@@ -323,7 +326,7 @@ const PassengerDashboard = () => {
                                     <button
                                         className={styles.stepperBtn}
                                         onClick={() => setSeatsToBook(s => Math.max(1, s - 1))}
-                                        disabled={seatsToBook <= 1}
+                                        disabled={seatsToBook <= 1 || bookingStatus === 'loading'}
                                     >
                                         <Minus size={16} />
                                     </button>
@@ -331,7 +334,7 @@ const PassengerDashboard = () => {
                                     <button
                                         className={styles.stepperBtn}
                                         onClick={() => setSeatsToBook(s => Math.min(selectedRide.availableSeats, s + 1))}
-                                        disabled={seatsToBook >= selectedRide.availableSeats}
+                                        disabled={seatsToBook >= selectedRide.availableSeats || bookingStatus === 'loading'}
                                     >
                                         <Plus size={16} />
                                     </button>
@@ -344,13 +347,20 @@ const PassengerDashboard = () => {
                                 <span className={styles.totalPrice}>₹{selectedRide.pricePerSeat * seatsToBook}</span>
                             </div>
                             <p className={styles.reassurance}>You won’t be charged until the driver accepts your request.</p>
-
-                            {bookingStatus === 'success' && <div className={styles.successMessage}><CheckCircle size={18} /> Request Sent!</div>}
                         </div>
                         <div className={styles.modalActions}>
-                            <Button variant="outline" onClick={() => setSelectedRide(null)}>Go Back</Button>
-                            <Button onClick={confirmBooking} disabled={bookingStatus === 'success'}>
-                                {bookingStatus === 'success' ? 'Sent' : 'Request Booking'}
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setSelectedRide(null)}
+                                disabled={bookingStatus === 'loading'}
+                            >
+                                Go Back
+                            </Button>
+                            <Button 
+                                onClick={confirmBooking} 
+                                disabled={bookingStatus === 'loading'}
+                            >
+                                {bookingStatus === 'loading' ? 'Requesting...' : 'Request Booking'}
                             </Button>
                         </div>
                     </div>

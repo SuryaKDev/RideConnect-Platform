@@ -487,8 +487,19 @@ export const uploadImage = async (file) => {
     body: formData,
   });
 
+  // Handle 403 or other errors before parsing JSON
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Image upload failed");
+    } else {
+      const errorText = await response.text();
+      throw new Error(errorText || `Image upload failed with status ${response.status}`);
+    }
+  }
+
   const data = await response.json();
-  if (!response.ok) throw new Error(data.message || "Image upload failed");
   return data.url; // Returns the Cloudinary URL
 };
 
@@ -520,6 +531,25 @@ export const getNotifications = async () => {
     method: "GET",
     headers: getHeaders(),
   });
+  
+  // Handle 403 Forbidden (user not authenticated or authorized)
+  if (response.status === 403) {
+    throw new Error("Access denied. Please check your login status.");
+  }
+  
+  // Handle empty response
+  if (response.status === 204) return [];
+  
+  // Check content type before parsing
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(text || "Failed to fetch notifications");
+    }
+    return [];
+  }
+  
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Failed to fetch notifications");
   return data;

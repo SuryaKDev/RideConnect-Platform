@@ -136,8 +136,9 @@ const PostRide = () => {
                         {suggestion && (
                             <div className={styles.suggestionBox}>
                                 <p><strong>Estimated Distance:</strong> {suggestion.distanceKm} km</p>
+                                <p><strong>Estimated Duration:</strong> {suggestion.duration || 'Calculating...'}</p>
                                 <p><strong>Max Allowed Fare:</strong> ₹{suggestion.suggestedFare}</p>
-                                <small>You can set a lower price, but not higher.</small>
+                                <small>You can set a lower price, but not higher. Backend validates this limit.</small>
                             </div>
                         )}
 

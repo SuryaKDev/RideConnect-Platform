@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useState, useEffect } from 'react';
-import { GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
+import React, { memo, useCallback, useState } from 'react';
+import { GoogleMap, Marker, InfoWindow, Polyline } from '@react-google-maps/api';
 
 const containerStyle = {
   width: '100%',
@@ -26,39 +26,11 @@ function InteractiveMap({
   style = {}
 }) {
   const [activeMarker, setActiveMarker] = useState(null);
-  const [directions, setDirections] = useState({});
 
   const mapStyle = {
     ...containerStyle,
     ...style
   };
-
-  // Fetch directions for all rides
-  useEffect(() => {
-    if (!rides.length || !window.google?.maps) return;
-
-    const directionsService = new window.google.maps.DirectionsService();
-
-    rides.forEach((ride) => {
-      if (!ride.source || !ride.destination) return;
-
-      directionsService.route(
-        {
-          origin: ride.source,
-          destination: ride.destination,
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === window.google.maps.DirectionsStatus.OK) {
-            setDirections(prev => ({
-              ...prev,
-              [ride.id]: result
-            }));
-          }
-        }
-      );
-    });
-  }, [rides]);
 
   const handleMarkerClick = useCallback(
     (ride) => {
@@ -101,78 +73,70 @@ function InteractiveMap({
         fullscreenControl: true,
       }}
     >
-      {/* Render directions/routes for all rides */}
+      {/* Render routes for all rides using encoded polylines from backend */}
       {rides.map((ride) => {
-        const direction = directions[ride.id];
-        if (!direction) return null;
+        // Backend now provides encodedPolyline - decode it
+        if (!ride.encodedPolyline || !window.google?.maps?.geometry) {
+          return null;
+        }
 
+        const decodedPath = window.google.maps.geometry.encoding.decodePath(ride.encodedPolyline);
         const isHighlighted = highlightedRideId === ride.id;
         const isSelected = selectedRideId === ride.id;
 
+        // Get source and destination coordinates from backend OR extract from polyline
+        let sourcePos = getCoordinates(ride.sourceCoordinates || ride.sourceLocation);
+        let destPos = getCoordinates(ride.destinationCoordinates || ride.destinationLocation);
+        
+        // Fallback: Extract from decoded polyline if backend didn't provide coordinates
+        if (!sourcePos && decodedPath.length > 0) {
+          sourcePos = decodedPath[0]; // First point is source
+        }
+        if (!destPos && decodedPath.length > 0) {
+          destPos = decodedPath[decodedPath.length - 1]; // Last point is destination
+        }
+
         return (
           <React.Fragment key={`route-${ride.id}`}>
-            <DirectionsRenderer
-              directions={direction}
+            {/* Render polyline */}
+            <Polyline
+              path={decodedPath}
               options={{
-                suppressMarkers: true,
-                polylineOptions: {
-                  strokeColor: isSelected ? '#ef4444' : isHighlighted ? '#f59e0b' : '#2563eb',
-                  strokeOpacity: isSelected || isHighlighted ? 0.9 : 0.6,
-                  strokeWeight: isSelected ? 5 : isHighlighted ? 4 : 3,
-                }
+                strokeColor: isSelected ? '#ef4444' : isHighlighted ? '#f59e0b' : '#2563eb',
+                strokeOpacity: isSelected || isHighlighted ? 0.9 : 0.6,
+                strokeWeight: isSelected ? 5 : isHighlighted ? 4 : 3,
               }}
             />
             {/* Source Marker */}
-            <Marker
-              position={direction.routes[0].legs[0].start_location}
-              icon={{
-                path: window.google.maps.SymbolPath.CIRCLE,
-                scale: 7,
-                fillColor: '#10b981',
-                fillOpacity: 0.9,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-              }}
-              title={`Start: ${ride.source}`}
-            />
+            {sourcePos && (
+              <Marker
+                position={sourcePos}
+                icon={{
+                  path: window.google.maps.SymbolPath.CIRCLE,
+                  scale: 7,
+                  fillColor: '#10b981',
+                  fillOpacity: 0.9,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                }}
+                title={`Start: ${ride.source}`}
+              />
+            )}
             {/* Destination Marker */}
-            <Marker
-              position={direction.routes[0].legs[0].end_location}
-              icon={{
-                path: window.google.maps.SymbolPath.CIRCLE,
-                scale: 7,
-                fillColor: '#ef4444',
-                fillOpacity: 0.9,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-              }}
-              title={`End: ${ride.destination}`}
-            />
-            {/* Stopover Markers */}
-            {ride.stopOvers && ride.stopOvers.length > 0 && 
-              ride.stopOvers.split(',').map((stopover, index) => {
-                const leg = direction.routes[0].legs[0];
-                const steps = leg.steps;
-                if (steps && steps[Math.floor(steps.length / (ride.stopOvers.split(',').length + 1) * (index + 1))]) {
-                  return (
-                    <Marker
-                      key={`stopover-${ride.id}-${index}`}
-                      position={steps[Math.floor(steps.length / (ride.stopOvers.split(',').length + 1) * (index + 1))].end_location}
-                      icon={{
-                        path: window.google.maps.SymbolPath.CIRCLE,
-                        scale: 5,
-                        fillColor: '#f59e0b',
-                        fillOpacity: 0.9,
-                        strokeColor: '#ffffff',
-                        strokeWeight: 1,
-                      }}
-                      title={`Stopover: ${stopover.trim()}`}
-                    />
-                  );
-                }
-                return null;
-              })
-            }
+            {destPos && (
+              <Marker
+                position={destPos}
+                icon={{
+                  path: window.google.maps.SymbolPath.CIRCLE,
+                  scale: 7,
+                  fillColor: '#ef4444',
+                  fillOpacity: 0.9,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                }}
+                title={`End: ${ride.destination}`}
+              />
+            )}
           </React.Fragment>
         );
       })}
@@ -234,22 +198,46 @@ function InteractiveMap({
   );
 }
 
+// Extract coordinates from backend geometry object (PostGIS format or standard lat/lng)
+function getCoordinates(coordObject) {
+  if (!coordObject) return null;
+
+  // PostGIS Point format: { x: lng, y: lat } or { coordinates: [lng, lat] }
+  if (coordObject.x !== undefined && coordObject.y !== undefined) {
+    return { lat: Number(coordObject.y), lng: Number(coordObject.x) };
+  }
+
+  // GeoJSON format
+  if (coordObject.coordinates && Array.isArray(coordObject.coordinates)) {
+    return { lat: Number(coordObject.coordinates[1]), lng: Number(coordObject.coordinates[0]) };
+  }
+
+  // Standard format: { lat, lng } or { latitude, longitude }
+  if (coordObject.lat !== undefined && coordObject.lng !== undefined) {
+    return { lat: Number(coordObject.lat), lng: Number(coordObject.lng) };
+  }
+
+  if (coordObject.latitude !== undefined && coordObject.longitude !== undefined) {
+    return { lat: Number(coordObject.latitude), lng: Number(coordObject.longitude) };
+  }
+
+  return null;
+}
+
 // Extract source coordinates from ride object
 function getRideSourcePosition(ride) {
-  // Try different possible property names for coordinates
+  // Try backend geometry fields first (new format)
+  if (ride.sourceCoordinates || ride.sourceLocation) {
+    return getCoordinates(ride.sourceCoordinates || ride.sourceLocation);
+  }
+
+  // Fallback to legacy separate lat/lng fields
   if (ride.sourceLat && ride.sourceLng) {
     return { lat: Number(ride.sourceLat), lng: Number(ride.sourceLng) };
   }
 
   if (ride.sourceLatitude && ride.sourceLongitude) {
     return { lat: Number(ride.sourceLatitude), lng: Number(ride.sourceLongitude) };
-  }
-
-  if (ride.sourceCoordinates) {
-    return {
-      lat: Number(ride.sourceCoordinates.lat || ride.sourceCoordinates.latitude),
-      lng: Number(ride.sourceCoordinates.lng || ride.sourceCoordinates.longitude),
-    };
   }
 
   return null;
