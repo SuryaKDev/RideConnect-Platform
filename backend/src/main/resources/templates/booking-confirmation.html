@@ -12,7 +12,9 @@
         <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <p><strong>Route:</strong> <span th:text="${source}">Source</span> to <span th:text="${dest}">Destination</span></p>
             <p><strong>Amount Paid:</strong> Rs. <span th:text="${amount}">0.0</span></p>
+            <p><strong>Verification OTP:</strong> <span style="font-size: 20px; letter-spacing: 2px; color: #007bff; font-weight: bold;" th:text="${otp}">000000</span></p>
         </div>
+        <p>Please share this OTP with your driver when you board the ride.</p>
         <p>Have a safe and comfortable journey!</p>
         <p>The RideConnect Team</p>
     </div>

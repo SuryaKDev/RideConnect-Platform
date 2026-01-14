@@ -52,6 +52,15 @@ public class BookingController {
         return ResponseEntity.ok(Map.of("message", "Booking rejected"));
     }
 
+    @PutMapping("/{id}/verify-onboarding")
+    public ResponseEntity<?> verifyOnboarding(
+            @PathVariable Long id,
+            @RequestParam String otp,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        bookingService.verifyOnboarding(id, otp, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Passenger onboarded successfully"));
+    }
+
     // --- NEW: Recent Routes Endpoint ---
     @GetMapping("/recent-routes")
     public ResponseEntity<List<RoutePresetDto>> getRecentRoutes(@AuthenticationPrincipal UserDetails userDetails) {

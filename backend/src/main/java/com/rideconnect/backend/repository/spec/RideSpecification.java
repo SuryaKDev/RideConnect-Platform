@@ -11,6 +11,10 @@ public class RideSpecification {
         return (root, query, cb) -> cb.equal(root.get("status"), status);
     }
 
+    public static Specification<Ride> hasStatusIn(java.util.Collection<String> statuses) {
+        return (root, query, cb) -> root.get("status").in(statuses);
+    }
+
     public static Specification<Ride> hasSource(String source) {
         return (root, query, cb) -> {
             if (source == null || source.isEmpty()) return null;

@@ -33,7 +33,12 @@ public class Booking {
     // When did they book?
     private LocalDateTime bookingTime;
 
-    // Status: BOOKED, CANCELLED
+    // Status: BOOKED, CONFIRMED, ONBOARDED, CANCELLED
     @Column(nullable = false)
     private String status;
+
+    private String onboardingOtp;
+
+    @Transient
+    private String estimatedArrivalTime; // e.g., "2 hours 58 mins"
 }

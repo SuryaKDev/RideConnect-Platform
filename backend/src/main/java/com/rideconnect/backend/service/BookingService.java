@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -162,6 +163,30 @@ public class BookingService {
                 booking.getPassenger().getName() + " cancelled their request.", "WARNING");
     }
 
+    @Transactional
+    public void verifyOnboarding(Long bookingId, String otp, String driverEmail) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (!booking.getRide().getDriver().getEmail().equals(driverEmail)) {
+            throw new RuntimeException("Not authorized: You are not the driver for this ride");
+        }
+
+        if (!"CONFIRMED".equals(booking.getStatus())) {
+            throw new RuntimeException("Booking is not in CONFIRMED status");
+        }
+
+        if (booking.getOnboardingOtp() == null || !booking.getOnboardingOtp().equals(otp)) {
+            throw new RuntimeException("Invalid OTP. Verification failed.");
+        }
+
+        booking.setStatus("ONBOARDED");
+        bookingRepository.save(booking);
+
+        notificationService.notifyUser(booking.getPassenger().getEmail(), "Onboarding Successful",
+                "You have been successfully onboarded for your ride to " + booking.getRide().getDestination(), "SUCCESS");
+    }
+
     public List<Booking> getMyBookings(String email) {
         return bookingRepository.findByPassengerEmail(email);
     }
@@ -178,11 +203,37 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
-    // --- NEW: Get Active Ride for Dashboard ---
+    // --- NEW: Get Active Ride for Today ---
     public Booking getActiveRideForToday(String email) {
         List<Booking> active = bookingRepository.findActiveBookingsForToday(email, LocalDate.now());
         if (active.isEmpty()) return null;
-        // Return the first one found (assuming users don't double book same time slots usually)
-        return active.get(0);
+        
+        Booking booking = active.get(0);
+        
+        // Calculate Estimated Arrival Time (Simple approach: Duration until ride starts)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime rideStartTime = LocalDateTime.of(booking.getRide().getTravelDate(), booking.getRide().getTravelTime());
+        
+        if (rideStartTime.isAfter(now)) {
+            Duration duration = Duration.between(now, rideStartTime);
+            long hours = duration.toHours();
+            long mins = duration.toMinutesPart();
+            
+            String timeStr = "";
+            if (hours > 0) timeStr += hours + " hours ";
+            timeStr += mins + " mins";
+            
+            booking.setEstimatedArrivalTime(timeStr);
+        } else if ("IN_PROGRESS".equals(booking.getRide().getStatus())) {
+            // If ride started, we don't have real-time GPS here yet, 
+            // but we could estimate based on distance. 
+            // For now, let frontend handle dynamic duration via Google Maps, 
+            // but we provide a static fallback if needed.
+            booking.setEstimatedArrivalTime("Arriving soon");
+        } else {
+            booking.setEstimatedArrivalTime("Due now");
+        }
+
+        return booking;
     }
 }

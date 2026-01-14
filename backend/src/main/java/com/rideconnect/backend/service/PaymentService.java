@@ -90,6 +90,11 @@ public class PaymentService {
 
             paymentRepository.save(payment);
             booking.setStatus("CONFIRMED");
+            
+            // Generate 6-digit OTP for onboarding
+            String otp = String.format("%06d", new Random().nextInt(1000000));
+            booking.setOnboardingOtp(otp);
+            
             bookingRepository.save(booking);
 
             emailService.sendBookingConfirmation(
@@ -97,7 +102,8 @@ public class PaymentService {
                     booking.getPassenger().getName(),
                     booking.getRide().getSource(),
                     booking.getRide().getDestination(),
-                    payment.getAmount()
+                    payment.getAmount(),
+                    otp
             );
 
             // Notify Driver

@@ -94,12 +94,13 @@ public class EmailService {
         sendHtmlEmail(toEmail, "Refund Processed", "refund-confirmation", variables);
     }
 
-    public void sendBookingConfirmation(String toEmail, String name, String source, String dest, Double amount) {
+    public void sendBookingConfirmation(String toEmail, String name, String source, String dest, Double amount, String otp) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("name", name);
         variables.put("source", source);
         variables.put("dest", dest);
         variables.put("amount", amount);
+        variables.put("otp", otp);
         sendHtmlEmail(toEmail, "Ride Confirmed: " + source + " to " + dest, "booking-confirmation", variables);
     }
 

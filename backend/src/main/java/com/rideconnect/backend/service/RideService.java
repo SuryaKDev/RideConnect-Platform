@@ -115,15 +115,17 @@ public class RideService {
                                   Double minPrice, Double maxPrice,
                                   Integer minSeats, Double minRating) {
 
+        List<String> activeStatuses = List.of("AVAILABLE", "FULL");
+
         // 1. If NO filters are provided, return ALL Available rides (Browse Mode)
         if ((source == null || source.isEmpty()) &&
                 (destination == null || destination.isEmpty()) &&
                 date == null) {
-            return rideRepository.findAll(Specification.where(RideSpecification.hasStatus("AVAILABLE")));
+            return rideRepository.findAll(RideSpecification.hasStatusIn(activeStatuses));
         }
 
         // 2. Build Specification for Text Search
-        Specification<Ride> spec = Specification.where(RideSpecification.hasStatus("AVAILABLE"));
+        Specification<Ride> spec = RideSpecification.hasStatusIn(activeStatuses);
         if (source != null && !source.isEmpty()) spec = spec.and(RideSpecification.hasSource(source));
         if (destination != null && !destination.isEmpty()) spec = spec.and(RideSpecification.hasDestination(destination));
         if (date != null) spec = spec.and(RideSpecification.hasDate(date));
@@ -209,7 +211,7 @@ public class RideService {
         // Notify Passengers
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
-            if ("CONFIRMED".equals(b.getStatus())) {
+            if ("CONFIRMED".equals(b.getStatus()) || "ONBOARDED".equals(b.getStatus())) {
                 notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Started",
                         "Your driver has started the trip!", "INFO");
             }
