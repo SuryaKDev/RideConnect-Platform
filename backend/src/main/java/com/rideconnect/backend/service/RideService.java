@@ -38,13 +38,21 @@ public class RideService {
     private static final double RATE_PER_KM = 5.0;
 
     public Map<String, Object> calculateRideDetails(String source, String destination) {
-        // Use optimized service to get distance
+        // Use optimized service to get distance and route
         Map<String, Object> routeData = googleMapsService.getRouteDetails(source, destination);
 
         Double distance = 0.0;
-        if (routeData != null && routeData.containsKey("distance")) {
-            distance = (Double) routeData.get("distance");
-        } else {
+        String encodedPolyline = null;
+        if (routeData != null) {
+            if (routeData.containsKey("distance")) {
+                distance = (Double) routeData.get("distance");
+            }
+            if (routeData.containsKey("encodedPolyline")) {
+                encodedPolyline = (String) routeData.get("encodedPolyline");
+            }
+        }
+
+        if (distance == 0.0) {
             // Fallback to Mock if Google Fails
             distance = distanceService.calculateDistance(source, destination);
         }
@@ -54,7 +62,8 @@ public class RideService {
         return Map.of(
                 "distanceKm", distance,
                 "suggestedFare", maxFare,
-                "duration", "Approx " + (int)(distance / 60) + " hrs" // Simple estimation
+                "duration", "Approx " + (int)(distance / 60) + " hrs", // Simple estimation
+                "encodedPolyline", encodedPolyline != null ? encodedPolyline : ""
         );
     }
 
@@ -69,8 +78,8 @@ public class RideService {
         // 1. Geocoding (Coordinates)
         LatLng srcCoords = googleMapsService.getCoordinates(ride.getSource());
         LatLng destCoords = googleMapsService.getCoordinates(ride.getDestination());
-        // if (srcCoords != null) ride.setSourceLocation(GeometryUtil.createPoint(srcCoords.lat, srcCoords.lng));
-        // if (destCoords != null) ride.setDestinationLocation(GeometryUtil.createPoint(destCoords.lat, destCoords.lng));
+        if (srcCoords != null) ride.setSourceLocation(GeometryUtil.createPoint(srcCoords.lat, srcCoords.lng));
+        if (destCoords != null) ride.setDestinationLocation(GeometryUtil.createPoint(destCoords.lat, destCoords.lng));
 
         // 2. OPTIMIZED: Get Route & Distance in ONE call
         Map<String, Object> routeData = googleMapsService.getRouteDetails(ride.getSource(), ride.getDestination());
@@ -78,7 +87,10 @@ public class RideService {
 
         if (routeData != null) {
             if (routeData.containsKey("path")) {
-                // ride.setRoutePath(GeometryUtil.createLineString((List<LatLng>) routeData.get("path")));
+                ride.setRoutePath(GeometryUtil.createLineString((List<LatLng>) routeData.get("path")));
+            }
+            if (routeData.containsKey("encodedPolyline")) {
+                ride.setEncodedPolyline((String) routeData.get("encodedPolyline"));
             }
             if (routeData.containsKey("distance")) {
                 distance = (Double) routeData.get("distance");

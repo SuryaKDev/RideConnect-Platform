@@ -25,4 +25,7 @@ public class RouteDistance {
 
     @Column(nullable = false)
     private Double distanceKm;
+
+    @Column(columnDefinition = "TEXT")
+    private String encodedPolyline;
 }
