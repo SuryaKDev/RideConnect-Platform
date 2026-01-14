@@ -423,6 +423,18 @@ export const completeRide = async (rideId) => {
   return data;
 };
 
+// --- PASSENGER ONBOARDING VERIFICATION ---
+
+export const verifyOnboarding = async (bookingId, otp) => {
+  const response = await fetch(`${API_URL}/bookings/${bookingId}/verify-onboarding?otp=${otp}`, {
+    method: "PUT",
+    headers: getHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to verify passenger onboarding");
+  return data;
+};
+
 // --- REVIEW SERVICES ---
 
 export const submitReview = async (bookingId, rating, comment) => {

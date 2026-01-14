@@ -48,8 +48,7 @@ const UserProfileModal = ({ userId, onClose, hasBooked = false }) => {
                             <div className={styles.basicInfo}>
                                 <h2>{profile.name}</h2>
                                 <div className={styles.badges}>
-                                    <span className={styles.roleBadge}>{profile.role}</span>
-                                    {profile.memberSince && (
+                                    {profile.   berSince && (
                                         <span className={styles.memberSinceBadge}>Member since {profile.memberSince}</span>
                                     )}
                                     {profile.role === 'DRIVER' && (

@@ -110,18 +110,70 @@ function InteractiveMap({
         const isSelected = selectedRideId === ride.id;
 
         return (
-          <DirectionsRenderer
-            key={`direction-${ride.id}`}
-            directions={direction}
-            options={{
-              suppressMarkers: true,
-              polylineOptions: {
-                strokeColor: isSelected ? '#ef4444' : isHighlighted ? '#f59e0b' : '#2563eb',
-                strokeOpacity: isSelected || isHighlighted ? 0.9 : 0.6,
-                strokeWeight: isSelected ? 5 : isHighlighted ? 4 : 3,
-              }
-            }}
-          />
+          <React.Fragment key={`route-${ride.id}`}>
+            <DirectionsRenderer
+              directions={direction}
+              options={{
+                suppressMarkers: true,
+                polylineOptions: {
+                  strokeColor: isSelected ? '#ef4444' : isHighlighted ? '#f59e0b' : '#2563eb',
+                  strokeOpacity: isSelected || isHighlighted ? 0.9 : 0.6,
+                  strokeWeight: isSelected ? 5 : isHighlighted ? 4 : 3,
+                }
+              }}
+            />
+            {/* Source Marker */}
+            <Marker
+              position={direction.routes[0].legs[0].start_location}
+              icon={{
+                path: window.google.maps.SymbolPath.CIRCLE,
+                scale: 7,
+                fillColor: '#10b981',
+                fillOpacity: 0.9,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+              }}
+              title={`Start: ${ride.source}`}
+            />
+            {/* Destination Marker */}
+            <Marker
+              position={direction.routes[0].legs[0].end_location}
+              icon={{
+                path: window.google.maps.SymbolPath.CIRCLE,
+                scale: 7,
+                fillColor: '#ef4444',
+                fillOpacity: 0.9,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+              }}
+              title={`End: ${ride.destination}`}
+            />
+            {/* Stopover Markers */}
+            {ride.stopOvers && ride.stopOvers.length > 0 && 
+              ride.stopOvers.split(',').map((stopover, index) => {
+                const leg = direction.routes[0].legs[0];
+                const steps = leg.steps;
+                if (steps && steps[Math.floor(steps.length / (ride.stopOvers.split(',').length + 1) * (index + 1))]) {
+                  return (
+                    <Marker
+                      key={`stopover-${ride.id}-${index}`}
+                      position={steps[Math.floor(steps.length / (ride.stopOvers.split(',').length + 1) * (index + 1))].end_location}
+                      icon={{
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        scale: 5,
+                        fillColor: '#f59e0b',
+                        fillOpacity: 0.9,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 1,
+                      }}
+                      title={`Stopover: ${stopover.trim()}`}
+                    />
+                  );
+                }
+                return null;
+              })
+            }
+          </React.Fragment>
         );
       })}
 

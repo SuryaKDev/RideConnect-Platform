@@ -116,8 +116,8 @@ const PostRide = () => {
 
                     <form onSubmit={handleSubmit} className={styles.form}>
                         <div className={styles.row}>
-                            <Input label="Source" id="source" name="source" placeholder="e.g. Chennai" value={formData.source} onChange={handleChange} required />
-                            <Input label="Destination" id="destination" name="destination" placeholder="e.g. Bangalore" value={formData.destination} onChange={handleChange} required />
+                            <Input label="Source" id="source" name="source" placeholder="For better results, include the city/state.(Jayanagar, Bangalore)" value={formData.source} onChange={handleChange} required />
+                            <Input label="Destination" id="destination" name="destination" placeholder="For better results, include the city/state.(Sillarahalli, Dharmapuri)" value={formData.destination} onChange={handleChange} required />
                         </div>
 
                         <div style={{ textAlign: 'right', marginTop: '-10px', marginBottom: '10px' }}>

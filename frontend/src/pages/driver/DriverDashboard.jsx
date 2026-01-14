@@ -12,7 +12,8 @@ import {
     acceptBookingRequest,
     rejectBookingRequest,
     startRide,
-    completeRide
+    completeRide,
+    verifyOnboarding
 } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import UserProfileModal from '../../components/UserProfileModal';
@@ -33,6 +34,10 @@ const DriverDashboard = () => {
     const [reviewTarget, setReviewTarget] = useState(null);
     const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'warning' });
     const { toasts, showToast, removeToast } = useToast();
+    
+    // OTP Verification State
+    const [otpInputs, setOtpInputs] = useState({});
+    const [verifyingOtp, setVerifyingOtp] = useState({});
 
     const isVerified = user?.isVerified === true;
 
@@ -154,6 +159,37 @@ const DriverDashboard = () => {
     const handleReviewSuccess = () => {
         setReviewTarget(null);
         showToast('Review submitted successfully!', 'SUCCESS');
+    };
+
+    const handleVerifyOnboarding = async (bookingId) => {
+        const otp = otpInputs[bookingId];
+        if (!otp || otp.trim().length !== 6) {
+            showToast('Please enter a valid 6-digit OTP', 'ERROR');
+            return;
+        }
+
+        setVerifyingOtp(prev => ({ ...prev, [bookingId]: true }));
+        try {
+            await verifyOnboarding(bookingId, otp.trim());
+            showToast('Passenger verified and onboarded successfully!', 'SUCCESS');
+            
+            // Refresh passenger list
+            const list = await getRidePassengers(passengerModal.rideId);
+            setPassengerModal(prev => ({ ...prev, passengers: list }));
+            
+            // Clear OTP input
+            setOtpInputs(prev => ({ ...prev, [bookingId]: '' }));
+        } catch (err) {
+            showToast(err.message || 'Failed to verify OTP', 'ERROR');
+        } finally {
+            setVerifyingOtp(prev => ({ ...prev, [bookingId]: false }));
+        }
+    };
+
+    const handleOtpChange = (bookingId, value) => {
+        // Only allow digits and max 6 characters
+        const sanitized = value.replace(/\D/g, '').slice(0, 6);
+        setOtpInputs(prev => ({ ...prev, [bookingId]: sanitized }));
     };
 
     const upcomingRides = rides.filter(r => ['AVAILABLE', 'IN_PROGRESS', 'FULL'].includes(r.status));
@@ -291,9 +327,16 @@ const DriverDashboard = () => {
                                         <div className={styles.pMeta}>
                                             <span className={styles.pSeats}>{p.seatsBooked} Seat(s)</span>
 
-                                            {/* Hide CONFIRMED badge if Ride is already COMPLETED (Redundant) */}
-                                            {!(passengerModal.rideStatus === 'COMPLETED' && p.bookingStatus === 'CONFIRMED') && (
+                                            {/* Status Badge - Hide CONFIRMED during IN_PROGRESS/COMPLETED and hide ONBOARDED (shown separately) */}
+                                            {!(passengerModal.rideStatus === 'COMPLETED' && p.bookingStatus === 'CONFIRMED') && 
+                                             !(passengerModal.rideStatus === 'IN_PROGRESS' && p.bookingStatus === 'CONFIRMED') &&
+                                             p.bookingStatus !== 'ONBOARDED' && (
                                                 <span className={`${styles.pStatus} ${styles[p.bookingStatus]}`}>{p.bookingStatus.replace('_', ' ')}</span>
+                                            )}
+                                            
+                                            {/* ONBOARDED Badge (special styling) - Hide when ride is COMPLETED */}
+                                            {p.bookingStatus === 'ONBOARDED' && passengerModal.rideStatus !== 'COMPLETED' && (
+                                                <span className={`${styles.pStatus} ${styles.ONBOARDED}`}>✓ ONBOARDED</span>
                                             )}
 
                                             {/* Accept/Reject Buttons */}
@@ -308,8 +351,57 @@ const DriverDashboard = () => {
                                                 </div>
                                             )}
 
-                                            {/* Rate Passenger Button - Only if Ride is COMPLETED and Passenger CONFIRMED */}
-                                            {passengerModal.rideStatus === 'COMPLETED' && p.bookingStatus === 'CONFIRMED' && (
+                                            {/* OTP Verification (Only for IN_PROGRESS rides with CONFIRMED passengers) */}
+                                            {passengerModal.rideStatus === 'IN_PROGRESS' && p.bookingStatus === 'CONFIRMED' && (
+                                                <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '5px', color: '#495057' }}>
+                                                        Verify Passenger OTP:
+                                                    </label>
+                                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                                        <input
+                                                            type="text"
+                                                            inputMode="numeric"
+                                                            placeholder="Enter 6-digit OTP"
+                                                            value={otpInputs[p.bookingId] || ''}
+                                                            onChange={(e) => handleOtpChange(p.bookingId, e.target.value)}
+                                                            maxLength={6}
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: '6px 10px',
+                                                                fontSize: '0.85rem',
+                                                                border: '1px solid #ced4da',
+                                                                borderRadius: '4px',
+                                                                outline: 'none',
+                                                                letterSpacing: '2px',
+                                                                fontWeight: '600',
+                                                                textAlign: 'center'
+                                                            }}
+                                                            disabled={verifyingOtp[p.bookingId]}
+                                                        />
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleVerifyOnboarding(p.bookingId)}
+                                                            disabled={verifyingOtp[p.bookingId] || !otpInputs[p.bookingId] || otpInputs[p.bookingId].length !== 6}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                fontSize: '0.75rem',
+                                                                backgroundColor: '#0f4c81',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                whiteSpace: 'nowrap'
+                                                            }}
+                                                        >
+                                                            {verifyingOtp[p.bookingId] ? 'Verifying...' : 'Verify'}
+                                                        </Button>
+                                                    </div>
+                                                    <p style={{ fontSize: '0.65rem', color: '#6c757d', marginTop: '4px', marginBottom: 0 }}>
+                                                        Ask passenger for their OTP from booking confirmation email
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Rate Passenger Button - Only if Ride is COMPLETED and Passenger CONFIRMED/ONBOARDED */}
+                                            {passengerModal.rideStatus === 'COMPLETED' && (p.bookingStatus === 'CONFIRMED' || p.bookingStatus === 'ONBOARDED') && (
                                                 <Button
                                                     size="sm"
                                                     onClick={() => setReviewTarget({ bookingId: p.bookingId, passengerName: p.name })}

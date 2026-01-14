@@ -275,7 +275,7 @@ const PassengerDashboard = () => {
             )}
 
             {/* 5. Live Tracking (Moved Down) */}
-            {activeRide && activeRide.status !== 'COMPLETED' && activeRide.status !== 'CANCELLED' && (
+            {activeRide && activeRide.status !== 'COMPLETED' && activeRide.status !== 'CANCELLED' && activeRide.status !== 'CANCELLED_BY_ADMIN' && (
                 <div className="container" style={{ marginTop: '3rem' }}>
                     <div className={styles.sectionTitle} style={{ marginBottom: '1rem' }}>Current Ride Status</div>
                     <LiveTrackingCard activeRide={activeRide} />

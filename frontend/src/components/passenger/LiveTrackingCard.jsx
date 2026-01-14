@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { GoogleMap, DirectionsRenderer } from '@react-google-maps/api';
+import { GoogleMap, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import Button from '../ui/Button';
 import styles from './LiveTrackingCard.module.css';
 import { Navigation, Phone, X, Maximize2 } from 'lucide-react';
@@ -34,7 +34,12 @@ const LiveTrackingCard = ({ activeRide }) => {
     if (!activeRide) return null;
 
     const mapCenter = directions?.routes?.[0]?.bounds?.getCenter() || { lat: 20.5937, lng: 78.9629 };
-    const duration = directions?.routes?.[0]?.legs?.[0]?.duration?.text;
+    const tripDuration = directions?.routes?.[0]?.legs?.[0]?.duration?.text;
+    
+    // Backend provides time until ride starts or arrival estimate
+    const rideStartsIn = activeRide.estimatedArrivalTime;
+    const rideStatus = activeRide.ride.status;
+    const bookingStatus = activeRide.status; // CONFIRMED, ONBOARDED, etc.
 
     return (
         <div className={styles.card}>
@@ -46,16 +51,70 @@ const LiveTrackingCard = ({ activeRide }) => {
                     options={{ disableDefaultUI: true, zoomControl: false }}
                 >
                     {directions && (
-                        <DirectionsRenderer
-                            directions={directions}
-                            options={{
-                                suppressMarkers: false,
-                                polylineOptions: {
-                                    strokeColor: "#3b82f6",
-                                    strokeWeight: 4
-                                }
-                            }}
-                        />
+                        <>
+                            <DirectionsRenderer
+                                directions={directions}
+                                options={{
+                                    suppressMarkers: true,
+                                    polylineOptions: {
+                                        strokeColor: "#3b82f6",
+                                        strokeWeight: 4
+                                    }
+                                }}
+                            />
+                            {/* Source Marker */}
+                            <Marker
+                                position={directions.routes[0].legs[0].start_location}
+                                icon={{
+                                    path: window.google.maps.SymbolPath.CIRCLE,
+                                    scale: 8,
+                                    fillColor: '#10b981',
+                                    fillOpacity: 1,
+                                    strokeColor: '#ffffff',
+                                    strokeWeight: 2,
+                                }}
+                                title={activeRide.ride.source}
+                            />
+                            {/* Destination Marker */}
+                            <Marker
+                                position={directions.routes[0].legs[0].end_location}
+                                icon={{
+                                    path: window.google.maps.SymbolPath.CIRCLE,
+                                    scale: 8,
+                                    fillColor: '#ef4444',
+                                    fillOpacity: 1,
+                                    strokeColor: '#ffffff',
+                                    strokeWeight: 2,
+                                }}
+                                title={activeRide.ride.destination}
+                            />
+                            {/* Stopover Markers */}
+                            {activeRide.ride.stopOvers && activeRide.ride.stopOvers.length > 0 && 
+                                activeRide.ride.stopOvers.split(',').map((stopover, index) => {
+                                    // Try to get stopover coordinates if available
+                                    const leg = directions.routes[0].legs[0];
+                                    const steps = leg.steps;
+                                    if (steps && steps[Math.floor(steps.length / (activeRide.ride.stopOvers.split(',').length + 1) * (index + 1))]) {
+                                        return (
+                                            <Marker
+                                                key={`stopover-${index}`}
+                                                position={steps[Math.floor(steps.length / (activeRide.ride.stopOvers.split(',').length + 1) * (index + 1))].end_location}
+                                                icon={{
+                                                    path: window.google.maps.SymbolPath.CIRCLE,
+                                                    scale: 6,
+                                                    fillColor: '#f59e0b',
+                                                    fillOpacity: 1,
+                                                    strokeColor: '#ffffff',
+                                                    strokeWeight: 2,
+                                                }}
+                                                title={stopover.trim()}
+                                            />
+                                        );
+                                    }
+                                    return null;
+                                })
+                            }
+                        </>
                     )}
                 </GoogleMap>
                 <button
@@ -79,9 +138,30 @@ const LiveTrackingCard = ({ activeRide }) => {
 
             <div className={styles.infoSection}>
                 <div className={styles.header}>
-                    <span className={styles.badge}>LIVE RIDE</span>
-                    <h3>{duration ? `Arriving in ${duration}` : 'Calculating arrival...'}</h3>
+                    <span className={styles.badge}>
+                        {rideStatus === 'IN_PROGRESS' && bookingStatus === 'ONBOARDED' 
+                            ? '✓ ONBOARDED - IN PROGRESS' 
+                            : rideStatus === 'IN_PROGRESS' 
+                            ? 'IN PROGRESS' 
+                            : 'SCHEDULED'}
+                    </span>
+                    <h3>
+                        {rideStatus === 'IN_PROGRESS' 
+                            ? (rideStartsIn || 'Arriving soon')
+                            : (rideStartsIn ? `Ride starts in ${rideStartsIn}` : 'Ride scheduled')}
+                    </h3>
                 </div>
+                
+                {tripDuration && rideStatus !== 'IN_PROGRESS' && (
+                    <div style={{ 
+                        fontSize: '0.875rem', 
+                        color: '#64748b', 
+                        marginTop: '0.25rem',
+                        fontStyle: 'italic'
+                    }}>
+                        Trip duration: {tripDuration}
+                    </div>
+                )}
 
                 <div className={styles.routeInfo}>
                     <Navigation size={16} className={styles.icon} />
@@ -234,16 +314,87 @@ const LiveTrackingCard = ({ activeRide }) => {
                             }}
                         >
                             {directions && (
-                                <DirectionsRenderer
-                                    directions={directions}
-                                    options={{
-                                        suppressMarkers: false,
-                                        polylineOptions: {
-                                            strokeColor: "#3b82f6",
-                                            strokeWeight: 5
-                                        }
-                                    }}
-                                />
+                                <>
+                                    <DirectionsRenderer
+                                        directions={directions}
+                                        options={{
+                                            suppressMarkers: true,
+                                            polylineOptions: {
+                                                strokeColor: "#3b82f6",
+                                                strokeWeight: 5
+                                            }
+                                        }}
+                                    />
+                                    {/* Source Marker */}
+                                    <Marker
+                                        position={directions.routes[0].legs[0].start_location}
+                                        icon={{
+                                            path: window.google.maps.SymbolPath.CIRCLE,
+                                            scale: 10,
+                                            fillColor: '#10b981',
+                                            fillOpacity: 1,
+                                            strokeColor: '#ffffff',
+                                            strokeWeight: 2,
+                                        }}
+                                        label={{
+                                            text: 'A',
+                                            color: '#ffffff',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold'
+                                        }}
+                                        title={activeRide.ride.source}
+                                    />
+                                    {/* Destination Marker */}
+                                    <Marker
+                                        position={directions.routes[0].legs[0].end_location}
+                                        icon={{
+                                            path: window.google.maps.SymbolPath.CIRCLE,
+                                            scale: 10,
+                                            fillColor: '#ef4444',
+                                            fillOpacity: 1,
+                                            strokeColor: '#ffffff',
+                                            strokeWeight: 2,
+                                        }}
+                                        label={{
+                                            text: 'B',
+                                            color: '#ffffff',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold'
+                                        }}
+                                        title={activeRide.ride.destination}
+                                    />
+                                    {/* Stopover Markers */}
+                                    {activeRide.ride.stopOvers && activeRide.ride.stopOvers.length > 0 && 
+                                        activeRide.ride.stopOvers.split(',').map((stopover, index) => {
+                                            const leg = directions.routes[0].legs[0];
+                                            const steps = leg.steps;
+                                            if (steps && steps[Math.floor(steps.length / (activeRide.ride.stopOvers.split(',').length + 1) * (index + 1))]) {
+                                                return (
+                                                    <Marker
+                                                        key={`stopover-${index}`}
+                                                        position={steps[Math.floor(steps.length / (activeRide.ride.stopOvers.split(',').length + 1) * (index + 1))].end_location}
+                                                        icon={{
+                                                            path: window.google.maps.SymbolPath.CIRCLE,
+                                                            scale: 8,
+                                                            fillColor: '#f59e0b',
+                                                            fillOpacity: 1,
+                                                            strokeColor: '#ffffff',
+                                                            strokeWeight: 2,
+                                                        }}
+                                                        label={{
+                                                            text: String(index + 1),
+                                                            color: '#ffffff',
+                                                            fontSize: '10px',
+                                                            fontWeight: 'bold'
+                                                        }}
+                                                        title={stopover.trim()}
+                                                    />
+                                                );
+                                            }
+                                            return null;
+                                        })
+                                    }
+                                </>
                             )}
                         </GoogleMap>
                     </div>

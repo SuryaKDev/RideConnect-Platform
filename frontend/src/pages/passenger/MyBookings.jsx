@@ -81,7 +81,7 @@ const MyBookings = () => {
 
     // Filter Logic
     const upcomingBookings = bookings.filter(b =>
-        (b.status === 'PENDING_APPROVAL' || b.status === 'PENDING_PAYMENT' || b.status === 'CONFIRMED') &&
+        (b.status === 'PENDING_APPROVAL' || b.status === 'PENDING_PAYMENT' || b.status === 'CONFIRMED' || b.status === 'ONBOARDED') &&
         !b.ride.status.includes('CANCELLED') &&
         b.ride.status !== 'COMPLETED'
     );
@@ -99,6 +99,7 @@ const MyBookings = () => {
     const getStatusBadge = (status, rideStatus) => {
         if (rideStatus === 'CANCELLED_BY_ADMIN') return <div className={`${styles.statusBadge} ${styles.CANCELLED}`}><XCircle size={14} /> Ride Cancelled (Admin)</div>;
         if (rideStatus === 'COMPLETED') return <div className={`${styles.statusBadge} ${styles.CONFIRMED}`}><CheckCircle size={14} /> Ride Completed</div>;
+        if (status === 'ONBOARDED') return <div className={`${styles.statusBadge} ${styles.ONBOARDED}`}><CheckCircle size={14} />  Onboarded</div>;
         if (status === 'CONFIRMED') return <div className={`${styles.statusBadge} ${styles.CONFIRMED}`}><CheckCircle size={14} /> Confirmed</div>;
         if (status === 'PENDING_APPROVAL') return <div className={`${styles.statusBadge} ${styles.PENDING}`}><Clock3 size={14} /> Awaiting Approval</div>;
         if (status === 'PENDING_PAYMENT') return <div className={`${styles.statusBadge} ${styles.PAYMENT}`}><CreditCard size={14} /> Payment Due</div>;
@@ -171,8 +172,8 @@ const MyBookings = () => {
                                 </Button>
                             )}
 
-                            {/* Review Button - Only if Completed & Confirmed */}
-                            {booking.ride.status === 'COMPLETED' && booking.status === 'CONFIRMED' && (
+                            {/* Review Button - Only if Completed & Confirmed/Onboarded */}
+                            {booking.ride.status === 'COMPLETED' && (booking.status === 'CONFIRMED' || booking.status === 'ONBOARDED') && (
                                 <Button
                                     onClick={() => setReviewBooking(booking)}
                                     style={{ backgroundColor: '#ffc107', color: '#333', borderColor: '#ffc107' }}
