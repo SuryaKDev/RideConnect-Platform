@@ -2,8 +2,9 @@ package com.rideconnect.backend.service;
 
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Payment;
-import com.rideconnect.backend.repository.BookingRepository;
-import com.rideconnect.backend.repository.PaymentRepository;
+import com.rideconnect.backend.repository.jpa.BookingRepository;
+import com.rideconnect.backend.repository.jpa.PaymentRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.service.payment.PaymentProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,7 +21,7 @@ public class PaymentService {
 
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private BookingRepository bookingRepository;
-    @Autowired private com.rideconnect.backend.repository.UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
     @Autowired @Qualifier("razorpayProvider") private PaymentProvider razorpayProvider;
     @Autowired @Qualifier("mockProvider") private PaymentProvider mockProvider;
     @Autowired private NotificationService notificationService;

@@ -249,12 +249,16 @@
 }
 
 .stopovers {
-    margin-bottom: 0.5rem;
-    padding: 4px 8px;
+    margin-bottom: 0.75rem;
+    padding: 8px 10px;
     background-color: #f8f9fa;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 0.85rem;
     color: #555;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-left: 3px solid #94a3b8;
 }
 
 .routeDisplay {

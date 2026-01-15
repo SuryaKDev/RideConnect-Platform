@@ -14,4 +14,5 @@ public class NotificationDto {
     private String message;
     private String type; // e.g., "SUCCESS", "WARNING", "INFO"
     private String timestamp;
+    private Integer unreadCount;
 }

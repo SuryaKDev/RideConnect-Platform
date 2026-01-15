@@ -6,7 +6,7 @@ import LocalToast from './LocalToast';
 import { useToast } from '../utils/useToast';
 import { User, LogOut, LayoutDashboard, Ticket, Bell } from 'lucide-react';
 import styles from './Navbar.module.css';
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/api';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, getUnreadNotificationCount } from '../services/api';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
@@ -15,38 +15,65 @@ const Navbar = () => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [loadingNotifications, setLoadingNotifications] = useState(false);
     const { toasts, showToast, removeToast } = useToast();
 
+    // Fetch unread count on mount and when user changes
     useEffect(() => {
         if (user) {
-            fetchNotifications();
-            // Poll for new notifications every 30 seconds
-            const interval = setInterval(fetchNotifications, 30000);
-            return () => clearInterval(interval);
+            fetchUnreadCount();
         }
     }, [user]);
 
-    const fetchNotifications = async () => {
-        // Don't show loading for polling requests
-        const isInitialLoad = notifications.length === 0;
-        
-        try {
-            if (isInitialLoad) {
-                setLoadingNotifications(true);
+    // Listen for real-time unread count updates from WebSocket
+    useEffect(() => {
+        const handleNotificationCountUpdate = (event) => {
+            if (event.detail && event.detail.unreadCount !== undefined) {
+                setUnreadCount(event.detail.unreadCount);
             }
+        };
+
+        window.addEventListener('notification-count-update', handleNotificationCountUpdate);
+        
+        return () => {
+            window.removeEventListener('notification-count-update', handleNotificationCountUpdate);
+        };
+    }, []);
+
+    const fetchUnreadCount = async () => {
+        try {
+            const count = await getUnreadNotificationCount();
+            setUnreadCount(count);
+        } catch (error) {
+            console.error("Failed to fetch unread count:", error);
+            if (error.message?.includes('Access denied')) {
+                setUnreadCount(0);
+            }
+        }
+    };
+
+    const fetchNotifications = async () => {
+        setLoadingNotifications(true);
+        try {
             const data = await getNotifications();
             setNotifications(data || []);
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
-            // If 403, user might not be authenticated - silently fail
             if (error.message?.includes('Access denied')) {
                 setNotifications([]);
             }
         } finally {
-            if (isInitialLoad) {
-                setLoadingNotifications(false);
-            }
+            setLoadingNotifications(false);
+        }
+    };
+
+    // Fetch notifications when dropdown is opened
+    const handleNotificationToggle = () => {
+        const willShow = !showNotifications;
+        setShowNotifications(willShow);
+        if (willShow && notifications.length === 0) {
+            fetchNotifications();
         }
     };
 
@@ -58,6 +85,7 @@ const Navbar = () => {
                     notif.id === notificationId ? { ...notif, read: true } : notif
                 )
             );
+            setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {
             console.error("Failed to mark notification as read:", error);
         }
@@ -67,12 +95,11 @@ const Navbar = () => {
         try {
             await markAllNotificationsAsRead();
             setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+            setUnreadCount(0);
         } catch (error) {
             console.error("Failed to mark all notifications as read:", error);
         }
     };
-
-    const unreadCount = notifications.filter(n => !n.read).length;
 
     const formatNotificationTime = (timestamp) => {
         try {
@@ -104,8 +131,8 @@ const Navbar = () => {
         }
     };
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         navigate('/');
     };
 
@@ -187,11 +214,11 @@ const Navbar = () => {
                             <div className={styles.notificationContainer}>
                                 <button
                                     className={styles.notificationBtn}
-                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    onClick={handleNotificationToggle}
                                 >
                                     <Bell size={20} />
                                     {unreadCount > 0 && (
-                                        <span className={styles.notificationBadge}>{unreadCount}</span>
+                                        <span className={styles.notificationBadge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
                                     )}
                                 </button>
 

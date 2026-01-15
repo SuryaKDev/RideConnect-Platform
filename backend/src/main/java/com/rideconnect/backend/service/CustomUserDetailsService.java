@@ -1,7 +1,7 @@
 package com.rideconnect.backend.service;
 
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

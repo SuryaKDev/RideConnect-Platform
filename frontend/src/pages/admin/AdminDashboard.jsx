@@ -229,7 +229,10 @@ const AdminDashboard = () => {
     };
 
     // ... Handlers (Logout, Verify, Block, Cancel) ...
-    const handleLogout = () => { logout(); navigate('/login'); };
+    const handleLogout = async () => { 
+        await logout(); 
+        navigate('/login'); 
+    };
 
     const handleVerify = async (id) => {
         setConfirmModal({

@@ -37,3 +37,4 @@ public class Notification {
     @Builder.Default
     private boolean isRead = false;
 }
+

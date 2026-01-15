@@ -3,10 +3,12 @@ package com.rideconnect.backend.service;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Review;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.BookingRepository;
-import com.rideconnect.backend.repository.ReviewRepository;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.BookingRepository;
+import com.rideconnect.backend.repository.jpa.ReviewRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ public class ReviewService {
     @Autowired private BookingRepository bookingRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private NotificationService notificationService;
+    @Autowired private org.springframework.cache.CacheManager cacheManager;
 
     @Transactional
     public Review submitReview(Long bookingId, Integer rating, String comment, String reviewerEmail) {
@@ -69,6 +72,11 @@ public class ReviewService {
         // 4. Update Average Rating
         updateUserRating(reviewee, rating);
 
+        // Evict Cache
+        if (cacheManager.getCache("userReviews") != null) {
+            cacheManager.getCache("userReviews").evict(reviewee.getEmail());
+        }
+
         // 5. Notify
         notificationService.notifyUser(reviewee.getEmail(), "New Review",
                 "You received a " + rating + "-star rating from " + reviewer.getName(), "INFO");
@@ -89,6 +97,7 @@ public class ReviewService {
         userRepository.save(user);
     }
 
+    @Cacheable(value = "userReviews", key = "#email")
     public List<Review> getReviewsForUser(String email) {
         User user = userRepository.findByEmail(email).orElseThrow();
         return reviewRepository.findByRevieweeId(user.getId());

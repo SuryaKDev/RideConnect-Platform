@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,6 +25,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -36,6 +42,14 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         // 1. Check if the request has a "Bearer " token
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
+
+            // Check if token is blacklisted in Redis
+            Boolean isBlacklisted = redisTemplate.hasKey(BLACKLIST_PREFIX + jwt);
+            if (Boolean.TRUE.equals(isBlacklisted)) {
+                chain.doFilter(request, response);
+                return;
+            }
+
             try {
                 email = jwtUtil.extractUsername(jwt);
             } catch (Exception e) {

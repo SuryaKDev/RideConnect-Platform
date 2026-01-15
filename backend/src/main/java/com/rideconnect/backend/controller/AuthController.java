@@ -2,8 +2,10 @@ package com.rideconnect.backend.controller;
 
 import com.rideconnect.backend.dto.LoginRequest;
 import com.rideconnect.backend.model.User;
+import com.rideconnect.backend.security.JwtUtil;
 import com.rideconnect.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +17,14 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
@@ -30,6 +40,23 @@ public class AuthController {
         // If user blocked -> DisabledException -> GlobalHandler returns 403
         Map<String, Object> response = userService.loginUser(loginRequest);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String jwt = authHeader.substring(7);
+            long remainingMs = jwtUtil.getRemainingTimeInMs(jwt);
+
+            if (remainingMs > 0) {
+                redisTemplate.opsForValue().set(
+                        BLACKLIST_PREFIX + jwt,
+                        "blacklisted",
+                        java.time.Duration.ofMillis(remainingMs)
+                );
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
     @GetMapping("/verify-email")

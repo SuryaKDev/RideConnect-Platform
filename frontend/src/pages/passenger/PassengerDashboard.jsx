@@ -249,6 +249,12 @@ const PassengerDashboard = () => {
                                             <div className={styles.seats}><User size={16} /> {ride.availableSeats} seats</div>
                                         </div>
                                         <div className={styles.routeDisplay}>{ride.source} ➝ {ride.destination}</div>
+                                        {ride.stopovers && (
+                                            <div className={styles.stopovers}>
+                                                <MapPin size={14} style={{ flexShrink: 0 }} />
+                                                <span>Stopovers: {ride.stopovers}</span>
+                                            </div>
+                                        )}
                                         <div className={styles.cardActions}>
                                             <Button variant="outline" onClick={() => handleViewMap(ride)} className={styles.mapBtn}>
                                                 <MapIcon size={16} /> View Map

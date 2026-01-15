@@ -3,7 +3,8 @@ package com.rideconnect.backend.controller;
 import com.rideconnect.backend.dto.UpdateProfileRequest;
 import com.rideconnect.backend.model.Role;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.ReviewRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class UserController {
     private UserRepository userRepository;
 
     @Autowired
-    private com.rideconnect.backend.repository.ReviewRepository reviewRepository;
+    private ReviewRepository reviewRepository;
 
     @GetMapping("/profile")
     public ResponseEntity<User> getMyProfile(@AuthenticationPrincipal UserDetails userDetails) {

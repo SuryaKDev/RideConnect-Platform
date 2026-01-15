@@ -1,7 +1,9 @@
 package com.rideconnect.backend.scheduler;
 
 import com.rideconnect.backend.model.Booking;
-import com.rideconnect.backend.repository.BookingRepository;
+import com.rideconnect.backend.repository.jpa.BookingRepository;
+import com.rideconnect.backend.repository.jpa.PaymentRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.service.EmailService;
 import com.rideconnect.backend.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +27,10 @@ public class RideReminderScheduler {
     private EmailService emailService;
 
     @Autowired
-    private com.rideconnect.backend.repository.PaymentRepository paymentRepository;
+    private PaymentRepository paymentRepository;
 
     @Autowired
-    private com.rideconnect.backend.repository.UserRepository userRepository;
+    private UserRepository userRepository;
 
     // Run every 30 minutes
     @Scheduled(fixedRate = 1800000)

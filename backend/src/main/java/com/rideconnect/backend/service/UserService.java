@@ -4,7 +4,7 @@ import com.rideconnect.backend.dto.LoginRequest;
 import com.rideconnect.backend.dto.UpdateProfileRequest;
 import com.rideconnect.backend.model.Role;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;

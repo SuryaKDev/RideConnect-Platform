@@ -2,10 +2,10 @@ package com.rideconnect.backend.controller;
 
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.BookingRepository;
-import com.rideconnect.backend.repository.PaymentRepository;
-import com.rideconnect.backend.repository.RideRepository;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.BookingRepository;
+import com.rideconnect.backend.repository.jpa.PaymentRepository;
+import com.rideconnect.backend.repository.jpa.RideRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.service.NotificationService;
 import com.rideconnect.backend.service.RideService;
 import org.springframework.beans.factory.annotation.Autowired;

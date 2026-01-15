@@ -1,4 +1,4 @@
-package com.rideconnect.backend.repository;
+package com.rideconnect.backend.repository.jpa;
 
 import com.rideconnect.backend.model.Ride;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,34 +27,33 @@ public interface RideRepository extends JpaRepository<Ride, Long>, JpaSpecificat
     // 3. Check if Passenger Start/End is within this dynamic buffer.
 
     @Query(value = """
-        SELECT * FROM rides r 
-        WHERE r.status = 'AVAILABLE' 
-        AND (cast(:date as date) IS NULL OR r.travel_date = :date)
-        AND r.route_path IS NOT NULL
-        
-        -- Dynamic Buffer Logic for Start Point
-        AND ST_DWithin(
-            r.route_path::geography, 
-            ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)::geography, 
-            GREATEST(5000, LEAST(20000, (r.distance_km * 1000) * 0.10)) 
-        )
-        
-        -- Dynamic Buffer Logic for End Point
-        AND ST_DWithin(
-            r.route_path::geography,
-            ST_SetSRID(ST_MakePoint(:endLng, :endLat), 4326)::geography, 
-            GREATEST(5000, LEAST(20000, (r.distance_km * 1000) * 0.10))
-        )
-        
-        -- Direction Check (Start comes before End)
-        AND ST_LineLocatePoint(r.route_path, ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)) < 
-            ST_LineLocatePoint(r.route_path, ST_SetSRID(ST_MakePoint(:endLng, :endLat), 4326))
-        """, nativeQuery = true)
+            SELECT * FROM rides r
+            WHERE r.status = 'AVAILABLE'
+            AND (cast(:date as date) IS NULL OR r.travel_date = :date)
+            AND r.route_path IS NOT NULL
+
+            -- Dynamic Buffer Logic for Start Point
+            AND ST_DWithin(
+                r.route_path::geography,
+                ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)::geography,
+                GREATEST(5000, LEAST(20000, (r.distance_km * 1000) * 0.10))
+            )
+
+            -- Dynamic Buffer Logic for End Point
+            AND ST_DWithin(
+                r.route_path::geography,
+                ST_SetSRID(ST_MakePoint(:endLng, :endLat), 4326)::geography,
+                GREATEST(5000, LEAST(20000, (r.distance_km * 1000) * 0.10))
+            )
+
+            -- Direction Check (Start comes before End)
+            AND ST_LineLocatePoint(r.route_path, ST_SetSRID(ST_MakePoint(:startLng, :startLat), 4326)) <
+                ST_LineLocatePoint(r.route_path, ST_SetSRID(ST_MakePoint(:endLng, :endLat), 4326))
+            """, nativeQuery = true)
     List<Ride> findSmartRouteMatches(
             @Param("date") LocalDate date,
             @Param("startLat") double startLat,
             @Param("startLng") double startLng,
             @Param("endLat") double endLat,
-            @Param("endLng") double endLng
-    );
+            @Param("endLng") double endLng);
 }

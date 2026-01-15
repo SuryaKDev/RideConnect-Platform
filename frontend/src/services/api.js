@@ -112,9 +112,29 @@ export const verifyEmail = async (token) => {
   return data;
 };
 
-export const logoutUser = () => {
-  localStorage.removeItem("token");
-  window.location.href = "/login"; // Force redirect
+export const logoutUser = async () => {
+  try {
+    // Call the logout endpoint to blacklist the token in Redis
+    const response = await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      headers: getHeaders(),
+    });
+    
+    // Don't throw error if logout fails - still clear local storage
+    if (!response.ok) {
+      console.warn("Logout endpoint failed, but continuing with local cleanup");
+    }
+  } catch (error) {
+    console.error("Error calling logout endpoint:", error);
+    // Continue with cleanup even if the API call fails
+  } finally {
+    // Always clear local storage
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userVerified");
+  }
 };
 
 
@@ -525,6 +545,21 @@ export const getActiveRide = async () => {
 };
 
 // --- NOTIFICATION SERVICES ---
+
+export const getUnreadNotificationCount = async () => {
+  const response = await fetch(`${API_URL}/notifications/unread-count`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+  
+  if (response.status === 403) {
+    throw new Error("Access denied. Please check your login status.");
+  }
+  
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Failed to fetch unread count");
+  return data; // Returns the count number
+};
 
 export const getNotifications = async () => {
   const response = await fetch(`${API_URL}/notifications`, {

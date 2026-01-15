@@ -1,4 +1,4 @@
-package com.rideconnect.backend.repository;
+package com.rideconnect.backend.repository.jpa;
 
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Payment;
@@ -35,7 +35,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     // Calculate Total Refunded Amount (Sum of 'amount' where status is REFUNDED)
     @Query("SELECT p FROM Payment p WHERE p.booking.passenger.email = :email AND p.paymentTime >= :startDate")
-    List<Payment> findPassengerPaymentsSince(@Param("email") String email, @Param("startDate") java.time.LocalDateTime startDate);
+    List<Payment> findPassengerPaymentsSince(@Param("email") String email,
+            @Param("startDate") java.time.LocalDateTime startDate);
 
     @Query("SELECT DISTINCT p.booking.passenger.email FROM Payment p")
     List<String> findAllPassengerEmails();

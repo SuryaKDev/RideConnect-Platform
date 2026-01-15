@@ -27,13 +27,31 @@ export const AuthProvider = ({ children }) => {
         setUser({ token, role, name, email, isVerified });
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userVerified');
-        setUser(null);
+    const logout = async () => {
+        try {
+            // Call the logout endpoint to blacklist the token
+            const token = localStorage.getItem('token');
+            if (token) {
+                await fetch('http://localhost:8080/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Logout API call failed:', error);
+            // Continue with local cleanup even if API fails
+        } finally {
+            // Always clear local storage and state
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userVerified');
+            setUser(null);
+        }
     };
 
     const updateUser = (updates) => {

@@ -1,7 +1,7 @@
 package com.rideconnect.backend.service.impl;
 
 import com.rideconnect.backend.model.RouteDistance;
-import com.rideconnect.backend.repository.RouteDistanceRepository;
+import com.rideconnect.backend.repository.jpa.RouteDistanceRepository;
 import com.rideconnect.backend.service.DistanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

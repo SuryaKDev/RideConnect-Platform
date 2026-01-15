@@ -7,9 +7,10 @@ import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.GeocodingResult;
 import com.google.maps.model.LatLng;
 import com.rideconnect.backend.model.RouteDistance;
-import com.rideconnect.backend.repository.RouteDistanceRepository;
+import com.rideconnect.backend.repository.jpa.RouteDistanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,6 +32,7 @@ public class GoogleMapsService {
     }
 
     // 1. Get Coordinates
+    @Cacheable(value = "coordinates", key = "#city.trim().toLowerCase()")
     public LatLng getCoordinates(String city) {
         try {
             GeocodingResult[] results = GeocodingApi.newRequest(getContext())
@@ -47,6 +49,7 @@ public class GoogleMapsService {
     }
 
     // 2. OPTIMIZED: Get Both Polyline and Distance in ONE call (with Caching)
+    @Cacheable(value = "routes", key = "{#source.trim().toLowerCase(), #destination.trim().toLowerCase()}")
     public Map<String, Object> getRouteDetails(String source, String destination) {
         String src = source.trim().toLowerCase();
         String dest = destination.trim().toLowerCase();

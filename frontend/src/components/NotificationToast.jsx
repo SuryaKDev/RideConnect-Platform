@@ -1,9 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, createContext, useContext } from 'react';
 import { useAuth } from '../context/AuthContext';
 import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
 import styles from './NotificationToast.module.css';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
+
+// Create context for notification updates
+const NotificationContext = createContext(null);
+
+export const useNotificationContext = () => {
+    const context = useContext(NotificationContext);
+    return context || { onNotificationReceived: () => {} };
+};
 
 const NotificationToast = () => {
     const { user } = useAuth();
@@ -33,6 +41,15 @@ const NotificationToast = () => {
                     stompClient.subscribe(`/topic/user/${user.email}`, (message) => {
                         if (message.body) {
                             const notification = JSON.parse(message.body);
+                            
+                            // Trigger callback for unread count update if unreadCount is in payload
+                            if (notification.unreadCount !== undefined) {
+                                // Dispatch custom event for Navbar to listen
+                                window.dispatchEvent(new CustomEvent('notification-count-update', {
+                                    detail: { unreadCount: notification.unreadCount }
+                                }));
+                            }
+                            
                             addNotification(notification);
                         }
                     });

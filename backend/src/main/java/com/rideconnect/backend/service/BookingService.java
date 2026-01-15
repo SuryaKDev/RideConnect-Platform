@@ -4,10 +4,11 @@ import com.rideconnect.backend.dto.RoutePresetDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.BookingRepository;
-import com.rideconnect.backend.repository.RideRepository;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.BookingRepository;
+import com.rideconnect.backend.repository.jpa.RideRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ public class BookingService {
     private EmailService emailService;
 
     @Transactional
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public Booking bookRide(Long rideId, Integer seats, String passengerEmail) {
         User passenger = userRepository.findByEmail(passengerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -93,6 +95,7 @@ public class BookingService {
 
     // --- NEW: Driver Accepts Booking ---
     @Transactional
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public void acceptBooking(Long bookingId, String driverEmail) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
 
@@ -115,6 +118,7 @@ public class BookingService {
 
     // --- NEW: Driver Rejects Booking ---
     @Transactional
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public void rejectBooking(Long bookingId, String driverEmail) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
 
@@ -140,6 +144,7 @@ public class BookingService {
     }
 
     @Transactional
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public void cancelBooking(Long bookingId, String userEmail) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
         if (!booking.getPassenger().getEmail().equals(userEmail)) throw new RuntimeException("Not authorized");

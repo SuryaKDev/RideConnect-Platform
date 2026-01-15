@@ -1,7 +1,7 @@
 package com.rideconnect.backend.controller;
 
 import com.rideconnect.backend.model.Review;
-import com.rideconnect.backend.repository.ReviewRepository;
+import com.rideconnect.backend.repository.jpa.ReviewRepository;
 import com.rideconnect.backend.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

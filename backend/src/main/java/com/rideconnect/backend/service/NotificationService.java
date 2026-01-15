@@ -3,9 +3,10 @@ package com.rideconnect.backend.service;
 import com.rideconnect.backend.dto.NotificationDto;
 import com.rideconnect.backend.model.Notification;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.NotificationRepository;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.NotificationRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,11 @@ public class NotificationService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RedisTemplate<String, Long> counterTemplate;
+
+    private static final String UNREAD_COUNT_KEY = "notifications:unread:";
+
     // Send a notification to a specific user (identified by email)
     @Transactional
     public void notifyUser(String email, String title, String message, String type) {
@@ -42,14 +48,21 @@ public class NotificationService {
                     .createdAt(LocalDateTime.now())
                     .build();
             notificationRepository.save(notificationEntity);
+            
+            // Increment unread count in Redis
+            counterTemplate.opsForValue().increment(UNREAD_COUNT_KEY + email);
         }
 
         // 2. Send via WebSocket
+        Long currentCount = counterTemplate.opsForValue().get(UNREAD_COUNT_KEY + email);
+        int unreadCount = currentCount != null ? currentCount.intValue() : 0;
+
         NotificationDto notification = NotificationDto.builder()
                 .title(title)
                 .message(message)
                 .type(type)
                 .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")))
+                .unreadCount(unreadCount)
                 .build();
 
         // Push to: /topic/user/{email}

@@ -1,4 +1,4 @@
-package com.rideconnect.backend.repository;
+package com.rideconnect.backend.repository.jpa;
 
 import com.rideconnect.backend.model.RouteDistance;
 import org.springframework.data.jpa.repository.JpaRepository;

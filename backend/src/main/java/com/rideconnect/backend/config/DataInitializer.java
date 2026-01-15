@@ -2,7 +2,7 @@ package com.rideconnect.backend.config;
 
 import com.rideconnect.backend.model.Role;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;

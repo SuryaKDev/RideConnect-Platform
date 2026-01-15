@@ -5,13 +5,16 @@ import com.rideconnect.backend.dto.PassengerDto;
 import com.rideconnect.backend.model.Booking;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.model.User;
-import com.rideconnect.backend.repository.BookingRepository;
-import com.rideconnect.backend.repository.RideRepository;
-import com.rideconnect.backend.repository.UserRepository;
+import com.rideconnect.backend.repository.jpa.BookingRepository;
+import com.rideconnect.backend.repository.jpa.RideRepository;
+import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.repository.spec.RideSpecification;
 import com.rideconnect.backend.service.impl.GoogleMapsService;
 import com.rideconnect.backend.util.GeometryUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +70,7 @@ public class RideService {
         );
     }
 
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public Ride postRide(Ride ride, String email) {
         User driver = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         if (!driver.isEmailVerified()) throw new RuntimeException("Please verify your email before posting a ride.");
@@ -119,10 +123,13 @@ public class RideService {
 
         return rideRepository.save(ride);
     }
+    @Cacheable(value = "rides")
     public List<Ride> getAllRides() { return rideRepository.findAll(); }
+
     public List<Ride> getMyRides(String email) { return rideRepository.findByDriverEmail(email); }
 
     // --- UPDATED SEARCH METHOD ---
+    @Cacheable(value = "searchRides", key = "{#source, #destination, #date, #minPrice, #maxPrice, #minSeats, #minRating}")
     public List<Ride> searchRides(String source, String destination, LocalDate date,
                                   Double minPrice, Double maxPrice,
                                   Integer minSeats, Double minRating) {
@@ -166,6 +173,7 @@ public class RideService {
     }
 
     @Transactional
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public void cancelRide(Long rideId, String driverEmail, String reason, boolean isAdmin) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
         
@@ -205,6 +213,7 @@ public class RideService {
     }
 
     @Transactional
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public void startRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
 
@@ -231,6 +240,7 @@ public class RideService {
     }
 
     @Transactional
+    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public void completeRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
 
