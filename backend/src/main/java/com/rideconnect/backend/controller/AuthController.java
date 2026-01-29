@@ -5,10 +5,12 @@ import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.security.JwtUtil;
 import com.rideconnect.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 @RestController
@@ -24,7 +26,17 @@ public class AuthController {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
+    @Value("${jwt.blacklist.prefix}")
+    private String blacklistPrefix;
+
+    @Value("${jwt.blacklist.value}")
+    private String blacklistValue;
+
+    @Value("${jwt.auth.header}")
+    private String authHeaderName;
+
+    @Value("${jwt.bearer.prefix}")
+    private String bearerPrefix;
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
@@ -43,15 +55,16 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwt = authHeader.substring(7);
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader(authHeaderName);
+        if (authHeader != null && authHeader.startsWith(bearerPrefix)) {
+            String jwt = authHeader.substring(bearerPrefix.length());
             long remainingMs = jwtUtil.getRemainingTimeInMs(jwt);
 
             if (remainingMs > 0) {
                 redisTemplate.opsForValue().set(
-                        BLACKLIST_PREFIX + jwt,
-                        "blacklisted",
+                        blacklistPrefix + jwt,
+                        blacklistValue,
                         java.time.Duration.ofMillis(remainingMs)
                 );
             }

@@ -27,6 +27,15 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${admin.password}")
     private String adminPassword;
 
+    @Value("${admin.default.phone}")
+    private String adminPhone;
+
+    @Value("${admin.default.member-since}")
+    private String adminMemberSince;
+
+    @Value("${admin.default.log-message}")
+    private String adminLogMessage;
+
     @Override
     public void run(String... args) throws Exception {
         // Check if Admin exists. If not, create one.
@@ -35,16 +44,16 @@ public class DataInitializer implements CommandLineRunner {
                     .name(adminName)
                     .email(adminEmail)
                     .password(passwordEncoder.encode(adminPassword)) // Default Password
-                    .phone("0000000000")
+                    .phone(adminPhone)
                     .role(Role.ADMIN)
                     .isVerified(true)
                     .isEmailVerified(true)
                     .isActive(true)
-                    .memberSince("December 2025")
+                    .memberSince(adminMemberSince)
                     .build();
             
             userRepository.save(admin);
-            System.out.println("✅ SUPER ADMIN CREATED: admin@rideconnect.com / admin123");
+            System.out.println("✅ " + adminLogMessage);
         }
     }
 }

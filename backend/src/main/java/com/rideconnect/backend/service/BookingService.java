@@ -8,6 +8,7 @@ import com.rideconnect.backend.repository.jpa.BookingRepository;
 import com.rideconnect.backend.repository.jpa.RideRepository;
 import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,33 @@ public class BookingService {
     @Autowired
     private EmailService emailService;
 
+    @Value("${payment.status.pending-approval}")
+    private String statusPendingApproval;
+
+    @Value("${payment.status.pending-payment}")
+    private String statusPendingPayment;
+
+    @Value("${payment.status.rejected}")
+    private String statusRejected;
+
+    @Value("${payment.status.cancelled}")
+    private String statusCancelled;
+
+    @Value("${payment.status.confirmed}")
+    private String statusConfirmed;
+
+    @Value("${payment.status.onboarded}")
+    private String statusOnboarded;
+
+    @Value("${ride.status.in-progress}")
+    private String rideStatusInProgress;
+
+    @Value("${booking.message.arriving-soon}")
+    private String messageArrivingSoon;
+
+    @Value("${booking.message.due-now}")
+    private String messageDueNow;
+
     @Transactional
     @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
     public Booking bookRide(Long rideId, Integer seats, String passengerEmail) {
@@ -56,7 +84,7 @@ public class BookingService {
         if (ride.getTravelDate().isBefore(today)) throw new RuntimeException("Cannot book past rides");
         if (ride.getDriver().getId().equals(passenger.getId())) throw new RuntimeException("Cannot book own ride");
 
-        boolean exists = bookingRepository.existsByRideIdAndPassengerEmailAndStatusNot(rideId, passengerEmail, "CANCELLED");
+        boolean exists = bookingRepository.existsByRideIdAndPassengerEmailAndStatusNot(rideId, passengerEmail, statusCancelled);
         if (exists) throw new RuntimeException("You have already requested/booked this ride!");
 
         if (ride.getAvailableSeats() < seats) {
@@ -73,7 +101,7 @@ public class BookingService {
                 .seatsBooked(seats)
                 .bookingTime(LocalDateTime.now())
                 // CHANGED: New Initial Status
-                .status("PENDING_APPROVAL")
+                .status(statusPendingApproval)
                 .build();
 
         Booking savedBooking = bookingRepository.save(booking);
@@ -104,11 +132,11 @@ public class BookingService {
             throw new RuntimeException("Not authorized to accept this booking");
         }
 
-        if (!"PENDING_APPROVAL".equals(booking.getStatus())) {
+        if (!statusPendingApproval.equals(booking.getStatus())) {
             throw new RuntimeException("Booking is not pending approval");
         }
 
-        booking.setStatus("PENDING_PAYMENT"); // Now ready for payment
+        booking.setStatus(statusPendingPayment); // Now ready for payment
         bookingRepository.save(booking);
 
         // Notify Passenger
@@ -126,7 +154,7 @@ public class BookingService {
             throw new RuntimeException("Not authorized");
         }
 
-        if (!"PENDING_APPROVAL".equals(booking.getStatus())) {
+        if (!statusPendingApproval.equals(booking.getStatus())) {
             throw new RuntimeException("Cannot reject this booking");
         }
 
@@ -135,7 +163,7 @@ public class BookingService {
         ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
         rideRepository.save(ride);
 
-        booking.setStatus("REJECTED");
+        booking.setStatus(statusRejected);
         bookingRepository.save(booking);
 
         // Notify Passenger
@@ -149,7 +177,7 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
         if (!booking.getPassenger().getEmail().equals(userEmail)) throw new RuntimeException("Not authorized");
 
-        if (booking.getStatus().contains("CANCELLED") || "REJECTED".equals(booking.getStatus())) {
+        if (booking.getStatus().contains(statusCancelled) || statusRejected.equals(booking.getStatus())) {
             throw new RuntimeException("Booking is already cancelled/rejected");
         }
 
@@ -157,11 +185,11 @@ public class BookingService {
         ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
         rideRepository.save(ride);
 
-        if ("CONFIRMED".equals(booking.getStatus())) {
+        if (statusConfirmed.equals(booking.getStatus())) {
             paymentService.processRefund(bookingId);
         }
 
-        booking.setStatus("CANCELLED");
+        booking.setStatus(statusCancelled);
         bookingRepository.save(booking);
 
         notificationService.notifyUser(ride.getDriver().getEmail(), "Booking Cancelled",
@@ -177,7 +205,7 @@ public class BookingService {
             throw new RuntimeException("Not authorized: You are not the driver for this ride");
         }
 
-        if (!"CONFIRMED".equals(booking.getStatus())) {
+        if (!statusConfirmed.equals(booking.getStatus())) {
             throw new RuntimeException("Booking is not in CONFIRMED status");
         }
 
@@ -185,7 +213,7 @@ public class BookingService {
             throw new RuntimeException("Invalid OTP. Verification failed.");
         }
 
-        booking.setStatus("ONBOARDED");
+        booking.setStatus(statusOnboarded);
         bookingRepository.save(booking);
 
         notificationService.notifyUser(booking.getPassenger().getEmail(), "Onboarding Successful",
@@ -229,14 +257,14 @@ public class BookingService {
             timeStr += mins + " mins";
             
             booking.setEstimatedArrivalTime(timeStr);
-        } else if ("IN_PROGRESS".equals(booking.getRide().getStatus())) {
+        } else if (rideStatusInProgress.equals(booking.getRide().getStatus())) {
             // If ride started, we don't have real-time GPS here yet, 
             // but we could estimate based on distance. 
             // For now, let frontend handle dynamic duration via Google Maps, 
             // but we provide a static fallback if needed.
-            booking.setEstimatedArrivalTime("Arriving soon");
+            booking.setEstimatedArrivalTime(messageArrivingSoon);
         } else {
-            booking.setEstimatedArrivalTime("Due now");
+            booking.setEstimatedArrivalTime(messageDueNow);
         }
 
         return booking;

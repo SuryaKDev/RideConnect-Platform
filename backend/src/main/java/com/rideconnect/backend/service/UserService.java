@@ -34,8 +34,14 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
 
-    @Value("${app.frontend.url:http://localhost:5173}")
+    @Value("${app.frontend.url}")
     private String frontendUrl;
+
+    @Value("${user.member-since.format}")
+    private String memberSinceFormat;
+
+    @Value("${user.reset-token.expiry-hours}")
+    private long resetTokenExpiryHours;
 
     @Autowired
     public UserService(UserRepository userRepository,
@@ -77,7 +83,7 @@ public class UserService {
         user.setEmailVerified(false);
 
         // 6. Capture Registration Date (Month Year)
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(memberSinceFormat, Locale.ENGLISH);
         user.setMemberSince(LocalDate.now().format(formatter));
 
         User savedUser = userRepository.save(user);
@@ -193,7 +199,7 @@ public class UserService {
 
         String token = UUID.randomUUID().toString();
         user.setPasswordResetToken(token);
-        user.setPasswordResetTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
+        user.setPasswordResetTokenExpiry(java.time.LocalDateTime.now().plusHours(resetTokenExpiryHours));
         userRepository.save(user);
 
         String resetLink = frontendUrl + "/reset-password?token=" + token;

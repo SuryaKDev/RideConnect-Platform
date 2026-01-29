@@ -7,6 +7,7 @@ import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.service.EmailService;
 import com.rideconnect.backend.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -32,14 +33,20 @@ public class RideReminderScheduler {
     @Autowired
     private UserRepository userRepository;
 
+    @Value("${scheduler.ride-reminder.upcoming-hours}")
+    private long upcomingHours;
+
+    @Value("${email.subject.ride-reminder}")
+    private String rideReminderSubject;
+
     // Run every 30 minutes
-    @Scheduled(fixedRate = 1800000)
+    @Scheduled(fixedRateString = "${scheduler.ride-reminder.fixed-rate-ms}")
     public void sendRideReminders() {
         System.out.println("⏰ Checking for upcoming rides...");
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
-        LocalTime upcomingRange = now.plusHours(2); // Check rides in next 2 hours
+        LocalTime upcomingRange = now.plusHours(upcomingHours); // Check rides in next N hours
 
         List<Booking> upcomingBookings = bookingRepository.findBookingsForReminder(today, now, upcomingRange);
 
@@ -51,14 +58,14 @@ public class RideReminderScheduler {
             notificationService.notifyUser(passengerEmail, "Ride Reminder", message, "INFO");
 
             // 2. Send Email
-            emailService.sendEmail(passengerEmail, "Reminder: Upcoming Ride", message);
+            emailService.sendEmail(passengerEmail, rideReminderSubject, message);
 
             System.out.println("   -> Reminded: " + passengerEmail);
         }
     }
 
     // Run on the 1st of every month at midnight
-    @Scheduled(cron = "0 0 0 1 * ?")
+    @Scheduled(cron = "${scheduler.monthly-summary.cron}")
     public void sendMonthlySummaries() {
         System.out.println("📊 Generating monthly summaries...");
         List<String> emails = paymentRepository.findAllPassengerEmails();

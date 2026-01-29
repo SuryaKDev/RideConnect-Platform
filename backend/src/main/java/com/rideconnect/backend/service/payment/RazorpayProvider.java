@@ -19,6 +19,15 @@ public class RazorpayProvider implements PaymentProvider {
     @Value("${razorpay.key.secret}")
     private String keySecret;
 
+    @Value("${razorpay.currency}")
+    private String razorpayCurrency;
+
+    @Value("${razorpay.receipt.prefix}")
+    private String razorpayReceiptPrefix;
+
+    @Value("${razorpay.provider}")
+    private String razorpayProviderName;
+
     @Override
     public Map<String, Object> createOrder(Double amount, Long bookingId) throws Exception {
         RazorpayClient client = new RazorpayClient(keyId, keySecret);
@@ -26,8 +35,8 @@ public class RazorpayProvider implements PaymentProvider {
         JSONObject options = new JSONObject();
         // Razorpay expects amount in PAISA (multiply by 100)
         options.put("amount", amount * 100);
-        options.put("currency", "INR");
-        options.put("receipt", "txn_" + bookingId);
+        options.put("currency", razorpayCurrency);
+        options.put("receipt", razorpayReceiptPrefix + bookingId);
 
         Order order = client.orders.create(options);
 
@@ -35,7 +44,7 @@ public class RazorpayProvider implements PaymentProvider {
         response.put("orderId", order.get("id"));
         response.put("amount", order.get("amount"));
         response.put("key", keyId); // Frontend needs this to open the popup
-        response.put("provider", "RAZORPAY");
+        response.put("provider", razorpayProviderName);
 
         return response;
     }

@@ -8,10 +8,11 @@ import ReviewModal from '../../components/ReviewModal';
 import UserProfileModal from '../../components/UserProfileModal';
 import LocalToast from '../../components/LocalToast';
 import ConfirmModal from '../../components/ConfirmModal';
+import ChatButton from '../../components/chat/ChatButton';
 import { useToast } from '../../utils/useToast';
 import { getMyBookings, cancelBooking } from '../../services/api';
 import styles from './MyBookings.module.css';
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3, Star, Receipt } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3, Star, Receipt, MessageCircle } from 'lucide-react';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -153,7 +154,27 @@ const MyBookings = () => {
                             </span>
                         </div>
 
-                        <div className={styles.actions} style={{ display: 'flex', gap: '10px' }}>
+                        <div className={styles.actions} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                            {/* Chat Button - Show for confirmed/onboarded bookings that aren't completed or cancelled */}
+                            {(booking.status === 'CONFIRMED' || booking.status === 'ONBOARDED') && 
+                             booking.ride.status !== 'COMPLETED' && 
+                             !booking.ride.status.includes('CANCELLED') && 
+                             booking.ride.driver && (
+                                <ChatButton
+                                    tripId={booking.ride.id}
+                                    otherUser={{
+                                        id: booking.ride.driver.id,
+                                        name: booking.ride.driver.name
+                                    }}
+                                    rideInfo={{
+                                        from: booking.ride.source,
+                                        to: booking.ride.destination
+                                    }}
+                                    variant="secondary"
+                                    label="Chat"
+                                />
+                            )}
+
                             {/* Cancel Button - Show if active and not completed */}
                             {!booking.status.includes('CANCELLED') && booking.status !== 'REJECTED' && booking.ride.status !== 'COMPLETED' && booking.ride.status !== 'CANCELLED' && (
                                 <Button

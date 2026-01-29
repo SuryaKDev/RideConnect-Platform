@@ -6,6 +6,7 @@ import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.jpa.NotificationRepository;
 import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,20 @@ public class NotificationService {
     @Autowired
     private RedisTemplate<String, Long> counterTemplate;
 
-    private static final String UNREAD_COUNT_KEY = "notifications:unread:";
+    @Value("${notifications.unread.prefix}")
+    private String unreadCountKeyPrefix;
+
+    @Value("${notifications.time-format}")
+    private String notificationsTimeFormat;
+
+    @Value("${notifications.title.ride-update}")
+    private String rideUpdateTitle;
+
+    @Value("${notifications.title.booking-update}")
+    private String bookingUpdateTitle;
+
+    @Value("${ws.chat.topic-user-prefix}")
+    private String topicUserPrefix;
 
     // Send a notification to a specific user (identified by email)
     @Transactional
@@ -50,33 +64,33 @@ public class NotificationService {
             notificationRepository.save(notificationEntity);
             
             // Increment unread count in Redis
-            counterTemplate.opsForValue().increment(UNREAD_COUNT_KEY + email);
+            counterTemplate.opsForValue().increment(unreadCountKeyPrefix + email);
         }
 
         // 2. Send via WebSocket
-        Long currentCount = counterTemplate.opsForValue().get(UNREAD_COUNT_KEY + email);
+        Long currentCount = counterTemplate.opsForValue().get(unreadCountKeyPrefix + email);
         int unreadCount = currentCount != null ? currentCount.intValue() : 0;
 
         NotificationDto notification = NotificationDto.builder()
                 .title(title)
                 .message(message)
                 .type(type)
-                .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")))
+                .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern(notificationsTimeFormat)))
                 .unreadCount(unreadCount)
                 .build();
 
         // Push to: /topic/user/{email}
         // Frontend will subscribe to this specific channel
-        messagingTemplate.convertAndSend("/topic/user/" + email, notification);
+        messagingTemplate.convertAndSend(topicUserPrefix + email, notification);
 
         System.out.println("🔔 Notification sent to " + email + ": " + message);
     }
 
     public void notifyDriver(String email, String message) {
-        notifyUser(email, "Ride Update", message, "INFO");
+        notifyUser(email, rideUpdateTitle, message, "INFO");
     }
 
     public void notifyPassenger(String email, String message) {
-        notifyUser(email, "Booking Update", message, "INFO");
+        notifyUser(email, bookingUpdateTitle, message, "INFO");
     }
 }

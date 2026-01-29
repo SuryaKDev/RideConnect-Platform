@@ -3,6 +3,7 @@ package com.rideconnect.backend.controller;
 import com.rideconnect.backend.model.Notification;
 import com.rideconnect.backend.repository.jpa.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,7 +23,8 @@ public class NotificationController {
     @Autowired
     private RedisTemplate<String, Long> counterTemplate;
 
-    private static final String UNREAD_COUNT_KEY = "notifications:unread:";
+    @Value("${notifications.unread.prefix}")
+    private String unreadCountKeyPrefix;
 
     @GetMapping
     public ResponseEntity<List<Notification>> getMyNotifications(@AuthenticationPrincipal UserDetails userDetails) {
@@ -32,7 +34,7 @@ public class NotificationController {
 
     @GetMapping("/unread-count")
     public ResponseEntity<?> getUnreadCount(@AuthenticationPrincipal UserDetails userDetails) {
-        Long count = counterTemplate.opsForValue().get(UNREAD_COUNT_KEY + userDetails.getUsername());
+        Long count = counterTemplate.opsForValue().get(unreadCountKeyPrefix + userDetails.getUsername());
         return ResponseEntity.ok(Map.of("unreadCount", count != null ? count : 0));
     }
 
@@ -47,7 +49,7 @@ public class NotificationController {
                         notification.setRead(true);
                         notificationRepository.save(notification);
                         // Decrement unread count
-                        counterTemplate.opsForValue().decrement(UNREAD_COUNT_KEY + userDetails.getUsername());
+                        counterTemplate.opsForValue().decrement(unreadCountKeyPrefix + userDetails.getUsername());
                     }
                     return ResponseEntity.ok(Map.of("message", "Marked as read"));
                 }).orElse(ResponseEntity.notFound().build());
@@ -59,7 +61,7 @@ public class NotificationController {
         notifications.forEach(n -> n.setRead(true));
         notificationRepository.saveAll(notifications);
         // Reset unread count
-        counterTemplate.delete(UNREAD_COUNT_KEY + userDetails.getUsername());
+        counterTemplate.delete(unreadCountKeyPrefix + userDetails.getUsername());
         return ResponseEntity.ok(Map.of("message", "All marked as read"));
     }
 }

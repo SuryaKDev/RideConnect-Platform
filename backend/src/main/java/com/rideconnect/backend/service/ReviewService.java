@@ -7,6 +7,7 @@ import com.rideconnect.backend.repository.jpa.BookingRepository;
 import com.rideconnect.backend.repository.jpa.ReviewRepository;
 import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -24,13 +25,16 @@ public class ReviewService {
     @Autowired private NotificationService notificationService;
     @Autowired private org.springframework.cache.CacheManager cacheManager;
 
+    @Value("${ride.status.completed}")
+    private String rideStatusCompleted;
+
     @Transactional
     public Review submitReview(Long bookingId, Integer rating, String comment, String reviewerEmail) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
         // 1. Validation
-        if (!"COMPLETED".equals(booking.getRide().getStatus())) {
+        if (!rideStatusCompleted.equals(booking.getRide().getStatus())) {
             throw new RuntimeException("Ride must be completed before reviewing.");
         }
         if (reviewRepository.existsByBookingIdAndReviewerEmail(bookingId, reviewerEmail)) {

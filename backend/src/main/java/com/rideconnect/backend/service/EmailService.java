@@ -23,6 +23,66 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String senderEmail;
 
+    @Value("${email.charset}")
+    private String emailCharset;
+
+    @Value("${email.subject.welcome}")
+    private String subjectWelcome;
+
+    @Value("${email.template.welcome}")
+    private String templateWelcome;
+
+    @Value("${email.subject.password-change}")
+    private String subjectPasswordChange;
+
+    @Value("${email.template.password-change}")
+    private String templatePasswordChange;
+
+    @Value("${email.subject.new-booking-driver}")
+    private String subjectNewBookingDriver;
+
+    @Value("${email.template.new-booking-driver}")
+    private String templateNewBookingDriver;
+
+    @Value("${email.subject.review-request}")
+    private String subjectReviewRequest;
+
+    @Value("${email.template.review-request}")
+    private String templateReviewRequest;
+
+    @Value("${email.subject.refund}")
+    private String subjectRefund;
+
+    @Value("${email.template.refund}")
+    private String templateRefund;
+
+    @Value("${email.subject.booking-confirm}")
+    private String subjectBookingConfirm;
+
+    @Value("${email.template.booking-confirm}")
+    private String templateBookingConfirm;
+
+    @Value("${email.subject.ride-cancel}")
+    private String subjectRideCancel;
+
+    @Value("${email.template.ride-cancel}")
+    private String templateRideCancel;
+
+    @Value("${email.subject.monthly-summary}")
+    private String subjectMonthlySummary;
+
+    @Value("${email.template.monthly-summary}")
+    private String templateMonthlySummary;
+
+    @Value("${email.subject.forgot-password}")
+    private String subjectForgotPassword;
+
+    @Value("${email.template.forgot-password}")
+    private String templateForgotPassword;
+
+    @Value("${email.subject.ride-reminder}")
+    private String subjectRideReminder;
+
     // @Async ensures the API doesn't wait for the email to send (Fire and Forget)
     @Async
     public void sendEmail(String toEmail, String subject, String body) {
@@ -33,7 +93,7 @@ public class EmailService {
     public void sendHtmlEmail(String toEmail, String subject, String templateName, Map<String, Object> variables) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, emailCharset);
 
             helper.setFrom(senderEmail);
             helper.setTo(toEmail);
@@ -62,13 +122,13 @@ public class EmailService {
         Map<String, Object> variables = new HashMap<>();
         variables.put("name", name);
         variables.put("verificationLink", verificationLink);
-        sendHtmlEmail(toEmail, "Welcome to RideConnect!", "welcome-email", variables);
+        sendHtmlEmail(toEmail, subjectWelcome, templateWelcome, variables);
     }
 
     public void sendPasswordChangeAlert(String toEmail, String name) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("name", name);
-        sendHtmlEmail(toEmail, "Security Alert: Password Changed", "password-change-alert", variables);
+        sendHtmlEmail(toEmail, subjectPasswordChange, templatePasswordChange, variables);
     }
 
     public void sendNewBookingAlertForDriver(String toEmail, String driverName, String passengerName, String source, String dest) {
@@ -77,21 +137,21 @@ public class EmailService {
         variables.put("passengerName", passengerName);
         variables.put("source", source);
         variables.put("dest", dest);
-        sendHtmlEmail(toEmail, "New Booking for your Ride", "new-booking-driver-alert", variables);
+        sendHtmlEmail(toEmail, subjectNewBookingDriver, templateNewBookingDriver, variables);
     }
 
     public void sendReviewRequest(String toEmail, String name, String driverName) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("name", name);
         variables.put("driverName", driverName);
-        sendHtmlEmail(toEmail, "How was your ride with " + driverName + "?", "review-request", variables);
+        sendHtmlEmail(toEmail, String.format(subjectReviewRequest, driverName), templateReviewRequest, variables);
     }
 
     public void sendRefundConfirmation(String toEmail, String name, Double amount) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("name", name);
         variables.put("amount", amount);
-        sendHtmlEmail(toEmail, "Refund Processed", "refund-confirmation", variables);
+        sendHtmlEmail(toEmail, subjectRefund, templateRefund, variables);
     }
 
     public void sendBookingConfirmation(String toEmail, String name, String source, String dest, Double amount, String otp) {
@@ -101,7 +161,7 @@ public class EmailService {
         variables.put("dest", dest);
         variables.put("amount", amount);
         variables.put("otp", otp);
-        sendHtmlEmail(toEmail, "Ride Confirmed: " + source + " to " + dest, "booking-confirmation", variables);
+        sendHtmlEmail(toEmail, String.format(subjectBookingConfirm, source, dest), templateBookingConfirm, variables);
     }
 
     public void sendRideCancellation(String toEmail, String name, String source, String dest) {
@@ -109,7 +169,7 @@ public class EmailService {
         variables.put("name", name);
         variables.put("source", source);
         variables.put("dest", dest);
-        sendHtmlEmail(toEmail, "URGENT: Ride Cancelled", "ride-cancellation", variables);
+        sendHtmlEmail(toEmail, subjectRideCancel, templateRideCancel, variables);
     }
 
     public void sendMonthlySummary(String toEmail, String name, Double totalSpent, Integer rideCount) {
@@ -117,13 +177,13 @@ public class EmailService {
         variables.put("name", name);
         variables.put("totalSpent", totalSpent);
         variables.put("rideCount", rideCount);
-        sendHtmlEmail(toEmail, "Your Monthly RideConnect Summary", "monthly-summary", variables);
+        sendHtmlEmail(toEmail, subjectMonthlySummary, templateMonthlySummary, variables);
     }
 
     public void sendForgotPasswordEmail(String toEmail, String name, String resetLink) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("name", name);
         variables.put("resetLink", resetLink);
-        sendHtmlEmail(toEmail, "Password Reset Request", "forgot-password-email", variables);
+        sendHtmlEmail(toEmail, subjectForgotPassword, templateForgotPassword, variables);
     }
 }

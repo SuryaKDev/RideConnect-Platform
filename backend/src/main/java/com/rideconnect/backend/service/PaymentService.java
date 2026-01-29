@@ -8,6 +8,7 @@ import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.service.payment.PaymentProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -28,14 +29,38 @@ public class PaymentService {
     @Autowired private EmailService emailService;
 
     // --- TAX CONSTANTS ---
-    private static final double GST_RATE = 0.05; // 5%
-    private static final double PLATFORM_FEE_RATE = 0.02; // 2%
+    @Value("${payment.gst-rate}")
+    private double gstRate;
+
+    @Value("${payment.platform-fee-rate}")
+    private double platformFeeRate;
+
+    @Value("${payment.net-deduction-factor}")
+    private double netDeductionFactor;
+
+    @Value("${payment.otp.length}")
+    private int otpLength;
+
+    @Value("${payment.status.success}")
+    private String paymentStatusSuccess;
+
+    @Value("${payment.status.confirmed}")
+    private String bookingStatusConfirmed;
+
+    @Value("${payment.status.refunded}")
+    private String paymentStatusRefunded;
+
+    @Value("${mock.provider}")
+    private String mockProviderName;
+
+    @Value("${razorpay.provider}")
+    private String razorpayProviderName;
 
     // Helper: Calculates Base + Taxes
     private Double calculateTotalWithTaxes(Booking booking) {
         Double baseFare = booking.getRide().getPricePerSeat() * booking.getSeatsBooked();
-        Double gst = baseFare * GST_RATE;
-        Double platformFee = baseFare * PLATFORM_FEE_RATE;
+        Double gst = baseFare * gstRate;
+        Double platformFee = baseFare * platformFeeRate;
 
         // Round to 2 decimal places
         return Math.round((baseFare + gst + platformFee) * 100.0) / 100.0;
@@ -65,8 +90,8 @@ public class PaymentService {
 
         boolean isVerified = false;
         try {
-            if (providerType == null) providerType = "MOCK";
-            if ("RAZORPAY".equalsIgnoreCase(providerType)) {
+            if (providerType == null) providerType = mockProviderName;
+            if (razorpayProviderName.equalsIgnoreCase(providerType)) {
                 isVerified = razorpayProvider.verifyPayment(orderId, paymentId, signature);
             } else {
                 isVerified = true;
@@ -85,15 +110,15 @@ public class PaymentService {
                     .paymentMethod(providerType)
                     .transactionId(paymentId)
                     .orderId(orderId)
-                    .status("SUCCESS")
+                    .status(paymentStatusSuccess)
                     .paymentTime(LocalDateTime.now())
                     .build();
 
             paymentRepository.save(payment);
-            booking.setStatus("CONFIRMED");
+            booking.setStatus(bookingStatusConfirmed);
             
             // Generate 6-digit OTP for onboarding
-            String otp = String.format("%06d", new Random().nextInt(1000000));
+            String otp = String.format("%0" + otpLength + "d", new Random().nextInt((int) Math.pow(10, otpLength)));
             booking.setOnboardingOtp(otp);
             
             bookingRepository.save(booking);
@@ -140,7 +165,7 @@ public class PaymentService {
             LocalDate pDate = p.getPaymentTime().toLocalDate();
             if (dailyMap.containsKey(pDate)) {
                 // Determine Net Income (after 7% deduction)
-                double netAmount = p.getAmount() / 1.07;
+                double netAmount = p.getAmount() / netDeductionFactor;
                 dailyMap.put(pDate, dailyMap.get(pDate) + netAmount);
             }
         }
@@ -167,8 +192,8 @@ public class PaymentService {
 
         if (paymentOpt.isPresent()) {
             Payment payment = paymentOpt.get();
-            if ("SUCCESS".equals(payment.getStatus())) {
-                payment.setStatus("REFUNDED");
+            if (paymentStatusSuccess.equals(payment.getStatus())) {
+                payment.setStatus(paymentStatusRefunded);
                 paymentRepository.save(payment);
 
                 // Refund the full amount (including taxes)

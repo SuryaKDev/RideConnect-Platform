@@ -9,6 +9,7 @@ import com.rideconnect.backend.repository.jpa.UserRepository;
 import com.rideconnect.backend.service.NotificationService;
 import com.rideconnect.backend.service.RideService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +37,12 @@ public class AdminController {
 
     @Autowired
     private RideService rideService;
+
+    @Value("${ride.status.available}")
+    private String statusAvailable;
+
+    @Value("${ride.status.completed}")
+    private String statusCompleted;
 
     @GetMapping("/users")
     public List<User> getAllUsers() {
@@ -85,8 +92,8 @@ public class AdminController {
     @GetMapping("/stats")
     public ResponseEntity<?> getDashboardStats() {
         long totalUsers = userRepository.count();
-        long activeRides = rideRepository.countByStatus("AVAILABLE");
-        long completedRides = rideRepository.countByStatus("COMPLETED");
+        long activeRides = rideRepository.countByStatus(statusAvailable);
+        long completedRides = rideRepository.countByStatus(statusCompleted);
         long cancelledRides = rideRepository.countCancelledRides();
         Double totalRevenue = paymentRepository.calculateTotalRevenue();
         Double totalRefunded = paymentRepository.calculateTotalRefunded();

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ChatProvider } from './context/ChatContext';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -14,6 +15,7 @@ import MyBookings from './pages/passenger/MyBookings';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Profile from './pages/Profile';
 import TransactionHistory from './pages/TransactionHistory';
+import ChatPage from './pages/chat/ChatPage';
 import NotificationToast from './components/NotificationToast';
 
 // Protected Route Wrapper
@@ -34,9 +36,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function App() {
   return (
     <AuthProvider>
-
+      <ChatProvider>
         <Router>
-            <NotificationToast />
+          <NotificationToast />
           <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -107,8 +109,18 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/chat/:tripId"
+            element={
+              <ProtectedRoute allowedRoles={['DRIVER', 'PASSENGER']}>
+                <ChatPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
+      </ChatProvider>
     </AuthProvider>
   );
 }

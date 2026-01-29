@@ -12,6 +12,7 @@ import com.rideconnect.backend.repository.spec.RideSpecification;
 import com.rideconnect.backend.service.impl.GoogleMapsService;
 import com.rideconnect.backend.util.GeometryUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -37,8 +38,44 @@ public class RideService {
     @Autowired private GoogleMapsService googleMapsService;
     @Autowired private EmailService emailService;
 
-    private static final double BASE_FARE = 50.0;
-    private static final double RATE_PER_KM = 5.0;
+    @Value("${ride.base-fare}")
+    private double baseFare;
+
+    @Value("${ride.rate-per-km}")
+    private double ratePerKm;
+
+    @Value("${ride.rounding.step}")
+    private int roundingStep;
+
+    @Value("${ride.duration.label}")
+    private String durationLabel;
+
+    @Value("${ride.status.available}")
+    private String statusAvailable;
+
+    @Value("${ride.status.full}")
+    private String statusFull;
+
+    @Value("${ride.status.in-progress}")
+    private String statusInProgress;
+
+    @Value("${ride.status.completed}")
+    private String statusCompleted;
+
+    @Value("${ride.status.cancelled}")
+    private String statusCancelled;
+
+    @Value("${ride.status.cancelled-by-admin}")
+    private String statusCancelledByAdmin;
+
+    @Value("${ride.status.cancelled-by-driver}")
+    private String statusCancelledByDriver;
+
+    @Value("${payment.status.confirmed}")
+    private String bookingStatusConfirmed;
+
+    @Value("${payment.status.onboarded}")
+    private String bookingStatusOnboarded;
 
     public Map<String, Object> calculateRideDetails(String source, String destination) {
         // Use optimized service to get distance and route
@@ -60,12 +97,12 @@ public class RideService {
             distance = distanceService.calculateDistance(source, destination);
         }
 
-        double maxFare = Math.round((BASE_FARE + (distance * RATE_PER_KM)) / 10) * 10;
+        double maxFare = Math.round((baseFare + (distance * ratePerKm)) / roundingStep) * roundingStep;
 
         return Map.of(
                 "distanceKm", distance,
                 "suggestedFare", maxFare,
-                "duration", "Approx " + (int)(distance / 60) + " hrs", // Simple estimation
+                "duration", String.format(durationLabel, (int) (distance / 60)), // Simple estimation
                 "encodedPolyline", encodedPolyline != null ? encodedPolyline : ""
         );
     }
@@ -106,7 +143,7 @@ public class RideService {
         ride.setDistanceKm(distance);
 
         // 3. Price Validation & Logic
-        double maxFare = Math.round((BASE_FARE + (distance * RATE_PER_KM)) / 10) * 10;
+        double maxFare = Math.round((baseFare + (distance * ratePerKm)) / roundingStep) * roundingStep;
 
         if (ride.getPricePerSeat() != null && ride.getPricePerSeat() > 0) {
             // User provided a price. VALIDATE IT.
@@ -119,7 +156,7 @@ public class RideService {
         }
 
         ride.setDriver(driver);
-        ride.setStatus("AVAILABLE");
+        ride.setStatus(statusAvailable);
 
         return rideRepository.save(ride);
     }
@@ -134,7 +171,7 @@ public class RideService {
                                   Double minPrice, Double maxPrice,
                                   Integer minSeats, Double minRating) {
 
-        List<String> activeStatuses = List.of("AVAILABLE", "FULL");
+        List<String> activeStatuses = List.of(statusAvailable, statusFull);
 
         // 1. If NO filters are provided, return ALL Available rides (Browse Mode)
         if ((source == null || source.isEmpty()) &&
@@ -181,7 +218,7 @@ public class RideService {
             throw new RuntimeException("Not authorized");
         }
 
-        ride.setStatus(isAdmin ? "CANCELLED_BY_ADMIN" : "CANCELLED");
+        ride.setStatus(isAdmin ? statusCancelledByAdmin : statusCancelled);
         if (reason != null) {
             ride.setCancellationReason(reason);
         }
@@ -189,9 +226,9 @@ public class RideService {
 
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
-            if (!b.getStatus().contains("CANCELLED")) {
-                if ("CONFIRMED".equals(b.getStatus())) paymentService.processRefund(b.getId());
-                b.setStatus(isAdmin ? "CANCELLED_BY_ADMIN" : "CANCELLED_BY_DRIVER");
+            if (!b.getStatus().startsWith(statusCancelled)) {
+                if (bookingStatusConfirmed.equals(b.getStatus())) paymentService.processRefund(b.getId());
+                b.setStatus(isAdmin ? statusCancelledByAdmin : statusCancelledByDriver);
                 bookingRepository.save(b);
 
                 emailService.sendRideCancellation(
@@ -222,17 +259,17 @@ public class RideService {
         }
 
         // Only allow starting if status is valid
-        if (!"AVAILABLE".equals(ride.getStatus()) && !"FULL".equals(ride.getStatus())) {
+        if (!statusAvailable.equals(ride.getStatus()) && !statusFull.equals(ride.getStatus())) {
             throw new RuntimeException("Ride cannot be started. Current status: " + ride.getStatus());
         }
 
-        ride.setStatus("IN_PROGRESS");
+        ride.setStatus(statusInProgress);
         rideRepository.save(ride);
 
         // Notify Passengers
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
-            if ("CONFIRMED".equals(b.getStatus()) || "ONBOARDED".equals(b.getStatus())) {
+            if (bookingStatusConfirmed.equals(b.getStatus()) || bookingStatusOnboarded.equals(b.getStatus())) {
                 notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Started",
                         "Your driver has started the trip!", "INFO");
             }
@@ -248,17 +285,17 @@ public class RideService {
             throw new RuntimeException("Not authorized to complete this ride");
         }
 
-        if ("COMPLETED".equals(ride.getStatus())) {
+        if (statusCompleted.equals(ride.getStatus())) {
             throw new RuntimeException("Ride is already completed");
         }
 
-        ride.setStatus("COMPLETED");
+        ride.setStatus(statusCompleted);
         rideRepository.save(ride);
 
         // Notify Passengers
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
-            if ("CONFIRMED".equals(b.getStatus())) {
+            if (bookingStatusConfirmed.equals(b.getStatus())) {
                 notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Completed",
                         "You have reached your destination. Please rate your driver!", "SUCCESS");
 
@@ -278,7 +315,7 @@ public class RideService {
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         List<PassengerDto> list = new ArrayList<>();
         for (Booking b : bookings) {
-            if (!b.getStatus().equals("CANCELLED")) {
+            if (!b.getStatus().equals(statusCancelled)) {
                 User p = b.getPassenger();
                 list.add(PassengerDto.builder()
                         .bookingId(b.getId()) // Added ID here

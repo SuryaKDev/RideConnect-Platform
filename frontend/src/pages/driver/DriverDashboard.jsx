@@ -4,6 +4,7 @@ import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ConfirmModal';
 import LocalToast from '../../components/LocalToast';
+import ChatButton from '../../components/chat/ChatButton';
 import { useToast } from '../../utils/useToast';
 import {
     cancelPublishedRide,
@@ -19,7 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import UserProfileModal from '../../components/UserProfileModal';
 import ReviewModal from '../../components/ReviewModal';
 import styles from './DriverDashboard.module.css';
-import { Plus, Calendar, Clock, MapPin, Users, XCircle, List, History, Check, X, Wallet, Play, Flag, Star } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Users, XCircle, List, History, Check, X, Wallet, Play, Flag, Star, MessageCircle } from 'lucide-react';
 
 const DriverDashboard = () => {
     const { user } = useAuth();
@@ -337,6 +338,26 @@ const DriverDashboard = () => {
                                             {/* ONBOARDED Badge (special styling) - Hide when ride is COMPLETED */}
                                             {p.bookingStatus === 'ONBOARDED' && passengerModal.rideStatus !== 'COMPLETED' && (
                                                 <span className={`${styles.pStatus} ${styles.ONBOARDED}`}>✓ ONBOARDED</span>
+                                            )}
+
+                                            {/* Chat Button - Show for confirmed/onboarded passengers */}
+                                            {(p.bookingStatus === 'CONFIRMED' || p.bookingStatus === 'ONBOARDED') && (
+                                                <div style={{ marginTop: '8px' }}>
+                                                    <ChatButton
+                                                        tripId={passengerModal.rideId}
+                                                        otherUser={{
+                                                            id: p.userId,
+                                                            name: p.name
+                                                        }}
+                                                        rideInfo={{
+                                                            from: rides.find(r => r.id === passengerModal.rideId)?.source || 'Pickup',
+                                                            to: rides.find(r => r.id === passengerModal.rideId)?.destination || 'Drop-off'
+                                                        }}
+                                                        variant="tertiary"
+                                                        label="Chat"
+                                                        showIcon={true}
+                                                    />
+                                                </div>
                                             )}
 
                                             {/* Accept/Reject Buttons */}

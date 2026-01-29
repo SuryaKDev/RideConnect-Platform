@@ -2,6 +2,48 @@
 
 const API_URL = "http://localhost:8080/api";
 
+// Global fetch interceptor: clears stale auth data and forces login
+if (typeof window !== "undefined" && window.fetch) {
+  const _originalFetch = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    try {
+      const response = await _originalFetch(input, init);
+
+      // If backend returns Unauthorized/Forbidden, wipe local auth and redirect
+      if (response && (response.status === 401 || response.status === 403)) {
+        // Avoid touching auth endpoints themselves
+        const url = typeof input === "string" ? input : (input && input.url) ? input.url : "";
+        const authPathRegex = /\/auth\/(login|register|forgot-password|reset-password|verify-email|logout)/i;
+
+        if (!authPathRegex.test(url)) {
+          ["token", "jwt", "user", "userRole", "userName", "userEmail", "userVerified", "userId"].forEach(k => localStorage.removeItem(k));
+
+          // Dispatch a logout event so React contexts can listen if needed
+          try {
+            window.dispatchEvent(new Event('app:logout'));
+          } catch (e) {
+            // ignore
+          }
+
+          // Redirect to login page if not already there
+          try {
+            if (window.location && window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+          } catch (e) {
+            // ignore navigation errors
+          }
+        }
+      }
+
+      return response;
+    } catch (err) {
+      // Network errors bubble up as before
+      throw err;
+    }
+  };
+}
+
 // Helper function to handle headers and tokens automatically
 const getHeaders = () => {
   const headers = {
@@ -127,13 +169,9 @@ export const logoutUser = async () => {
   } catch (error) {
     console.error("Error calling logout endpoint:", error);
     // Continue with cleanup even if the API call fails
-  } finally {
+    } finally {
     // Always clear local storage
-    localStorage.removeItem("token");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userVerified");
+    ["token", "userRole", "userName", "userEmail", "userVerified", "userId"].forEach(k => localStorage.removeItem(k));
   }
 };
 
@@ -607,5 +645,60 @@ export const markAllNotificationsAsRead = async () => {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Failed to mark all notifications as read");
+  return data;
+};
+
+// --- CHAT SERVICES ---
+
+/**
+ * Fetch chat history for a specific trip/ride
+ * @param {string} tripId - The trip/ride ID
+ * @returns {Promise<Array>} Array of chat messages
+ */
+export const fetchChatHistory = async (tripId) => {
+  const response = await fetch(`${API_URL}/chat/history/${tripId}`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    
+    if (response.status === 403) {
+      throw new Error(errorData?.message || "You are not authorized to view this chat.");
+    }
+    
+    if (response.status === 404) {
+      throw new Error(errorData?.message || "Ride not found");
+    }
+    
+    if (response.status === 401) {
+      throw new Error("User not authenticated");
+    }
+    
+    throw new Error(errorData?.message || "Failed to fetch chat history");
+  }
+
+  const messages = await response.json();
+  return messages;
+};
+
+/**
+ * Get chat participants for a trip
+ * @param {string} tripId - The trip/ride ID
+ * @returns {Promise<Object>} Participant information
+ */
+export const getChatParticipants = async (tripId) => {
+  const response = await fetch(`${API_URL}/trips/${tripId}/participants`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || "Failed to fetch participants");
+  }
+
+  const data = await response.json();
   return data;
 };
