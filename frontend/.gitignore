@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# === MARKDOWN FILES - STRICT UNTRACKING ===
+# Block ALL .md files everywhere except explicit exceptions
+*.md
+**/*.md
+**/README.md
+frontend/*.md
+frontend/**/*.md
+
+# === EXPLICIT EXCEPTIONS ONLY ===
+!.gitignore
+!README.md                 # ROOT README only
+!LICENSE.md
+!CHANGELOG.md
+!docs/
+!docs/**/*.md
