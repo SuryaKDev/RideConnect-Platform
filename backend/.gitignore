@@ -17,6 +17,7 @@ application-dev.properties
 # Secrets
 secrets/
 config/
+!src/**/config/
 
 # Markdown files (untracked except essentials)
 *.md
