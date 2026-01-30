@@ -5,12 +5,17 @@ import com.rideconnect.backend.model.Notification;
 import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.jpa.NotificationRepository;
 import com.rideconnect.backend.repository.jpa.UserRepository;
+import com.rideconnect.backend.service.event.NotificationEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -31,6 +36,9 @@ public class NotificationService {
     @Autowired
     private RedisTemplate<String, Long> counterTemplate;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     @Value("${notifications.unread.prefix}")
     private String unreadCountKeyPrefix;
 
@@ -47,8 +55,16 @@ public class NotificationService {
     private String topicUserPrefix;
 
     // Send a notification to a specific user (identified by email)
-    @Transactional
     public void notifyUser(String email, String title, String message, String type) {
+        if (email == null || email.isEmpty()) return;
+        eventPublisher.publishEvent(new NotificationEvent(email, title, message, type));
+    }
+
+    @Async
+    @Transactional
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onNotificationEvent(NotificationEvent event) {
+        String email = event.getEmail();
         if (email == null || email.isEmpty()) return;
 
         // 1. Save to Database
@@ -56,9 +72,9 @@ public class NotificationService {
         if (userOpt.isPresent()) {
             Notification notificationEntity = Notification.builder()
                     .user(userOpt.get())
-                    .title(title)
-                    .message(message)
-                    .type(type)
+                    .title(event.getTitle())
+                    .message(event.getMessage())
+                    .type(event.getType())
                     .createdAt(LocalDateTime.now())
                     .build();
             notificationRepository.save(notificationEntity);
@@ -72,9 +88,9 @@ public class NotificationService {
         int unreadCount = currentCount != null ? currentCount.intValue() : 0;
 
         NotificationDto notification = NotificationDto.builder()
-                .title(title)
-                .message(message)
-                .type(type)
+                .title(event.getTitle())
+                .message(event.getMessage())
+                .type(event.getType())
                 .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern(notificationsTimeFormat)))
                 .unreadCount(unreadCount)
                 .build();
@@ -83,7 +99,7 @@ public class NotificationService {
         // Frontend will subscribe to this specific channel
         messagingTemplate.convertAndSend(topicUserPrefix + email, notification);
 
-        System.out.println("🔔 Notification sent to " + email + ": " + message);
+        System.out.println("ðŸ”” Notification sent to " + email + ": " + event.getMessage());
     }
 
     public void notifyDriver(String email, String message) {

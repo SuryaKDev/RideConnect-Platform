@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+playwright-report
+test-results
+tests
+playwright.config.ts
 
 # Editor directories and files
 .vscode/*
@@ -38,3 +42,10 @@ frontend/**/*.md
 !CHANGELOG.md
 !docs/
 !docs/**/*.md
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

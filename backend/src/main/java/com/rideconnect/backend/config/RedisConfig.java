@@ -25,6 +25,12 @@ public class RedisConfig {
     @Value("${redis.cache.ttl-hours}")
     private long cacheTtlHours;
 
+    @Value("${redis.cache.rides.ttl-seconds:60}")
+    private long ridesCacheTtlSeconds;
+
+    @Value("${redis.cache.search-rides.ttl-seconds:60}")
+    private long searchRidesCacheTtlSeconds;
+
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
@@ -51,8 +57,13 @@ public class RedisConfig {
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer()))
                 .disableCachingNullValues();
 
+        RedisCacheConfiguration ridesConfig = config.entryTtl(Duration.ofSeconds(ridesCacheTtlSeconds));
+        RedisCacheConfiguration searchRidesConfig = config.entryTtl(Duration.ofSeconds(searchRidesCacheTtlSeconds));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .withCacheConfiguration("rides", ridesConfig)
+                .withCacheConfiguration("searchRides", searchRidesConfig)
                 .build();
     }
 

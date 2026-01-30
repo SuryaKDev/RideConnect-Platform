@@ -50,12 +50,6 @@ public class EmailService {
     @Value("${email.template.review-request}")
     private String templateReviewRequest;
 
-    @Value("${email.subject.refund}")
-    private String subjectRefund;
-
-    @Value("${email.template.refund}")
-    private String templateRefund;
-
     @Value("${email.subject.booking-confirm}")
     private String subjectBookingConfirm;
 
@@ -145,13 +139,6 @@ public class EmailService {
         variables.put("name", name);
         variables.put("driverName", driverName);
         sendHtmlEmail(toEmail, String.format(subjectReviewRequest, driverName), templateReviewRequest, variables);
-    }
-
-    public void sendRefundConfirmation(String toEmail, String name, Double amount) {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("name", name);
-        variables.put("amount", amount);
-        sendHtmlEmail(toEmail, subjectRefund, templateRefund, variables);
     }
 
     public void sendBookingConfirmation(String toEmail, String name, String source, String dest, Double amount, String otp) {

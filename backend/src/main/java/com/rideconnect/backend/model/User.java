@@ -6,7 +6,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        indexes = {
+                @Index(name = "idx_users_email_verification_token", columnList = "emailVerificationToken"),
+                @Index(name = "idx_users_password_reset_token", columnList = "passwordResetToken"),
+                @Index(name = "idx_users_phone", columnList = "phone")
+        }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

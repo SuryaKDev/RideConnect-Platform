@@ -89,6 +89,36 @@
     border: 1px solid #ced4da;
 }
 
+.success {
+    background-color: #d3f9d8;
+    color: #2b8a3e;
+    border: 1px solid #ced4da;
+}
+
+.failed {
+    background-color: #ffe3e3;
+    color: #c92a2a;
+    border: 1px solid #ced4da;
+}
+
+.refundPending {
+    background-color: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+.refundApproved {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.refundRejected {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
 .REFUNDED {
     background-color: #e9ecef;
     color: #495057;

@@ -38,17 +38,14 @@ public class PaymentService {
     @Value("${payment.net-deduction-factor}")
     private double netDeductionFactor;
 
-    @Value("${payment.otp.length}")
-    private int otpLength;
-
     @Value("${payment.status.success}")
     private String paymentStatusSuccess;
 
     @Value("${payment.status.confirmed}")
     private String bookingStatusConfirmed;
 
-    @Value("${payment.status.refunded}")
-    private String paymentStatusRefunded;
+    @Value("${payment.status.onboarded}")
+    private String bookingStatusOnboarded;
 
     @Value("${mock.provider}")
     private String mockProviderName;
@@ -70,6 +67,10 @@ public class PaymentService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
+        if (!bookingStatusOnboarded.equals(booking.getStatus())) {
+            throw new RuntimeException("Payment is allowed only after onboarding");
+        }
+
         // UPDATED: Charge the Total Amount (Base + Tax + Fee)
         Double totalAmount = calculateTotalWithTaxes(booking);
 
@@ -87,6 +88,10 @@ public class PaymentService {
     public Payment completePayment(Long bookingId, String orderId, String paymentId, String signature, String providerType) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (!bookingStatusOnboarded.equals(booking.getStatus())) {
+            throw new RuntimeException("Payment is allowed only after onboarding");
+        }
 
         boolean isVerified = false;
         try {
@@ -117,10 +122,6 @@ public class PaymentService {
             paymentRepository.save(payment);
             booking.setStatus(bookingStatusConfirmed);
             
-            // Generate 6-digit OTP for onboarding
-            String otp = String.format("%0" + otpLength + "d", new Random().nextInt((int) Math.pow(10, otpLength)));
-            booking.setOnboardingOtp(otp);
-            
             bookingRepository.save(booking);
 
             emailService.sendBookingConfirmation(
@@ -129,13 +130,13 @@ public class PaymentService {
                     booking.getRide().getSource(),
                     booking.getRide().getDestination(),
                     payment.getAmount(),
-                    otp
+                    booking.getOnboardingOtp()
             );
 
             // Notify Driver
             String driverEmail = booking.getRide().getDriver().getEmail();
             notificationService.notifyUser(driverEmail, "New Booking!",
-                    booking.getPassenger().getName() + " booked " + booking.getSeatsBooked() + " seat(s).", "SUCCESS");
+                    booking.getPassenger().getName() + " paid for " + booking.getSeatsBooked() + " seat(s).", "SUCCESS");
 
             // Notify Passenger
             notificationService.notifyUser(booking.getPassenger().getEmail(), "Booking Confirmed",
@@ -185,24 +186,5 @@ public class PaymentService {
             return paymentRepository.findDriverEarnings(email);
         }
         return paymentRepository.findByBooking_Passenger_Email(email);
-    }
-
-    public void processRefund(Long bookingId) {
-        Optional<Payment> paymentOpt = paymentRepository.findByBookingId(bookingId);
-
-        if (paymentOpt.isPresent()) {
-            Payment payment = paymentOpt.get();
-            if (paymentStatusSuccess.equals(payment.getStatus())) {
-                payment.setStatus(paymentStatusRefunded);
-                paymentRepository.save(payment);
-
-                // Refund the full amount (including taxes)
-                String userEmail = payment.getBooking().getPassenger().getEmail();
-                notificationService.notifyUser(userEmail, "Refund Processed",
-                        "₹" + payment.getAmount() + " has been refunded.", "INFO");
-
-                emailService.sendRefundConfirmation(userEmail, payment.getBooking().getPassenger().getName(), payment.getAmount());
-            }
-        }
     }
 }

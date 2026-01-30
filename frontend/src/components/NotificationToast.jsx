@@ -50,6 +50,10 @@ const NotificationToast = () => {
                                 }));
                             }
                             
+                            window.dispatchEvent(new CustomEvent('notification-received', {
+                                detail: notification
+                            }));
+
                             addNotification(notification);
                         }
                     });

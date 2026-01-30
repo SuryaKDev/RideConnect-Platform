@@ -6,13 +6,14 @@ import StatCard from '../../components/admin/StatCard';
 import ConfirmModal from '../../components/ConfirmModal';
 import LocalToast from '../../components/LocalToast';
 import { useToast } from '../../utils/useToast';
-import { getAllUsers, getAllRides, getAllBookings, verifyDriver, blockUser, cancelRideAdmin, getAdminStats } from '../../services/api';
+import { getAllUsers, getAllRides, getAllBookings, verifyDriver, blockUser, cancelRideAdmin, getAdminStats, getAdminSupportRequests, updateSupportRequest } from '../../services/api';
 import styles from './AdminDashboard.module.css';
-import { Users, Car, IndianRupee, MapPin, Activity, LayoutDashboard, LogOut, Menu, Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown, XCircle, RefreshCcw, CheckCircle, ChevronDown, ChevronUp, UserCircle, Mail, Phone, CreditCard, User, ShieldCheck, Star } from 'lucide-react';
+import { Users, Car, IndianRupee, MapPin, Activity, LayoutDashboard, LogOut, Menu, Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown, XCircle, CheckCircle, ChevronDown, ChevronUp, UserCircle, Mail, Phone, CreditCard, User, ShieldCheck, Star, LifeBuoy } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, ReferenceLine, LabelList } from 'recharts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 const ITEMS_PER_PAGE = 10;
+const SUPPORT_ITEMS_PER_PAGE = 20;
 
 const AdminDashboard = () => {
     // Dynamic Chart Data State
@@ -24,7 +25,7 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState('overview');
-    // Updated stats state to include cancelledRides and refundedAmount
+    // Updated stats state to include cancelledRides
     const [stats, setStats] = useState({
         totalUsers: 0,
         activeRides: 0,
@@ -36,6 +37,7 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [rides, setRides] = useState([]);
     const [bookings, setBookings] = useState([]);
+    const [supportData, setSupportData] = useState({ items: [], totalElements: 0, totalPages: 0 });
 
     // Interactive States
     const [loading, setLoading] = useState(true);
@@ -43,11 +45,15 @@ const AdminDashboard = () => {
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [currentPage, setCurrentPage] = useState(1);
+    const [supportPage, setSupportPage] = useState(0);
+    const [supportStatusFilter, setSupportStatusFilter] = useState('');
+    const [supportLoading, setSupportLoading] = useState(false);
 
     const [cancelModal, setCancelModal] = useState({ show: false, rideId: null, reason: '' });
     const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'warning' });
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { toasts, showToast, removeToast } = useToast();
+    const [supportDecisionModal, setSupportDecisionModal] = useState({ show: false, id: null, status: 'IN_REVIEW', notes: '' });
     
     // New states for ride details
     const [expandedRideId, setExpandedRideId] = useState(null);
@@ -75,6 +81,28 @@ const AdminDashboard = () => {
         };
         fetchStats();
     }, []);
+
+    const fetchSupportRequests = async () => {
+        setSupportLoading(true);
+        try {
+            const data = await getAdminSupportRequests({
+                status: supportStatusFilter || undefined,
+                page: supportPage,
+                size: SUPPORT_ITEMS_PER_PAGE
+            });
+            const normalized = Array.isArray(data)
+                ? { items: data, totalElements: data.length, totalPages: 1 }
+                : data?.content
+                    ? { items: data.content, totalElements: data.totalElements || data.content.length, totalPages: data.totalPages || 1 }
+                    : data;
+            setSupportData(normalized || { items: [], totalElements: 0, totalPages: 0 });
+        } catch (error) {
+            console.error('Failed to fetch support requests', error);
+            showToast('Failed to fetch support requests', 'ERROR');
+        } finally {
+            setSupportLoading(false);
+        }
+    };
 
     // Tab Data Fetch
     useEffect(() => {
@@ -154,7 +182,14 @@ const AdminDashboard = () => {
         setFilterStatus('ALL');
         setCurrentPage(1);
         setSortConfig({ key: null, direction: 'asc' });
+        setSupportPage(0);
+        setSupportStatusFilter('');
     }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab !== 'support') return;
+        fetchSupportRequests();
+    }, [activeTab, supportPage, supportStatusFilter]);
 
     // --- LOGIC: Filter & Sort ---
     const processedData = useMemo(() => {
@@ -319,6 +354,33 @@ const AdminDashboard = () => {
         }
     };
 
+    const openSupportDecision = (id, currentStatus) => {
+        setSupportDecisionModal({
+            show: true,
+            id,
+            status: currentStatus || 'IN_REVIEW',
+            notes: ''
+        });
+    };
+
+    const submitSupportDecision = async () => {
+        if (!supportDecisionModal.status) {
+            showToast('Please choose a status', 'WARNING');
+            return;
+        }
+        try {
+            await updateSupportRequest(supportDecisionModal.id, {
+                status: supportDecisionModal.status,
+                adminNotes: supportDecisionModal.notes.trim() || null
+            });
+            showToast('Support request updated', 'SUCCESS');
+            setSupportDecisionModal({ show: false, id: null, status: 'IN_REVIEW', notes: '' });
+            fetchSupportRequests();
+        } catch (error) {
+            showToast(error.message || 'Failed to update support request', 'ERROR');
+        }
+    };
+
     const renderSidebar = () => (
         <aside className={`${styles.sidebar} ${sidebarOpen ? styles.mobileOpen : ''}`}>
             <div className={styles.sidebarHeader}>
@@ -334,6 +396,9 @@ const AdminDashboard = () => {
                 </button>
                 <button className={`${styles.navItem} ${activeTab === 'rides' ? styles.activeNav : ''}`} onClick={() => { setActiveTab('rides'); setSidebarOpen(false); }}>
                     <Car size={20} /> Ride Console
+                </button>
+                <button className={`${styles.navItem} ${activeTab === 'support' ? styles.activeNav : ''}`} onClick={() => { setActiveTab('support'); setSidebarOpen(false); }}>
+                    <LifeBuoy size={20} /> Support
                 </button>
             </nav>
             <div className={styles.sidebarFooter}>
@@ -377,7 +442,17 @@ const AdminDashboard = () => {
             <main className={styles.mainContent}>
                 <header className={styles.topHeader}>
                     <button className={styles.menuBtn} onClick={() => setSidebarOpen(!sidebarOpen)}><Menu size={24} /></button>
-                    <h1>{activeTab === 'overview' ? 'Dashboard Overview' : activeTab === 'users' ? 'User Management' : 'Ride Console'}</h1>
+                    <h1>
+                        {activeTab === 'overview'
+                            ? 'Dashboard Overview'
+                            : activeTab === 'users'
+                                ? 'User Management'
+                                : activeTab === 'rides'
+                                    ? 'Ride Console'
+                                    : activeTab === 'support'
+                                        ? 'Support Requests'
+                                        : 'Dashboard Overview'}
+                    </h1>
                     <div className={styles.headerInfo}>Admin Portal</div>
                 </header>
 
@@ -395,12 +470,6 @@ const AdminDashboard = () => {
                             value={stats.cancelledRides || 0}
                             icon={XCircle}
                             color="red"
-                        />
-                        <StatCard
-                            title="Refunded Amount"
-                            value={`₹${(stats.refundedAmount || stats.totalRefunds || 0).toLocaleString()}`}
-                            icon={RefreshCcw}
-                            color="orange"
                         />
                     </div>
                 )}
@@ -637,7 +706,7 @@ const AdminDashboard = () => {
 
                 <div className={styles.contentArea}>
                     {/* Toolbar (Search & Filter) - Only for User/Ride tabs */}
-                    {activeTab !== 'overview' && (
+                    {(activeTab === 'users' || activeTab === 'rides') && (
                         <div className={styles.toolbar} style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                             <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
                                 <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
@@ -674,6 +743,124 @@ const AdminDashboard = () => {
                                     )}
                                 </select>
                             </div>
+                        </div>
+                    )}
+
+
+
+                    {activeTab === 'support' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div className={styles.toolbar} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                <div style={{ minWidth: '180px' }}>
+                                    <select
+                                        value={supportStatusFilter}
+                                        onChange={(e) => {
+                                            setSupportStatusFilter(e.target.value);
+                                            setSupportPage(0);
+                                        }}
+                                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', backgroundColor: 'white' }}
+                                    >
+                                        <option value="">All Status</option>
+                                        <option value="PENDING">Pending</option>
+                                        <option value="IN_REVIEW">In Review</option>
+                                        <option value="RESOLVED">Resolved</option>
+                                    </select>
+                                </div>
+                                <Button variant="outline" onClick={fetchSupportRequests}>Refresh</Button>
+                            </div>
+
+                            <div className={styles.tableContainer}>
+                                {supportLoading ? (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Loading support requests...</div>
+                                ) : supportData.items.length === 0 ? (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No support requests found.</div>
+                                ) : (
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Booking</th>
+                                                <th>Passenger</th>
+                                                <th>Driver</th>
+                                                <th>Issue</th>
+                                                <th>Refund</th>
+                                                <th>Evidence</th>
+                                                <th>Status</th>
+                                                <th>Updated</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {supportData.items.map((request) => (
+                                                <tr key={request.id}>
+                                                    <td>#{String(request.id).padStart(4, '0')}</td>
+                                                    <td>#{request.bookingId}</td>
+                                                    <td>{request.passengerName || request.passenger?.name || 'N/A'}</td>
+                                                    <td>{request.driverName || request.driver?.name || 'N/A'}</td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                            <span style={{ fontWeight: 600 }}>{request.issueDescription}</span>
+                                                            <small style={{ color: '#64748b' }}>{request.rideSource} to {request.rideDestination}</small>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        {request.refundRequested ? (
+                                                            <span style={{ color: '#dc2626', fontWeight: 600 }}>Requested</span>
+                                                        ) : (
+                                                            <span style={{ color: '#64748b' }}>No</span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        {Array.isArray(request.evidenceUrls) && request.evidenceUrls.length > 0 ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                {request.evidenceUrls.map((url, idx) => (
+                                                                    <a key={`${request.id}-evidence-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: '#0f4c81' }}>
+                                                                        Evidence {idx + 1}
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span style={{ color: '#94a3b8' }}>None</span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`${styles.statusBadge} ${styles[request.status] || ''}`}>{request.status}</span>
+                                                    </td>
+                                                    <td>{request.updatedAt ? new Date(request.updatedAt).toLocaleDateString('en-GB') : 'N/A'}</td>
+                                                    <td>
+                                                        <Button size="sm" onClick={() => openSupportDecision(request.id, request.status)}>Update</Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+
+                            {supportData.totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0' }}>
+                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                        Page {supportPage + 1} of {supportData.totalPages}
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <button
+                                            disabled={supportPage === 0}
+                                            onClick={() => setSupportPage((p) => Math.max(p - 1, 0))}
+                                            style={{ background: 'none', border: 'none', cursor: supportPage === 0 ? 'not-allowed' : 'pointer', padding: 0, display: 'flex', alignItems: 'center', opacity: supportPage === 0 ? 0.3 : 1 }}
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{supportPage + 1}</span>
+                                        <button
+                                            disabled={supportPage >= supportData.totalPages - 1}
+                                            onClick={() => setSupportPage((p) => Math.min(p + 1, supportData.totalPages - 1))}
+                                            style={{ background: 'none', border: 'none', cursor: supportPage >= supportData.totalPages - 1 ? 'not-allowed' : 'pointer', padding: 0, display: 'flex', alignItems: 'center', opacity: supportPage >= supportData.totalPages - 1 ? 0.3 : 1 }}
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -1051,7 +1238,7 @@ const AdminDashboard = () => {
                                                                                                 }}>
                                                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                                                                         <CreditCard size={14} color={booking.payment.status === 'COMPLETED' ? '#10b981' : isCancelled ? '#ef4444' : '#f59e0b'} />
-                                                                                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{isCancelled ? 'Refunded' : 'Payment'}</span>
+                                                                                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{isCancelled ? 'Cancelled' : 'Payment'}</span>
                                                                                                     </div>
                                                                                                     <span style={{ 
                                                                                                         fontWeight: 700, 
@@ -1117,6 +1304,37 @@ const AdminDashboard = () => {
                     </div>
                 )
             }
+
+            {/* Support Decision Modal */}
+            {supportDecisionModal.show && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <h3>Update Support Request</h3>
+                        <p>Set the status and add optional admin notes.</p>
+                        <select
+                            className={styles.selectInput}
+                            value={supportDecisionModal.status}
+                            onChange={(e) => setSupportDecisionModal(prev => ({ ...prev, status: e.target.value }))}
+                        >
+                            <option value="PENDING">Pending</option>
+                            <option value="IN_REVIEW">In Review</option>
+                            <option value="RESOLVED">Resolved</option>
+                        </select>
+                        <textarea
+                            className={styles.textarea}
+                            value={supportDecisionModal.notes}
+                            onChange={(e) => setSupportDecisionModal(prev => ({ ...prev, notes: e.target.value }))}
+                            placeholder="Admin notes (optional)"
+                        />
+                        <div className={styles.modalActions}>
+                            <Button variant="outline" onClick={() => setSupportDecisionModal({ show: false, id: null, status: 'IN_REVIEW', notes: '' })}>Close</Button>
+                            <Button onClick={submitSupportDecision} style={{ color: 'white', background: '#0f4c81' }}>
+                                Update
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Confirm Modal */}
             <ConfirmModal

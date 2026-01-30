@@ -39,4 +39,5 @@ public class Payment {
     private String status; // SUCCESS, FAILED
 
     private LocalDateTime paymentTime;
+
 }

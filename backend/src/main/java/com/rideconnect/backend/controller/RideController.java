@@ -1,5 +1,6 @@
 package com.rideconnect.backend.controller;
 
+import com.rideconnect.backend.dto.CancelRideRequest;
 import com.rideconnect.backend.dto.PassengerDto;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.service.RideService;
@@ -79,8 +80,14 @@ public class RideController {
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelRide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        rideService.cancelRide(id, userDetails.getUsername());
+    public ResponseEntity<?> cancelRide(
+            @PathVariable Long id,
+            @RequestBody CancelRideRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (request == null || request.getReason() == null) {
+            throw new RuntimeException("Cancellation reason is required");
+        }
+        rideService.cancelRide(id, userDetails.getUsername(), request.getReason(), request.getReasonText());
         return ResponseEntity.ok(Map.of("message", "Ride cancelled successfully"));
     }
 

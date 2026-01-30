@@ -193,6 +193,12 @@
 .modal { background: white; padding: 1.5rem; border-radius: 8px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
 .modalHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
 .closeBtn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
+.modalBody { display: flex; flex-direction: column; gap: 0.75rem; }
+.modalLabel { font-size: 0.9rem; font-weight: 600; color: #334155; }
+.modalInput,
+.modalTextarea { border: 1px solid #cbd5f5; border-radius: 8px; padding: 0.65rem 0.75rem; font-size: 0.9rem; }
+.modalActions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
+.modalError { background: #fef2f2; color: #b91c1c; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; }
 .passengerList { list-style: none; padding: 0; margin: 0; }
 .passengerItem { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
 .pInfo { display: flex; flex-direction: column; gap: 2px; }

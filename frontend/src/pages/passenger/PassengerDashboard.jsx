@@ -41,6 +41,7 @@ const PassengerDashboard = () => {
 
     const [reviewBooking, setReviewBooking] = useState(null);
     const { toasts, showToast, removeToast } = useToast();
+    const notificationRefreshTimer = useRef(null);
 
     // Initial Fetch
     useEffect(() => {
@@ -84,6 +85,39 @@ const PassengerDashboard = () => {
             }
         };
         loadDashboard();
+    }, []);
+
+    useEffect(() => {
+        const handleNotification = () => {
+            if (notificationRefreshTimer.current) {
+                clearTimeout(notificationRefreshTimer.current);
+            }
+            notificationRefreshTimer.current = setTimeout(async () => {
+                try {
+                    const [historyData, activeData] = await Promise.allSettled([
+                        getMyBookings(),
+                        getActiveRide()
+                    ]);
+
+                    if (historyData.status === 'fulfilled') {
+                        setHistory(historyData.value || []);
+                    }
+                    if (activeData.status === 'fulfilled') {
+                        setActiveRide(activeData.value);
+                    }
+                } catch (err) {
+                    console.log("Notification refresh failed:", err);
+                }
+            }, 1000);
+        };
+
+        window.addEventListener('notification-received', handleNotification);
+        return () => {
+            window.removeEventListener('notification-received', handleNotification);
+            if (notificationRefreshTimer.current) {
+                clearTimeout(notificationRefreshTimer.current);
+            }
+        };
     }, []);
 
     const handleSearchChange = (e) => {

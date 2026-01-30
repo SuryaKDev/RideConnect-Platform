@@ -3,6 +3,7 @@ package com.rideconnect.backend.service;
 import com.google.maps.model.LatLng;
 import com.rideconnect.backend.dto.PassengerDto;
 import com.rideconnect.backend.model.Booking;
+import com.rideconnect.backend.model.DriverCancelReason;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.model.User;
 import com.rideconnect.backend.repository.jpa.BookingRepository;
@@ -15,13 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +32,9 @@ public class RideService {
     @Autowired private UserRepository userRepository;
     @Autowired private DistanceService distanceService;
     @Autowired private BookingRepository bookingRepository;
-    @Autowired private PaymentService paymentService;
     @Autowired private NotificationService notificationService;
     @Autowired private GoogleMapsService googleMapsService;
     @Autowired private EmailService emailService;
-
     @Value("${ride.base-fare}")
     private double baseFare;
 
@@ -107,7 +104,7 @@ public class RideService {
         );
     }
 
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public Ride postRide(Ride ride, String email) {
         User driver = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         if (!driver.isEmailVerified()) throw new RuntimeException("Please verify your email before posting a ride.");
@@ -210,7 +207,7 @@ public class RideService {
     }
 
     @Transactional
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public void cancelRide(Long rideId, String driverEmail, String reason, boolean isAdmin) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
         
@@ -227,7 +224,6 @@ public class RideService {
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
         for (Booking b : bookings) {
             if (!b.getStatus().startsWith(statusCancelled)) {
-                if (bookingStatusConfirmed.equals(b.getStatus())) paymentService.processRefund(b.getId());
                 b.setStatus(isAdmin ? statusCancelledByAdmin : statusCancelledByDriver);
                 bookingRepository.save(b);
 
@@ -238,7 +234,7 @@ public class RideService {
                         ride.getDestination()
                 );
 
-                String msg = isAdmin ? "Ride cancelled by admin: " + reason : "Ride cancelled by driver. Refund initiated.";
+                String msg = isAdmin ? "Ride cancelled by admin: " + reason : "Ride cancelled by driver.";
                 notificationService.notifyUser(b.getPassenger().getEmail(), "Ride Cancelled", msg, "WARNING");
             }
         }
@@ -250,7 +246,13 @@ public class RideService {
     }
 
     @Transactional
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
+    public void cancelRide(Long rideId, String driverEmail, DriverCancelReason reason, String reasonText) {
+        String resolvedReason = resolveDriverCancelReasonText(reason, reasonText);
+        cancelRide(rideId, driverEmail, resolvedReason, false);
+    }
+
+    @Transactional
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public void startRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
 
@@ -277,7 +279,7 @@ public class RideService {
     }
 
     @Transactional
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public void completeRide(Long rideId, String driverEmail) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() -> new RuntimeException("Ride not found"));
 
@@ -331,5 +333,21 @@ public class RideService {
             }
         }
         return list;
+    }
+
+    private String resolveDriverCancelReasonText(DriverCancelReason reason, String reasonText) {
+        if (reason == null) {
+            throw new RuntimeException("Cancellation reason is required");
+        }
+        return switch (reason) {
+            case UNPROFITABLE_DESTINATION -> "Unprofitable or traffic-heavy destination";
+            case VEHICLE_ISSUES -> "Vehicle issues";
+            case OTHER -> {
+                if (reasonText == null || reasonText.trim().isEmpty()) {
+                    throw new RuntimeException("Reason description is required for OTHER");
+                }
+                yield reasonText.trim();
+            }
+        };
     }
 }

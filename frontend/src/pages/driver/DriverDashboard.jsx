@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Button from '../../components/ui/Button';
@@ -20,7 +20,13 @@ import { useAuth } from '../../context/AuthContext';
 import UserProfileModal from '../../components/UserProfileModal';
 import ReviewModal from '../../components/ReviewModal';
 import styles from './DriverDashboard.module.css';
-import { Plus, Calendar, Clock, MapPin, Users, XCircle, List, History, Check, X, Wallet, Play, Flag, Star, MessageCircle } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Users, XCircle, List, History, Check, X, Wallet, Play, Flag, Star } from 'lucide-react';
+
+const driverCancelReasons = [
+    { value: 'UNPROFITABLE_DESTINATION', label: 'Unprofitable destination' },
+    { value: 'VEHICLE_ISSUES', label: 'Vehicle issues' },
+    { value: 'OTHER', label: 'Other' }
+];
 
 const DriverDashboard = () => {
     const { user } = useAuth();
@@ -34,7 +40,9 @@ const DriverDashboard = () => {
     const [viewProfileId, setViewProfileId] = useState(null);
     const [reviewTarget, setReviewTarget] = useState(null);
     const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'warning' });
+    const [cancelModal, setCancelModal] = useState({ show: false, rideId: null, reason: 'UNPROFITABLE_DESTINATION', reasonText: '', error: '' });
     const { toasts, showToast, removeToast } = useToast();
+    const notificationRefreshTimer = useRef(null);
     
     // OTP Verification State
     const [otpInputs, setOtpInputs] = useState({});
@@ -56,6 +64,33 @@ const DriverDashboard = () => {
     useEffect(() => {
         fetchRides();
     }, []);
+
+    useEffect(() => {
+        const handleNotification = () => {
+            if (notificationRefreshTimer.current) {
+                clearTimeout(notificationRefreshTimer.current);
+            }
+            notificationRefreshTimer.current = setTimeout(async () => {
+                try {
+                    await fetchRides();
+                    if (passengerModal.show && passengerModal.rideId) {
+                        const list = await getRidePassengers(passengerModal.rideId);
+                        setPassengerModal(prev => ({ ...prev, passengers: list }));
+                    }
+                } catch (err) {
+                    console.log('Notification refresh failed:', err);
+                }
+            }, 1000);
+        };
+
+        window.addEventListener('notification-received', handleNotification);
+        return () => {
+            window.removeEventListener('notification-received', handleNotification);
+            if (notificationRefreshTimer.current) {
+                clearTimeout(notificationRefreshTimer.current);
+            }
+        };
+    }, [passengerModal.show, passengerModal.rideId]);
 
     const handleStartRide = async (rideId) => {
         setConfirmModal({
@@ -94,21 +129,32 @@ const DriverDashboard = () => {
     };
 
     const handleCancelRide = async (rideId) => {
-        setConfirmModal({
+        setCancelModal({
             show: true,
-            title: 'Cancel Ride',
-            message: 'Are you sure? This will cancel bookings for all passengers.',
-            type: 'danger',
-            onConfirm: async () => {
-                try {
-                    await cancelPublishedRide(rideId);
-                    showToast('Ride cancelled successfully!', 'SUCCESS');
-                    fetchRides();
-                } catch (err) {
-                    showToast(err.message, 'ERROR');
-                }
-            }
+            rideId,
+            reason: 'UNPROFITABLE_DESTINATION',
+            reasonText: '',
+            error: ''
         });
+    };
+
+    const submitCancelRide = async () => {
+        if (!cancelModal.reason) {
+            setCancelModal(prev => ({ ...prev, error: 'Please select a reason.' }));
+            return;
+        }
+        if (cancelModal.reason === 'OTHER' && !cancelModal.reasonText.trim()) {
+            setCancelModal(prev => ({ ...prev, error: 'Please provide details for the selected reason.' }));
+            return;
+        }
+        try {
+            await cancelPublishedRide(cancelModal.rideId, cancelModal.reason, cancelModal.reasonText.trim());
+            showToast('Ride cancelled successfully!', 'SUCCESS');
+            setCancelModal({ show: false, rideId: null, reason: 'UNPROFITABLE_DESTINATION', reasonText: '', error: '' });
+            fetchRides();
+        } catch (err) {
+            showToast(err.message, 'ERROR');
+        }
     };
 
     const openPassengerList = async (ride) => {
@@ -248,9 +294,11 @@ const DriverDashboard = () => {
                                     </Button>
                                 ) : null}
 
-                                <Button variant="outline" onClick={() => handleCancelRide(ride.id)} className={styles.cancelBtn} style={{ borderColor: '#dc3545', color: '#dc3545' }}>
-                                    <XCircle size={16} />
-                                </Button>
+                                {ride.status !== 'IN_PROGRESS' && (
+                                    <Button variant="outline" onClick={() => handleCancelRide(ride.id)} className={styles.cancelBtn} style={{ borderColor: '#dc3545', color: '#dc3545' }}>
+                                        <XCircle size={16} />
+                                    </Button>
+                                )}
                             </>
                         )}
                     </div>
@@ -340,8 +388,8 @@ const DriverDashboard = () => {
                                                 <span className={`${styles.pStatus} ${styles.ONBOARDED}`}>✓ ONBOARDED</span>
                                             )}
 
-                                            {/* Chat Button - Show for confirmed/onboarded passengers */}
-                                            {(p.bookingStatus === 'CONFIRMED' || p.bookingStatus === 'ONBOARDED') && (
+                                            {/* Chat Button - Show for accepted passengers */}
+                                            {(p.bookingStatus === 'PENDING_PAYMENT' || p.bookingStatus === 'CONFIRMED' || p.bookingStatus === 'ONBOARDED') && (
                                                 <div style={{ marginTop: '8px' }}>
                                                     <ChatButton
                                                         tripId={passengerModal.rideId}
@@ -372,8 +420,8 @@ const DriverDashboard = () => {
                                                 </div>
                                             )}
 
-                                            {/* OTP Verification (Only for IN_PROGRESS rides with CONFIRMED passengers) */}
-                                            {passengerModal.rideStatus === 'IN_PROGRESS' && p.bookingStatus === 'CONFIRMED' && (
+                                            {/* OTP Verification (Only for passengers awaiting onboarding) */}
+                                            {p.bookingStatus === 'PENDING_PAYMENT' && (
                                                 <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6' }}>
                                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '5px', color: '#495057' }}>
                                                         Verify Passenger OTP:
@@ -416,7 +464,7 @@ const DriverDashboard = () => {
                                                         </Button>
                                                     </div>
                                                     <p style={{ fontSize: '0.65rem', color: '#6c757d', marginTop: '4px', marginBottom: 0 }}>
-                                                        Ask passenger for their OTP from booking confirmation email
+                                                        Ask passenger for their OTP from the booking confirmation
                                                     </p>
                                                 </div>
                                             )}
@@ -454,6 +502,54 @@ const DriverDashboard = () => {
                     onClose={() => setReviewTarget(null)}
                     onSuccess={handleReviewSuccess}
                 />
+            )}
+
+            {cancelModal.show && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <div className={styles.modalHeader}>
+                            <h3>Cancel Ride</h3>
+                            <button
+                                onClick={() => setCancelModal({ show: false, rideId: null, reason: 'UNPROFITABLE_DESTINATION', reasonText: '', error: '' })}
+                                className={styles.closeBtn}
+                            >
+                                x
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <label className={styles.modalLabel}>Reason</label>
+                            <select
+                                className={styles.modalInput}
+                                value={cancelModal.reason}
+                                onChange={(e) => setCancelModal(prev => ({ ...prev, reason: e.target.value, error: '' }))}
+                            >
+                                {driverCancelReasons.map((option) => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                            {cancelModal.reason === 'OTHER' && (
+                                <>
+                                    <label className={styles.modalLabel}>Reason Details</label>
+                                    <textarea
+                                        className={styles.modalTextarea}
+                                        rows={3}
+                                        value={cancelModal.reasonText}
+                                        onChange={(e) => setCancelModal(prev => ({ ...prev, reasonText: e.target.value, error: '' }))}
+                                    />
+                                </>
+                            )}
+                            {cancelModal.error && <div className={styles.modalError}>{cancelModal.error}</div>}
+                        </div>
+                        <div className={styles.modalActions}>
+                            <Button variant="outline" onClick={() => setCancelModal({ show: false, rideId: null, reason: 'UNPROFITABLE_DESTINATION', reasonText: '', error: '' })}>
+                                Close
+                            </Button>
+                            <Button onClick={submitCancelRide} style={{ backgroundColor: '#dc3545', color: '#fff' }}>
+                                Confirm Cancellation
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Confirm Modal */}

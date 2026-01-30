@@ -2,20 +2,25 @@ package com.rideconnect.backend.service;
 
 import com.rideconnect.backend.dto.RoutePresetDto;
 import com.rideconnect.backend.model.Booking;
+import com.rideconnect.backend.model.PassengerCancelReason;
 import com.rideconnect.backend.model.Ride;
 import com.rideconnect.backend.model.User;
+import com.rideconnect.backend.service.event.BookingAcceptedEvent;
+import com.rideconnect.backend.service.event.BookingCancelledEvent;
+import com.rideconnect.backend.service.event.BookingRejectedEvent;
+import com.rideconnect.backend.service.event.BookingRequestedEvent;
 import com.rideconnect.backend.repository.jpa.BookingRepository;
 import com.rideconnect.backend.repository.jpa.RideRepository;
 import com.rideconnect.backend.repository.jpa.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,13 +38,10 @@ public class BookingService {
     private UserRepository userRepository;
 
     @Autowired
-    private PaymentService paymentService;
-
-    @Autowired
     private NotificationService notificationService;
 
     @Autowired
-    private EmailService emailService;
+    private ApplicationEventPublisher eventPublisher;
 
     @Value("${payment.status.pending-approval}")
     private String statusPendingApproval;
@@ -53,11 +55,11 @@ public class BookingService {
     @Value("${payment.status.cancelled}")
     private String statusCancelled;
 
-    @Value("${payment.status.confirmed}")
-    private String statusConfirmed;
-
     @Value("${payment.status.onboarded}")
     private String statusOnboarded;
+
+    @Value("${payment.otp.length}")
+    private int otpLength;
 
     @Value("${ride.status.in-progress}")
     private String rideStatusInProgress;
@@ -69,7 +71,7 @@ public class BookingService {
     private String messageDueNow;
 
     @Transactional
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public Booking bookRide(Long rideId, Integer seats, String passengerEmail) {
         User passenger = userRepository.findByEmail(passengerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -106,24 +108,14 @@ public class BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
 
-        // Notify Driver
-        notificationService.notifyUser(ride.getDriver().getEmail(), "New Ride Request",
-                passenger.getName() + " requested " + seats + " seat(s). Please Accept or Reject.", "INFO");
-
-        emailService.sendNewBookingAlertForDriver(
-                ride.getDriver().getEmail(),
-                ride.getDriver().getName(),
-                passenger.getName(),
-                ride.getSource(),
-                ride.getDestination()
-        );
+        eventPublisher.publishEvent(new BookingRequestedEvent(savedBooking.getId()));
 
         return savedBooking;
     }
 
     // --- NEW: Driver Accepts Booking ---
     @Transactional
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public void acceptBooking(Long bookingId, String driverEmail) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
 
@@ -136,17 +128,19 @@ public class BookingService {
             throw new RuntimeException("Booking is not pending approval");
         }
 
-        booking.setStatus(statusPendingPayment); // Now ready for payment
+        booking.setStatus(statusPendingPayment);
+        if (booking.getOnboardingOtp() == null || booking.getOnboardingOtp().isEmpty()) {
+            String otp = String.format("%0" + otpLength + "d", new java.util.Random().nextInt((int) Math.pow(10, otpLength)));
+            booking.setOnboardingOtp(otp);
+        }
         bookingRepository.save(booking);
 
-        // Notify Passenger
-        notificationService.notifyUser(booking.getPassenger().getEmail(), "Request Accepted!",
-                "The driver accepted your request. Please complete payment to confirm.", "SUCCESS");
+        eventPublisher.publishEvent(new BookingAcceptedEvent(booking.getId()));
     }
 
     // --- NEW: Driver Rejects Booking ---
     @Transactional
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public void rejectBooking(Long bookingId, String driverEmail) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
 
@@ -166,14 +160,12 @@ public class BookingService {
         booking.setStatus(statusRejected);
         bookingRepository.save(booking);
 
-        // Notify Passenger
-        notificationService.notifyUser(booking.getPassenger().getEmail(), "Request Rejected",
-                "The driver declined your request.", "ERROR");
+        eventPublisher.publishEvent(new BookingRejectedEvent(booking.getId()));
     }
 
     @Transactional
-    @CacheEvict(value = {"rides", "searchRides"}, allEntries = true)
-    public void cancelBooking(Long bookingId, String userEmail) {
+    @CacheEvict(value = "rides", key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
+    public void cancelBooking(Long bookingId, String userEmail, PassengerCancelReason reason, String reasonText) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new RuntimeException("Booking not found"));
         if (!booking.getPassenger().getEmail().equals(userEmail)) throw new RuntimeException("Not authorized");
 
@@ -181,19 +173,16 @@ public class BookingService {
             throw new RuntimeException("Booking is already cancelled/rejected");
         }
 
+        String resolvedReasonText = resolvePassengerCancelReasonText(reason, reasonText);
+
         Ride ride = booking.getRide();
         ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
         rideRepository.save(ride);
 
-        if (statusConfirmed.equals(booking.getStatus())) {
-            paymentService.processRefund(bookingId);
-        }
-
         booking.setStatus(statusCancelled);
         bookingRepository.save(booking);
 
-        notificationService.notifyUser(ride.getDriver().getEmail(), "Booking Cancelled",
-                booking.getPassenger().getName() + " cancelled their request.", "WARNING");
+        eventPublisher.publishEvent(new BookingCancelledEvent(booking.getId(), resolvedReasonText));
     }
 
     @Transactional
@@ -205,8 +194,8 @@ public class BookingService {
             throw new RuntimeException("Not authorized: You are not the driver for this ride");
         }
 
-        if (!statusConfirmed.equals(booking.getStatus())) {
-            throw new RuntimeException("Booking is not in CONFIRMED status");
+        if (!statusPendingPayment.equals(booking.getStatus())) {
+            throw new RuntimeException("Booking is not ready for onboarding");
         }
 
         if (booking.getOnboardingOtp() == null || !booking.getOnboardingOtp().equals(otp)) {
@@ -268,5 +257,23 @@ public class BookingService {
         }
 
         return booking;
+    }
+
+    private String resolvePassengerCancelReasonText(PassengerCancelReason reason, String reasonText) {
+        if (reason == null) {
+            throw new RuntimeException("Cancellation reason is required");
+        }
+        return switch (reason) {
+            case CHANGED_PLANS -> "Changed plans";
+            case LONG_WAIT_TIME -> "Long wait time";
+            case BETTER_RIDE_AVAILABLE -> "Better ride available";
+            case INCORRECT_PICKUP -> "Incorrect pickup location";
+            case OTHER -> {
+                if (reasonText == null || reasonText.trim().isEmpty()) {
+                    throw new RuntimeException("Reason description is required for OTHER");
+                }
+                yield reasonText.trim();
+            }
+        };
     }
 }

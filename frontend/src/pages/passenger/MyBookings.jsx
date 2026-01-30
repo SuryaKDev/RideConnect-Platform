@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
@@ -7,12 +7,20 @@ import PaymentModal from '../../components/PaymentModal';
 import ReviewModal from '../../components/ReviewModal';
 import UserProfileModal from '../../components/UserProfileModal';
 import LocalToast from '../../components/LocalToast';
-import ConfirmModal from '../../components/ConfirmModal';
 import ChatButton from '../../components/chat/ChatButton';
+import SupportRequestModal from '../../components/passenger/SupportRequestModal';
 import { useToast } from '../../utils/useToast';
-import { getMyBookings, cancelBooking } from '../../services/api';
+import { getMyBookings, cancelBooking, createSupportRequest, getMySupportRequests } from '../../services/api';
 import styles from './MyBookings.module.css';
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, CreditCard, XCircle, History, Clock3, Star, Receipt, MessageCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, CreditCard, XCircle, History, Clock3, Star, Receipt, HelpCircle } from 'lucide-react';
+
+const passengerCancelReasons = [
+    { value: 'CHANGED_PLANS', label: 'Changed plans' },
+    { value: 'LONG_WAIT_TIME', label: 'Long wait time' },
+    { value: 'BETTER_RIDE_AVAILABLE', label: 'Better ride available' },
+    { value: 'INCORRECT_PICKUP', label: 'Incorrect pickup' },
+    { value: 'OTHER', label: 'Other' }
+];
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -20,29 +28,85 @@ const MyBookings = () => {
     const [paymentBooking, setPaymentBooking] = useState(null);
     const [reviewBooking, setReviewBooking] = useState(null);
     const [viewProfileId, setViewProfileId] = useState(null);
+    const [supportModalBooking, setSupportModalBooking] = useState(null);
     const [activeTab, setActiveTab] = useState('upcoming');
     const { toasts, showToast, removeToast } = useToast();
-    const [confirmModal, setConfirmModal] = useState({
+    const [supportRequests, setSupportRequests] = useState({});
+    const [supportRequestsList, setSupportRequestsList] = useState([]);
+    const [cancelModal, setCancelModal] = useState({
         show: false,
-        type: 'warning',
-        title: '',
-        message: '',
-        onConfirm: null
+        bookingId: null,
+        reason: 'CHANGED_PLANS',
+        reasonText: '',
+        error: ''
     });
+    const notificationRefreshTimer = useRef(null);
+
+    const buildSupportRequestMap = (requests = []) => {
+        return requests.reduce((acc, request) => {
+            if (!request?.bookingId) return acc;
+            const existing = acc[request.bookingId];
+            if (!existing) {
+                acc[request.bookingId] = request;
+                return acc;
+            }
+            const existingTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+            const nextTime = new Date(request.updatedAt || request.createdAt || 0).getTime();
+            if (nextTime >= existingTime) {
+                acc[request.bookingId] = request;
+            }
+            return acc;
+        }, {});
+    };
 
     const fetchBookings = async () => {
+        setLoading(true);
         try {
-            const data = await getMyBookings();
-            setBookings(data || []);
-            setLoading(false);
+            const [bookingsResult, supportResult] = await Promise.allSettled([
+                getMyBookings(),
+                getMySupportRequests()
+            ]);
+
+            if (bookingsResult.status === 'fulfilled') {
+                setBookings(bookingsResult.value || []);
+            } else {
+                throw bookingsResult.reason;
+            }
+
+            if (supportResult && supportResult.status === 'fulfilled') {
+                const list = supportResult.value || [];
+                setSupportRequests(buildSupportRequestMap(list));
+                setSupportRequestsList(list);
+            }
         } catch (error) {
             console.error('Failed to fetch bookings', error);
+            showToast('Failed to fetch bookings', 'ERROR');
+        } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
         fetchBookings();
+    }, []);
+
+    useEffect(() => {
+        const handleNotification = () => {
+            if (notificationRefreshTimer.current) {
+                clearTimeout(notificationRefreshTimer.current);
+            }
+            notificationRefreshTimer.current = setTimeout(() => {
+                fetchBookings();
+            }, 1000);
+        };
+
+        window.addEventListener('notification-received', handleNotification);
+        return () => {
+            window.removeEventListener('notification-received', handleNotification);
+            if (notificationRefreshTimer.current) {
+                clearTimeout(notificationRefreshTimer.current);
+            }
+        };
     }, []);
 
     const handlePaymentSuccess = () => {
@@ -58,26 +122,47 @@ const MyBookings = () => {
     };
 
     const handleCancel = (id) => {
-        setConfirmModal({
+        setCancelModal({
             show: true,
-            type: 'warning',
-            title: 'Cancel Booking',
-            message: 'Are you sure you want to cancel this booking?',
-            confirmText: 'Cancel Booking',
-            onConfirm: async () => {
-                try {
-                    await cancelBooking(id);
-                    showToast("Booking Cancelled", "SUCCESS");
-                    fetchBookings();
-                } catch (err) {
-                    showToast(err.message, "ERROR");
-                }
-            }
+            bookingId: id,
+            reason: 'CHANGED_PLANS',
+            reasonText: '',
+            error: ''
         });
     };
 
-    const handleRefundRequest = () => {
-        showToast("Refund request submitted. Refund will be credited within 5-7 working days.", "SUCCESS");
+    const submitCancel = async () => {
+        if (!cancelModal.reason) {
+            setCancelModal(prev => ({ ...prev, error: 'Please select a reason.' }));
+            return;
+        }
+        if (cancelModal.reason === 'OTHER' && !cancelModal.reasonText.trim()) {
+            setCancelModal(prev => ({ ...prev, error: 'Please provide details for the selected reason.' }));
+            return;
+        }
+        try {
+            await cancelBooking(cancelModal.bookingId, cancelModal.reason, cancelModal.reasonText.trim());
+            showToast('Booking Cancelled', 'SUCCESS');
+            setCancelModal({ show: false, bookingId: null, reason: 'CHANGED_PLANS', reasonText: '', error: '' });
+            fetchBookings();
+        } catch (err) {
+            showToast(err.message, 'ERROR');
+        }
+    };
+
+    const handleSupportRequest = (booking) => {
+        setSupportModalBooking(booking);
+    };
+
+    const handleSupportSubmit = async (payload) => {
+        const data = await createSupportRequest(payload);
+        showToast('Support request submitted.', 'SUCCESS');
+        setSupportModalBooking(null);
+        setSupportRequests((prev) => ({
+            ...prev,
+            [data.bookingId]: data
+        }));
+        setSupportRequestsList((prev) => [data, ...(prev || [])]);
     };
 
     // Filter Logic
@@ -103,15 +188,31 @@ const MyBookings = () => {
         if (status === 'ONBOARDED') return <div className={`${styles.statusBadge} ${styles.ONBOARDED}`}><CheckCircle size={14} />  Onboarded</div>;
         if (status === 'CONFIRMED') return <div className={`${styles.statusBadge} ${styles.CONFIRMED}`}><CheckCircle size={14} /> Confirmed</div>;
         if (status === 'PENDING_APPROVAL') return <div className={`${styles.statusBadge} ${styles.PENDING}`}><Clock3 size={14} /> Awaiting Approval</div>;
-        if (status === 'PENDING_PAYMENT') return <div className={`${styles.statusBadge} ${styles.PAYMENT}`}><CreditCard size={14} /> Payment Due</div>;
+        if (status === 'PENDING_PAYMENT') return <div className={`${styles.statusBadge} ${styles.PAYMENT}`}><CreditCard size={14} /> Awaiting Onboarding</div>;
         if (status === 'REJECTED') return <div className={`${styles.statusBadge} ${styles.CANCELLED}`}><XCircle size={14} /> Rejected</div>;
         if (status.includes('CANCELLED')) return <div className={`${styles.statusBadge} ${styles.CANCELLED}`}><XCircle size={14} /> Cancelled</div>;
         return <div className={styles.statusBadge}>{status}</div>;
     };
 
+    const getSupportStatusBadge = (request) => {
+        if (!request) return null;
+        const statusClass = request.status === 'RESOLVED'
+            ? styles.supportResolved
+            : request.status === 'IN_REVIEW'
+                ? styles.supportReview
+                : styles.supportPending;
+        return (
+            <div className={`${styles.supportBadge} ${statusClass}`}>
+                Support {request.status}
+            </div>
+        );
+    };
+
     const renderBookings = (list) => (
         <div className={styles.bookingsList}>
-            {list.map((booking) => (
+            {list.map((booking) => {
+                const supportRequest = supportRequests[booking.id];
+                return (
                 <div key={booking.id} className={styles.bookingCard}>
                     <div className={styles.cardHeader}>
                         {getStatusBadge(booking.status, booking.ride.status)}
@@ -152,11 +253,16 @@ const MyBookings = () => {
                             <span className={styles.price}>
                                 Total: ₹{booking.ride.pricePerSeat * booking.seatsBooked}
                             </span>
+                            {supportRequest && (
+                                <div className={styles.supportInfo}>
+                                    {getSupportStatusBadge(supportRequest)}
+                                </div>
+                            )}
                         </div>
 
                         <div className={styles.actions} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                             {/* Chat Button - Show for confirmed/onboarded bookings that aren't completed or cancelled */}
-                            {(booking.status === 'CONFIRMED' || booking.status === 'ONBOARDED') && 
+                            {(booking.status === 'PENDING_PAYMENT' || booking.status === 'CONFIRMED' || booking.status === 'ONBOARDED') && 
                              booking.ride.status !== 'COMPLETED' && 
                              !booking.ride.status.includes('CANCELLED') && 
                              booking.ride.driver && (
@@ -176,7 +282,7 @@ const MyBookings = () => {
                             )}
 
                             {/* Cancel Button - Show if active and not completed */}
-                            {!booking.status.includes('CANCELLED') && booking.status !== 'REJECTED' && booking.ride.status !== 'COMPLETED' && booking.ride.status !== 'CANCELLED' && (
+                            {!booking.status.includes('CANCELLED') && booking.status !== 'REJECTED' && booking.status !== 'ONBOARDED' && booking.ride.status !== 'COMPLETED' && booking.ride.status !== 'CANCELLED' && (
                                 <Button
                                     variant="outline"
                                     onClick={() => handleCancel(booking.id)}
@@ -186,8 +292,8 @@ const MyBookings = () => {
                                 </Button>
                             )}
 
-                            {/* Pay Button - Only if Pending Payment */}
-                            {booking.status === 'PENDING_PAYMENT' && booking.ride.status !== 'COMPLETED' && (
+                            {/* Pay Button - Only after onboarding */}
+                            {booking.status === 'ONBOARDED' && booking.ride.status !== 'COMPLETED' && (
                                 <Button className={styles.payBtn} onClick={() => setPaymentBooking(booking)}>
                                     <CreditCard size={16} style={{ marginRight: '5px' }} /> Pay Now
                                 </Button>
@@ -203,18 +309,83 @@ const MyBookings = () => {
                                 </Button>
                             )}
 
-                            {/* Refund Button - For Cancelled/Rejected rides in history */}
-                            {activeTab === 'history' && booking.status === 'CONFIRMED' && (booking.ride.status.includes('CANCELLED') || booking.status === 'CANCELLED') && (
-                                <Button variant="outline" onClick={handleRefundRequest} style={{ borderColor: '#ffc107', color: '#ffc107' }}>
-                                    Request Refund
+                            {/* Support Button - For post-ride issues */}
+                            {activeTab === 'history' && !supportRequest && (
+                                <Button variant="outline" onClick={() => handleSupportRequest(booking)} style={{ borderColor: '#0f4c81', color: '#0f4c81' }}>
+                                    <HelpCircle size={16} style={{ marginRight: '5px' }} /> Report Issue
                                 </Button>
                             )}
                         </div>
                     </div>
                 </div>
-            ))}
+                );
+            })}
         </div>
     );
+
+    const renderSupportRequests = () => {
+        const sorted = [...(supportRequestsList || [])].sort((a, b) => {
+            const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+            const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+            return bTime - aTime;
+        });
+
+        if (sorted.length === 0) {
+            return <div className={styles.emptyState}>No support requests yet.</div>;
+        }
+
+        return (
+            <div className={styles.supportList}>
+                {sorted.map((request) => (
+                    <div key={request.id} className={styles.supportCard}>
+                        <div className={styles.supportHeader}>
+                            <div>
+                                <div className={styles.supportTitle}>Request #{request.id}</div>
+                                <div className={styles.supportMeta}>Booking #{request.bookingId}</div>
+                            </div>
+                            {getSupportStatusBadge(request)}
+                        </div>
+                        <div className={styles.supportBody}>
+                            <div className={styles.supportRow}>
+                                <span>Route</span>
+                                <span>{request.rideSource} to {request.rideDestination}</span>
+                            </div>
+                            <div className={styles.supportRow}>
+                                <span>Date</span>
+                                <span>{request.rideDate} {request.rideTime}</span>
+                            </div>
+                            <div className={styles.supportRow}>
+                                <span>Issue</span>
+                                <span>{request.issueDescription}</span>
+                            </div>
+                            <div className={styles.supportRow}>
+                                <span>Refund Requested</span>
+                                <span>{request.refundRequested ? 'Yes' : 'No'}</span>
+                            </div>
+                            {Array.isArray(request.evidenceUrls) && request.evidenceUrls.length > 0 && (
+                                <div className={styles.supportRow}>
+                                    <span>Evidence</span>
+                                    <span>
+                                        {request.evidenceUrls.map((url, idx) => (
+                                            <a key={`${request.id}-evidence-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: '#0f4c81', display: 'inline-block', marginRight: '0.5rem' }}>
+                                                Evidence {idx + 1}
+                                            </a>
+                                        ))}
+                                    </span>
+                                </div>
+                            )}
+                            {request.adminNotes && (
+                                <div className={styles.supportRow}>
+                                    <span>Admin Notes</span>
+                                    <span>{request.adminNotes}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div className={styles.pageWrapper}>
@@ -243,24 +414,30 @@ const MyBookings = () => {
                     >
                         <History size={18} style={{ marginRight: '5px' }} /> History
                     </button>
+                    <button
+                        className={`${styles.tabBtn} ${activeTab === 'support' ? styles.active : ''}`}
+                        onClick={() => setActiveTab('support')}
+                    >
+                        <HelpCircle size={18} style={{ marginRight: '5px' }} /> Support
+                    </button>
                 </div>
 
                 {loading ? (
                     <p>Loading bookings...</p>
+                ) : activeTab === 'upcoming' ? (
+                    upcomingBookings.length === 0 ? <div className={styles.emptyState}>No upcoming trips. Book a ride now!</div> : renderBookings(upcomingBookings)
+                ) : activeTab === 'history' ? (
+                    <>
+                        {historyBookings.length === 0 ? <div className={styles.emptyState}>No past trips.</div> : renderBookings(historyBookings)}
+                        {historyBookings.length > 0 && (
+                            <div style={{ marginTop: '3rem', marginBottom: '2rem' }}>
+                                <h3 style={{ marginBottom: '1rem', color: '#1e293b' }}>Spending Summary</h3>
+                                <SpendingChart history={historyBookings} />
+                            </div>
+                        )}
+                    </>
                 ) : (
-                    activeTab === 'upcoming' ? (
-                        upcomingBookings.length === 0 ? <div className={styles.emptyState}>No upcoming trips. Book a ride now!</div> : renderBookings(upcomingBookings)
-                    ) : (
-                        <>
-                            {historyBookings.length === 0 ? <div className={styles.emptyState}>No past trips.</div> : renderBookings(historyBookings)}
-                            {historyBookings.length > 0 && (
-                                <div style={{ marginTop: '3rem', marginBottom: '2rem' }}>
-                                    <h3 style={{ marginBottom: '1rem', color: '#1e293b' }}>Spending Summary</h3>
-                                    <SpendingChart history={historyBookings} />
-                                </div>
-                            )}
-                        </>
-                    )
+                    renderSupportRequests()
                 )}
             </div>
 
@@ -281,6 +458,15 @@ const MyBookings = () => {
                 />
             )}
 
+            {supportModalBooking && (
+                <SupportRequestModal
+                    isOpen={!!supportModalBooking}
+                    booking={supportModalBooking}
+                    onClose={() => setSupportModalBooking(null)}
+                    onSubmit={handleSupportSubmit}
+                />
+            )}
+
             {viewProfileId && (
                 <UserProfileModal
                     userId={viewProfileId}
@@ -289,15 +475,53 @@ const MyBookings = () => {
                 />
             )}
 
-            <ConfirmModal
-                isOpen={confirmModal.show}
-                onClose={() => setConfirmModal({ ...confirmModal, show: false })}
-                onConfirm={confirmModal.onConfirm}
-                title={confirmModal.title}
-                message={confirmModal.message}
-                type={confirmModal.type}
-                confirmText={confirmModal.confirmText}
-            />
+            {cancelModal.show && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <div className={styles.modalHeader}>
+                            <h3>Cancel Booking</h3>
+                            <button
+                                onClick={() => setCancelModal({ show: false, bookingId: null, reason: 'CHANGED_PLANS', reasonText: '', error: '' })}
+                                className={styles.closeBtn}
+                            >
+                                x
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <label className={styles.modalLabel}>Reason</label>
+                            <select
+                                className={styles.modalInput}
+                                value={cancelModal.reason}
+                                onChange={(e) => setCancelModal(prev => ({ ...prev, reason: e.target.value, error: '' }))}
+                            >
+                                {passengerCancelReasons.map((option) => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                            {cancelModal.reason === 'OTHER' && (
+                                <>
+                                    <label className={styles.modalLabel}>Reason Details</label>
+                                    <textarea
+                                        className={styles.modalTextarea}
+                                        rows={3}
+                                        value={cancelModal.reasonText}
+                                        onChange={(e) => setCancelModal(prev => ({ ...prev, reasonText: e.target.value, error: '' }))}
+                                    />
+                                </>
+                            )}
+                            {cancelModal.error && <div className={styles.modalError}>{cancelModal.error}</div>}
+                        </div>
+                        <div className={styles.modalActions}>
+                            <Button variant="outline" onClick={() => setCancelModal({ show: false, bookingId: null, reason: 'CHANGED_PLANS', reasonText: '', error: '' })}>
+                                Close
+                            </Button>
+                            <Button onClick={submitCancel} style={{ backgroundColor: '#dc3545', color: '#fff' }}>
+                                Confirm Cancellation
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

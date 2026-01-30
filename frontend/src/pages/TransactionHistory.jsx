@@ -52,7 +52,15 @@ const TransactionHistory = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {payments.map((p) => (
+                                {payments.map((p) => {
+                                    const statusClass =
+                                        p.status === 'SUCCESS'
+                                            ? styles.success
+                                            : p.status === 'FAILED'
+                                                ? styles.failed
+                                                : styles.failed;
+
+                                    return (
                                     <tr key={p.id}>
                                         <td>
                                             {new Date(p.paymentTime).toLocaleDateString('en-GB')}
@@ -70,7 +78,7 @@ const TransactionHistory = () => {
                                             ₹{(p.amount).toFixed(2)}
                                         </td>
                                         <td>
-                                            <span className={`${styles.status} ${p.status === 'SUCCESS' ? styles.success : styles.failed}`}>
+                                            <span className={`${styles.status} ${statusClass}`}>
                                                 {p.status}
                                             </span>
                                         </td>
@@ -87,7 +95,8 @@ const TransactionHistory = () => {
                                             )}
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

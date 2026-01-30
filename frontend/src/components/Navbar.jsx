@@ -26,6 +26,16 @@ const Navbar = () => {
         }
     }, [user]);
 
+    useEffect(() => {
+        if (!user) return undefined;
+
+        const intervalId = setInterval(() => {
+            fetchUnreadCount();
+        }, 60000);
+
+        return () => clearInterval(intervalId);
+    }, [user]);
+
     // Listen for real-time unread count updates from WebSocket
     useEffect(() => {
         const handleNotificationCountUpdate = (event) => {
